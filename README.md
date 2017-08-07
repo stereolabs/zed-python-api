@@ -55,11 +55,11 @@ import *pyzed.camera* before *pyzed.core* and *pyzed.mesh* to avoid import error
 
 ### Run the tutorials
 
-The tutorials provide simple projects to show how to use each module of the ZED SDK. For a similar version using the C++ API checkout the [Cpp tutorials](https://github.com/stereolabs/zed-examples/tree/master/tutorials).
+The [tutorials](tutorials) provide simple projects to show how to use each module of the ZED SDK. For a similar version using the C++ API checkout the [Cpp tutorials](https://github.com/stereolabs/zed-examples/tree/master/tutorials).
 
 ### Run the examples
 
-Please refer to the examples README for more informations.
+Please refer to the [examples](examples) README for more informations.
 
 ## Contributing
 
