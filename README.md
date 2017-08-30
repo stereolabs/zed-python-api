@@ -9,14 +9,17 @@ This package lets you use the ZED stereo camera in Python 3.
 
 ### Prerequisites
 
-- [ZED SDK 2.1](https://www.stereolabs.com/developers/) and its dependencies 
+- [ZED SDK](https://www.stereolabs.com/developers/) and its dependencies 
 ([CUDA](https://developer.nvidia.com/cuda-downloads))
-- [Python 3.5+ (x64)](https://www.python.org/downloads/)
--  C++ compiler
+- Python 3.5+ (x64).  ([Windows installer](https://www.python.org/ftp/python/3.6.2/python-3.6.2-amd64.exe))
+-  C++ compiler (VS2015 recommended)
 - [Cython 0.26](http://cython.org/#download)
 - [Numpy 1.13.1](https://www.scipy.org/scipylib/download.html)
 
 Cython and Numpy can be installed via pip.
+```
+python -m pip install cython numpy
+```
 
   
 ### Build the plugin
@@ -26,13 +29,11 @@ python setup.py build
 python setup.py install
 ```
 
+If an __error__ occurs during the compilation, make sure that you're using the latest [ZED SDK](https://www.stereolabs.com/developers/) and that you installed an x64 version of python. `python -c "import platform; print(platform.architecture())"`
+
 The packages *.pyd* for Windows or *.so* for Linux will be generated and installed.
 
-You can use 
-```
-python setup.py cleanall
-``` 
-to remove every cpp files generated and build directory.
+You can use `python setup.py cleanall` to remove every cpp files generated and build directory.
 
 ## Use the plugin
 
