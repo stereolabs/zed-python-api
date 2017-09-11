@@ -388,10 +388,10 @@ cdef class PyMat:
 
         cdef size_t size = 0
         dtype = None
-        if self.mat.getDataType() == MAT_TYPE_8U_C1 or MAT_TYPE_8U_C2 or MAT_TYPE_8U_C3 or MAT_TYPE_8U_C4:
+        if self.mat.getDataType() in (MAT_TYPE_8U_C1, MAT_TYPE_8U_C2, MAT_TYPE_8U_C3, MAT_TYPE_8U_C4):
             size = self.mat.getHeight()*self.mat.getWidth()*self.mat.getChannels()
             dtype = np.uint8
-        elif self.mat.getDataType() == MAT_TYPE_32F_C1 or MAT_TYPE_32F_C2 or MAT_TYPE_32F_C3 or MAT_TYPE_32F_C4:
+        elif self.mat.getDataType() in (MAT_TYPE_32F_C1, MAT_TYPE_32F_C2, MAT_TYPE_32F_C3, MAT_TYPE_32F_C4):
             size = self.mat.getHeight()*self.mat.getWidth()*self.mat.getChannels()*sizeof(float)
             dtype = np.float32
         else:
