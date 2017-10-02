@@ -45,7 +45,7 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
         MESH_TEXTURE_LAST
 
 
-    cdef enum FILTER 'sl::MeshFilterParameters::FILTER':
+    ctypedef enum FILTER 'sl::MeshFilterParameters::FILTER':
         FILTER_LOW 'sl::MeshFilterParameters::FILTER::FILTER_LOW'
         FILTER_MEDIUM 'sl::MeshFilterParameters::FILTER::FILTER_MEDIUM'
         FILTER_HIGH 'sl::MeshFilterParameters::FILTER::FILTER_HIGH'

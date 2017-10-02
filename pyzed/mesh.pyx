@@ -51,8 +51,8 @@ cdef class PyMeshFilterParameters:
     cdef MeshFilterParameters* meshFilter
     cdef FILTER filter
     def __cinit__(self):
-        self.filter = FILTER_LOW
-        self.meshFilter = new MeshFilterParameters(FILTER_LOW)
+        self.filter = PyFILTER.PyFILTER_LOW
+        self.meshFilter = new MeshFilterParameters(PyFILTER.PyFILTER_LOW)
 
     def set(self, filter=PyFILTER.PyFILTER_LOW):
         if isinstance(filter, PyFILTER):
