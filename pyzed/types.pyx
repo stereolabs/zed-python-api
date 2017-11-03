@@ -49,10 +49,10 @@ class PyERROR_CODE(enum.Enum):
     PyERROR_CODE_LAST = ERROR_CODE_LAST
 
     def __str__(self):
-        return errorCode2str(self.value).decode()
+        return errorCode2str(self.value).get()
 
     def __repr__(self):
-        return errorCode2str(self.value).decode()
+        return errorCode2str(self.value).get()
 
 
 def c_sleep_ms(int time):

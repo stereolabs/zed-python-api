@@ -171,9 +171,8 @@ namespace sl {
         return saveDepthAs(depth, format, name, factor);
     }
 
-    bool saveMatPointCloudAs(sl::Mat &cloud, sl::POINT_CLOUD_FORMAT format, sl::String name, bool with_color = false, bool keep_occluded_point = false) {
-        return savePointCloudAs(cloud, format, name, with_color, keep_occluded_point);
-
+    bool saveMatPointCloudAs(sl::Mat &cloud, sl::POINT_CLOUD_FORMAT format, sl::String name, bool with_color = false) {
+        return savePointCloudAs(cloud, format, name, with_color);
     }
 
 }

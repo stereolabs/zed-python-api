@@ -31,16 +31,16 @@ cimport pyzed.mesh as mesh
 
 cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
-    ctypedef enum RESOLUTION 'sl::SpatialMappingParameters::RESOLUTION':
-        RESOLUTION_HIGH 'sl::SpatialMappingParameters::RESOLUTION::RESOLUTION_HIGH'
-        RESOLUTION_MEDIUM 'sl::SpatialMappingParameters::RESOLUTION::RESOLUTION_MEDIUM'
-        RESOLUTION_LOW 'sl::SpatialMappingParameters::RESOLUTION::RESOLUTION_LOW'
+    ctypedef enum MAPPING_RESOLUTION 'sl::SpatialMappingParameters::MAPPING_RESOLUTION':
+        MAPPING_RESOLUTION_HIGH 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::MAPPING_RESOLUTION_HIGH'
+        MAPPING_RESOLUTION_MEDIUM 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::MAPPING_RESOLUTION_MEDIUM'
+        MAPPING_RESOLUTION_LOW 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::MAPPING_RESOLUTION_LOW'
 
 
-    ctypedef enum RANGE 'sl::SpatialMappingParameters::RANGE':
-        RANGE_NEAR 'sl::SpatialMappingParameters::RANGE::RANGE_NEAR'
-        RANGE_MEDIUM 'sl::SpatialMappingParameters::RANGE::RANGE_MEDIUM'
-        RANGE_FAR 'sl::SpatialMappingParameters::RANGE::RANGE_FAR'
+    ctypedef enum MAPPING_RANGE 'sl::SpatialMappingParameters::MAPPING_RANGE':
+        MAPPING_RANGE_NEAR 'sl::SpatialMappingParameters::MAPPING_RANGE::MAPPING_RANGE_NEAR'
+        MAPPING_RANGE_MEDIUM 'sl::SpatialMappingParameters::MAPPING_RANGE::MAPPING_RANGE_MEDIUM'
+        MAPPING_RANGE_FAR 'sl::SpatialMappingParameters::MAPPING_RANGE::MAPPING_RANGE_FAR'
 
 
     cdef cppclass InitParameters 'sl::InitParameters':
@@ -116,31 +116,30 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
     cdef cppclass SpatialMappingParameters 'sl::SpatialMappingParameters':
         ctypedef pair[float, float] interval
 
-        SpatialMappingParameters(RESOLUTION resolution,
-                                 RANGE range,
+        SpatialMappingParameters(MAPPING_RESOLUTION resolution,
+                                 MAPPING_RANGE range,
                                  int max_memory_usage_,
                                  bool save_texture_,
-                                 bool keep_mesh_consistent_,
-                                 bool inverse_triangle_vertices_order_)
+                                 bool use_chunk_only_,
+                                 bool reverse_vertex_order_)
 
         @staticmethod
-        float get(RESOLUTION resolution)
+        float get(MAPPING_RESOLUTION resolution)
 
-        void set(RESOLUTION resolution)
+        void set(MAPPING_RESOLUTION resolution)
 
         @staticmethod
-        float get(RANGE range)
+        float get(MAPPING_RANGE range)
 
-        void set(RANGE range)
+        void set(MAPPING_RANGE range)
 
         int max_memory_usage
         bool save_texture
-        bool keep_mesh_consistent
-        bool inverse_triangle_vertices_order
+        bool use_chunk_only
+        bool reverse_vertex_order
 
-        const interval allowed_min
-        const interval allowed_max
-        interval range_meter
+        const interval allowed_range
+        float range_meter
         const interval allowed_resolution
         float resolution_meter
 
@@ -226,13 +225,13 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
     bool saveDepthAs(Camera &zed, defines.DEPTH_FORMAT format, types.String name, float factor)
     bool savePointCloudAs(Camera &zed, defines.POINT_CLOUD_FORMAT format, types.String name,
-                          bool with_color, bool keep_occluded_point)
+                          bool with_color)
 
 
 cdef extern from "Utils.cpp" namespace "sl":
     bool saveMatDepthAs(core.Mat &depth, defines.DEPTH_FORMAT format, types.String name, float factor)
     bool saveMatPointCloudAs(core.Mat &cloud, defines.POINT_CLOUD_FORMAT format, types.String name,
-                          bool with_color, bool keep_occluded_point)
+                          bool with_color)
 
 
 cdef class PyZEDCamera:

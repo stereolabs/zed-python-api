@@ -194,25 +194,6 @@ cdef extern from "sl/Core.hpp" namespace "sl":
         types.Vector3[float] getEulerAngles(bool radian) const
         void setEulerAngles(const types.Vector3[float] &euler_angles, bool radian)
 
-    cdef cppclass TextureImage 'sl::TextureImage':
-
-        Mat img
-        Transform path
-
-        TextureImage(Mat &img_, Transform &path_)
-        void clear()
-
-
-    cdef cppclass TextureImagePool 'sl::TextureImagePool':
-
-        TextureImagePool()
-        vector[TextureImage] v
-        int size()
-        void stack(Mat &image, Transform &path);
-        void concat(const TextureImagePool &that);
-        TextureImagePool &operator=(const TextureImagePool &that);
-        void clear()
-
 
 ctypedef unsigned char uchar1
 ctypedef types.Vector2[unsigned char] uchar2

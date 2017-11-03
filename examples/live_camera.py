@@ -55,7 +55,7 @@ def main():
     while key != 113:  # for 'q' key
         err = cam.grab(runtime)
         if err == tp.PyERROR_CODE.PySUCCESS:
-            cam.retrieve_image(mat)
+            cam.retrieve_image(mat, sl.PyVIEW.PyVIEW_LEFT)
             cv2.imshow("ZED", mat.get_data())
             key = cv2.waitKey(5)
             settings(key, cam, runtime, mat)

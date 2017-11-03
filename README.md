@@ -9,12 +9,18 @@ This package lets you use the ZED stereo camera in Python 3.
 
 ### Prerequisites
 
-- [ZED SDK](https://www.stereolabs.com/developers/) and its dependencies 
+- [ZED SDK 2.2](https://www.stereolabs.com/developers/) and its dependencies 
 ([CUDA](https://developer.nvidia.com/cuda-downloads))
 - Python 3.5+ (x64).  ([Windows installer](https://www.python.org/ftp/python/3.6.2/python-3.6.2-amd64.exe))
 -  C++ compiler (VS2015 recommended)
 - [Cython 0.26](http://cython.org/#download)
 - [Numpy 1.13.1](https://www.scipy.org/scipylib/download.html)
+
+Please check your python version with the following command. The result should be 3.5 or higer, check the tutorial [here](https://linuxconfig.org/how-to-change-from-default-to-alternative-python-version-on-debian-linux) to manage multiple python versions on Linux.
+```
+python --version
+```
+**Note:** On Linux the version returned by `python --version` and `sudo python --version` might not be the same.
 
 Cython and Numpy can be installed via pip.
 ```

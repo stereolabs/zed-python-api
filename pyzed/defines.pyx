@@ -31,10 +31,10 @@ class PyRESOLUTION(enum.Enum):
     PyRESOLUTION_LAST = RESOLUTION_LAST
 
     def __str__(self):
-        return resolution2str(self.value).decode()
+        return (<bytes> resolution2str(self.value)).decode()
 
     def __repr__(self):
-        return resolution2str(self.value).decode()
+        return (<bytes> resolution2str(self.value)).decode()
 
 
 class PyCAMERA_SETTINGS(enum.Enum):
@@ -57,10 +57,10 @@ class PySELF_CALIBRATION_STATE(enum.Enum):
     PySELF_CALIBRATION_STATE_LAST = SELF_CALIBRATION_STATE_LAST
 
     def __str__(self):
-        return statusCode2str(self.value).decode()
+        return (<bytes> statusCode2str(self.value)).decode()
 
     def __repr__(self):
-        return statusCode2str(self.value).decode()
+        return (<bytes> statusCode2str(self.value)).decode()
 
 
 class PyDEPTH_MODE(enum.Enum):
@@ -71,10 +71,10 @@ class PyDEPTH_MODE(enum.Enum):
     PyDEPTH_MODE_LAST = DEPTH_MODE_LAST
 
     def __str__(self):
-        return depthMode2str(self.value).decode()
+        return (<bytes> depthMode2str(self.value)).decode()
 
     def __repr__(self):
-        return depthMode2str(self.value).decode()
+        return (<bytes> depthMode2str(self.value)).decode()
 
 
 class PySENSING_MODE(enum.Enum):
@@ -83,10 +83,10 @@ class PySENSING_MODE(enum.Enum):
     PySENSING_MODE_LAST = SENSING_MODE_LAST
 
     def __str__(self):
-        return sensingMode2str(self.value).decode()
+        return (<bytes> sensingMode2str(self.value)).decode()
 
     def __repr__(self):
-        return sensingMode2str(self.value).decode()
+        return (<bytes> sensingMode2str(self.value)).decode()
 
 
 class PyUNIT(enum.Enum):
@@ -98,10 +98,10 @@ class PyUNIT(enum.Enum):
     PyUNIT_LAST = UNIT_LAST
 
     def __str__(self):
-        return unit2str(self.value).decode()
+        return (<bytes> unit2str(self.value)).decode()
 
     def __repr__(self):
-        return unit2str(self.value).decode()
+        return (<bytes> unit2str(self.value)).decode()
 
 
 class PyCOORDINATE_SYSTEM(enum.Enum):
@@ -175,10 +175,10 @@ class PyTRACKING_STATE(enum.Enum):
     PyTRACKING_STATE_LAST = TRACKING_STATE_LAST
 
     def __str__(self):
-        return trackingState2str(self.value).decode()
+        return (<bytes> trackingState2str(self.value)).decode()
 
     def __repr__(self):
-        return trackingState2str(self.value).decode()
+        return (<bytes> trackingState2str(self.value)).decode()
 
 
 class PyAREA_EXPORT_STATE(enum.Enum):
@@ -206,10 +206,10 @@ class PySPATIAL_MAPPING_STATE(enum.Enum):
     PySPATIAL_MAPPING_STATE_LAST = SPATIAL_MAPPING_STATE_LAST
 
     def __str__(self):
-        return spatialMappingState2str(self.value).decode()
+        return (<bytes> spatialMappingState2str(self.value)).decode()
 
     def __repr__(self):
-        return spatialMappingState2str(self.value).decode()
+        return (<bytes> spatialMappingState2str(self.value)).decode()
 
 
 class PySVO_COMPRESSION_MODE(enum.Enum):

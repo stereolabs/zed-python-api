@@ -42,22 +42,19 @@ class PyMESH_TEXTURE_FORMAT(enum.Enum):
     PyMESH_TEXTURE_LAST = MESH_TEXTURE_LAST
 
 class PyFILTER(enum.Enum):
-    PyFILTER_LOW = FILTER_LOW
-    PyFILTER_MEDIUM = FILTER_MEDIUM
-    PyFILTER_HIGH = FILTER_HIGH
+    PyFILTER_LOW = MESH_FILTER_LOW
+    PyFILTER_MEDIUM = MESH_FILTER_MEDIUM
+    PyFILTER_HIGH = MESH_FILTER_HIGH
 
 
 cdef class PyMeshFilterParameters:
     cdef MeshFilterParameters* meshFilter
-    cdef FILTER filter
     def __cinit__(self):
-        self.filter = PyFILTER.PyFILTER_LOW
-        self.meshFilter = new MeshFilterParameters(PyFILTER.PyFILTER_LOW)
+        self.meshFilter = new MeshFilterParameters(MESH_FILTER_LOW)
 
     def set(self, filter=PyFILTER.PyFILTER_LOW):
         if isinstance(filter, PyFILTER):
-            self.filter = filter.value
-            set(filter.name)
+            self.meshFilter.set(filter.value)
         else:
             raise TypeError("Argument is not of PyFILTER type.")
 

@@ -29,13 +29,39 @@ import numpy
 import os
 import sys
 import shutil
+import re
 
 incDirs = ""
 libDirs = ""
 libs = ""
 cflags = ""
 
+ZED_SDK_MAJOR="2"
+ZED_SDK_MINOR="2"
 
+def check_zed_sdk_version(file_path):
+    file_path=file_path+"/sl/defines.hpp"
+    
+    with open (file_path, "r") as myfile:
+        data = myfile.read()
+        
+    p = re.compile("ZED_SDK_MAJOR_VERSION (.*)")
+    major = p.search(data).group(1)
+
+    p = re.compile("ZED_SDK_MINOR_VERSION (.*)")
+    minor = p.search(data).group(1)
+
+    p = re.compile("ZED_SDK_PATCH_VERSION (.*)")
+    patch = p.search(data).group(1)
+    
+    if major==ZED_SDK_MAJOR and minor>=ZED_SDK_MINOR:
+        print("ZED SDK Version: OK")
+    else:
+        print("WARNING ! Required ZED SDK version: " + ZED_SDK_MAJOR + "." + ZED_SDK_MINOR)
+        print("ZED SDK detected: " + major + "." + minor + "." + patch)
+        print("Aborting")
+        sys.exit(0)
+    
 def clean_cpp():
     if os.path.isfile("pyzed/camera.cpp"):
         os.remove("pyzed/camera.cpp")
@@ -69,6 +95,7 @@ if sys.platform == "win32":
     elif os.getenv("CUDA_PATH") is None:
         print("Error: you must install Cuda.")
     else:
+        check_zed_sdk_version(os.getenv("ZED_INCLUDE_DIRS"))
         incDirs = [numpy.get_include(), os.getenv("ZED_INCLUDE_DIRS"),
                    os.getenv("CUDA_PATH") + "/include"]
 
@@ -80,14 +107,13 @@ if sys.platform == "win32":
 cuda_path = "/usr/local/cuda"
 
 if sys.platform == "linux":
-
     zed_path = "/usr/local/zed"
     if not os.path.isdir(zed_path):
         print("Error: you must install the ZED SDK.")
     elif not os.path.isdir(cuda_path):
         print("Error: you must install Cuda.")
     else:
-
+        check_zed_sdk_version(zed_path+"/include")
         incDirs = [numpy.get_include(),
                    zed_path + "/include",
                    cuda_path + "/include"]
@@ -150,7 +176,7 @@ for mod in GPUmodulesTable:
     extensions.extend(extList)
 
 setup(name="pyzed",
-      version="2.1",
+      version="2.2",
       author_email="developers@stereolabs.com",
       description="Use the ZED SDK with Python",
       packages=py_packages,

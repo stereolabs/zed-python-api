@@ -20,11 +20,29 @@
 
 # File containing the Cython declarations to use the defines.hpp functions.
 
-from libcpp.string cimport string
+from libc.string cimport const_char
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp cimport bool
 
+
+cdef extern from "sl/types.hpp" namespace "sl":
+    ctypedef enum UNIT:
+        UNIT_MILLIMETER
+        UNIT_CENTIMETER
+        UNIT_METER
+        UNIT_INCH
+        UNIT_FOOT
+        UNIT_LAST
+
+
+    ctypedef enum COORDINATE_SYSTEM:
+        COORDINATE_SYSTEM_IMAGE
+        COORDINATE_SYSTEM_LEFT_HANDED_Y_UP
+        COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP
+        COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
+        COORDINATE_SYSTEM_LEFT_HANDED_Z_UP
+        COORDINATE_SYSTEM_LAST
 
 cdef extern from "sl/defines.hpp" namespace "sl":
 
@@ -68,24 +86,6 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         SENSING_MODE_STANDARD
         SENSING_MODE_FILL
         SENSING_MODE_LAST
-
-
-    ctypedef enum UNIT:
-        UNIT_MILLIMETER
-        UNIT_CENTIMETER
-        UNIT_METER
-        UNIT_INCH
-        UNIT_FOOT
-        UNIT_LAST
-
-
-    ctypedef enum COORDINATE_SYSTEM:
-        COORDINATE_SYSTEM_IMAGE
-        COORDINATE_SYSTEM_LEFT_HANDED_Y_UP
-        COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP
-        COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
-        COORDINATE_SYSTEM_LEFT_HANDED_Z_UP
-        COORDINATE_SYSTEM_LAST
 
 
     ctypedef enum MEASURE:
@@ -194,28 +194,28 @@ cdef extern from "sl/defines.hpp" namespace "sl":
     cdef vector[pair[int, int]] cameraResolution
 
     @staticmethod
-    cdef string resolution2str(RESOLUTION res)
+    cdef const_char* resolution2str(RESOLUTION res)
 
     @staticmethod
-    cdef string statusCode2str(SELF_CALIBRATION_STATE state)
+    cdef const_char* statusCode2str(SELF_CALIBRATION_STATE state)
 
     @staticmethod
-    cdef DEPTH_MODE str2mode(string mode)
+    cdef DEPTH_MODE str2mode(const_char* mode)
 
     @staticmethod
-    cdef string depthMode2str(DEPTH_MODE mode)
+    cdef const_char* depthMode2str(DEPTH_MODE mode)
 
     @staticmethod
-    cdef string sensingMode2str(SENSING_MODE mode)
+    cdef const_char* sensingMode2str(SENSING_MODE mode)
 
     @staticmethod
-    cdef string unit2str(UNIT unit)
+    cdef const_char* unit2str(UNIT unit)
 
     @staticmethod
-    cdef UNIT str2unit(string unit)
+    cdef UNIT str2unit(const_char* unit)
 
     @staticmethod
-    cdef string trackingState2str(TRACKING_STATE state)
+    cdef const_char* trackingState2str(TRACKING_STATE state)
 
     @staticmethod
-    cdef string spatialMappingState2str(SPATIAL_MAPPING_STATE state)
+    cdef const_char* spatialMappingState2str(SPATIAL_MAPPING_STATE state)

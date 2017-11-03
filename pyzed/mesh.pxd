@@ -45,15 +45,15 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
         MESH_TEXTURE_LAST
 
 
-    ctypedef enum FILTER 'sl::MeshFilterParameters::FILTER':
-        FILTER_LOW 'sl::MeshFilterParameters::FILTER::FILTER_LOW'
-        FILTER_MEDIUM 'sl::MeshFilterParameters::FILTER::FILTER_MEDIUM'
-        FILTER_HIGH 'sl::MeshFilterParameters::FILTER::FILTER_HIGH'
+    ctypedef enum MESH_FILTER 'sl::MeshFilterParameters::MESH_FILTER':
+        MESH_FILTER_LOW 'sl::MeshFilterParameters::MESH_FILTER::MESH_FILTER_LOW'
+        MESH_FILTER_MEDIUM 'sl::MeshFilterParameters::MESH_FILTER::MESH_FILTER_MEDIUM'
+        MESH_FILTER_HIGH 'sl::MeshFilterParameters::MESH_FILTER::MESH_FILTER_HIGH'
 
 
     cdef cppclass MeshFilterParameters 'sl::MeshFilterParameters':
-        MeshFilterParameters(FILTER filtering_)
-        void set(FILTER filtering_)
+        MeshFilterParameters(MESH_FILTER filtering_)
+        void set(MESH_FILTER filtering_)
         bool save(types.String filename)
         bool load(types.String filename)
 

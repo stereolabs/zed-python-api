@@ -50,7 +50,7 @@ cdef extern from "sl/types.hpp" namespace "sl":
         ERROR_CODE_CORRUPTED_SDK_INSTALLATION
         ERROR_CODE_LAST
 
-    string errorCode2str(ERROR_CODE err)
+    String errorCode2str(ERROR_CODE err)
 
     void sleep_ms(int time)
 

@@ -34,15 +34,15 @@ import pyzed.types as types
 
 
 class PyRESOLUTION(enum.Enum):
-    PyRESOLUTION_HIGH = RESOLUTION_HIGH
-    PyRESOLUTION_MEDIUM  = RESOLUTION_MEDIUM
-    PyRESOLUTION_LOW = RESOLUTION_LOW
+    PyRESOLUTION_HIGH = MAPPING_RESOLUTION_HIGH
+    PyRESOLUTION_MEDIUM  = MAPPING_RESOLUTION_MEDIUM
+    PyRESOLUTION_LOW = MAPPING_RESOLUTION_LOW
 
 
 class PyRANGE(enum.Enum):
-    PyRANGE_NEAR = RANGE_NEAR
-    PyRANGE_MEDIUM = RANGE_MEDIUM
-    PyRANGE_FAR = RANGE_FAR
+    PyRANGE_NEAR = MAPPING_RANGE_NEAR
+    PyRANGE_MEDIUM = MAPPING_RANGE_MEDIUM
+    PyRANGE_FAR = MAPPING_RANGE_FAR
 
 
 cdef class PyInitParameters:
@@ -341,36 +341,36 @@ cdef class PyTrackingParameters:
 cdef class PySpatialMappingParameters:
     cdef SpatialMappingParameters* spatial
     def __cinit__(self, resolution=PyRESOLUTION.PyRESOLUTION_HIGH, range=PyRANGE.PyRANGE_MEDIUM,
-                  max_memory_usage=2048, save_texture=True, keep_mesh_consistent=True,
-                  inverse_triangle_vertices_order=False):
+                  max_memory_usage=2048, save_texture=True, use_chunk_only=True,
+                  reverse_vertex_order=False):
         if (isinstance(resolution, PyRESOLUTION) and isinstance(range, PyRANGE) and
-            isinstance(keep_mesh_consistent, bool) and isinstance(inverse_triangle_vertices_order, bool)):
+            isinstance(use_chunk_only, bool) and isinstance(reverse_vertex_order, bool)):
             self.spatial = new SpatialMappingParameters(resolution.value, range.value, max_memory_usage, save_texture,
-                                                        keep_mesh_consistent, inverse_triangle_vertices_order)
+                                                        use_chunk_only, reverse_vertex_order)
         else:
             raise TypeError()
 
     def get_resolution(self, resolution=PyRESOLUTION.PyRESOLUTION_HIGH):
         if isinstance(resolution, PyRESOLUTION):
-            return self.spatial.get(<RESOLUTION> resolution.value)
+            return self.spatial.get(<MAPPING_RESOLUTION> resolution.value)
         else:
             raise TypeError("Argument is not of PyRESOLUTION type.")
 
     def set_resolution(self, resolution=PyRESOLUTION.PyRESOLUTION_HIGH):
         if isinstance(resolution, PyRESOLUTION):
-            self.spatial.set(<RESOLUTION> resolution.value)
+            self.spatial.set(<MAPPING_RESOLUTION> resolution.value)
         else:
             raise TypeError("Argument is not of PyRESOLUTION type.")
 
     def get_range(self, range=PyRANGE.PyRANGE_MEDIUM):
         if isinstance(range, PyRANGE):
-            return self.spatial.get(<RANGE> range.value)
+            return self.spatial.get(<MAPPING_RANGE> range.value)
         else:
             raise TypeError("Argument is not of PyRANGE type.")
 
     def set_range(self, range=PyRANGE.PyRANGE_MEDIUM):
         if isinstance(range, PyRANGE):
-            self.spatial.set(<RANGE> range.value)
+            self.spatial.set(<MAPPING_RANGE> range.value)
         else:
             raise TypeError("Argument is not of PyRANGE type.")
 
@@ -391,40 +391,32 @@ cdef class PySpatialMappingParameters:
         self.spatial.save_texture = value
 
     @property
-    def keep_mesh_consistent(self):
-        return self.spatial.keep_mesh_consistent
+    def use_chunk_only(self):
+        return self.spatial.use_chunk_only
 
-    @keep_mesh_consistent.setter
-    def keep_mesh_consistent(self, bool value):
-        self.spatial.keep_mesh_consistent = value
-
-    @property
-    def inverse_triangle_vertices_order(self):
-        return self.spatial.inverse_triangle_vertices_order
-
-    @inverse_triangle_vertices_order.setter
-    def inverse_triangle_vertices_order(self, bool value):
-        self.spatial.inverse_triangle_vertices_order = value
+    @use_chunk_only.setter
+    def use_chunk_only(self, bool value):
+        self.spatial.use_chunk_only = value
 
     @property
-    def allowed_min(self):
-        return self.spatial.allowed_min
+    def reverse_vertex_order(self):
+        return self.spatial.reverse_vertex_order
+
+    @reverse_vertex_order.setter
+    def reverse_vertex_order(self, bool value):
+        self.spatial.reverse_vertex_order = value
 
     @property
-    def allowed_max(self):
-        return self.spatial.allowed_max
+    def allowed_range(self):
+        return self.spatial.allowed_range
 
     @property
     def range_meter(self):
         return self.spatial.range_meter
 
     @range_meter.setter
-    def range_meter(self, value):
-        if(self.allowed_min[0] <= value[0] <= self.allowed_min[1] and
-           self.allowed_max[0] <= value[1] <= self.allowed_max[1]):
-            self.spatial.range_meter = value
-        else:
-            print("Tuple values must fit in min and max allowed intervals.")
+    def range_meter(self, float value):
+        self.spatial.range_meter = value
 
     @property
     def allowed_resolution(self):
@@ -685,11 +677,11 @@ def save_camera_depth_as(PyZEDCamera zed, format, str name, factor=1):
         raise TypeError("Arguments must be of PyDEPTH_FORMAT type and factor not over 65536.")
 
 
-def save_camera_point_cloud_as(PyZEDCamera zed, format, str name, with_color=False, keep_occluded_point=False):
+def save_camera_point_cloud_as(PyZEDCamera zed, format, str name, with_color=False):
     if isinstance(format, defines.PyPOINT_CLOUD_FORMAT):
         name_save = name.encode()
         return savePointCloudAs(zed.camera, format.value, types.String(<char*>name_save),
-                                with_color, keep_occluded_point)
+                                with_color)
     else:
         raise TypeError("Argument is not of PyPOINT_CLOUD_FORMAT type.")
 
@@ -701,10 +693,10 @@ def save_mat_depth_as(core.PyMat py_mat, format, str name, factor=1):
         raise TypeError("Arguments must be of PyDEPTH_FORMAT type and factor not over 65536.")
 
 
-def save_mat_point_cloud_as(core.PyMat py_mat, format, str name, with_color=False, keep_occluded_point=False):
+def save_mat_point_cloud_as(core.PyMat py_mat, format, str name, with_color=False):
     if isinstance(format, defines.PyPOINT_CLOUD_FORMAT):
         name_save = name.encode()
         return saveMatPointCloudAs(py_mat.mat, format.value, types.String(<char*>name_save),
-                                with_color, keep_occluded_point)
+                                with_color)
     else:
         raise TypeError("Argument is not of PyPOINT_CLOUD_FORMAT type.")
