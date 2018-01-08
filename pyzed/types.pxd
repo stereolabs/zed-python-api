@@ -23,37 +23,53 @@
 from libcpp.string cimport string
 from libcpp cimport bool
 
+cdef extern from "Utils.cpp" namespace "sl":
+    string to_str(String sl_str)
 
 cdef extern from "sl/types.hpp" namespace "sl":
 
     ctypedef unsigned long long timeStamp
 
     ctypedef enum ERROR_CODE:
-        SUCCESS
-        ERROR_CODE_FAILURE
-        ERROR_CODE_NO_GPU_COMPATIBLE
-        ERROR_CODE_NOT_ENOUGH_GPUMEM
-        ERROR_CODE_CAMERA_NOT_DETECTED
-        ERROR_CODE_INVALID_RESOLUTION
-        ERROR_CODE_LOW_USB_BANDWIDTH
-        ERROR_CODE_CALIBRATION_FILE_NOT_AVAILABLE
-        ERROR_CODE_INVALID_SVO_FILE
-        ERROR_CODE_SVO_RECORDING_ERROR
-        ERROR_CODE_INVALID_COORDINATE_SYSTEM
-        ERROR_CODE_INVALID_FIRMWARE
-        ERROR_CODE_INVALID_FUNCTION_PARAMETERS
-        ERROR_CODE_NOT_A_NEW_FRAME
-        ERROR_CODE_CUDA_ERROR
-        ERROR_CODE_CAMERA_NOT_INITIALIZED
-        ERROR_CODE_NVIDIA_DRIVER_OUT_OF_DATE
-        ERROR_CODE_INVALID_FUNCTION_CALL
-        ERROR_CODE_CORRUPTED_SDK_INSTALLATION
+        SUCCESS, 
+        ERROR_CODE_FAILURE,
+        ERROR_CODE_NO_GPU_COMPATIBLE,
+        ERROR_CODE_NOT_ENOUGH_GPUMEM,
+        ERROR_CODE_CAMERA_NOT_DETECTED,
+        ERROR_CODE_SENSOR_NOT_DETECTED,
+        ERROR_CODE_INVALID_RESOLUTION,
+        ERROR_CODE_LOW_USB_BANDWIDTH,
+        ERROR_CODE_CALIBRATION_FILE_NOT_AVAILABLE,
+        ERROR_CODE_INVALID_CALIBRATION_FILE,
+        ERROR_CODE_INVALID_SVO_FILE,
+        ERROR_CODE_SVO_RECORDING_ERROR,
+        ERROR_CODE_INVALID_COORDINATE_SYSTEM,
+        ERROR_CODE_INVALID_FIRMWARE,
+        ERROR_CODE_INVALID_FUNCTION_PARAMETERS,
+        ERROR_CODE_NOT_A_NEW_FRAME,
+        ERROR_CODE_CUDA_ERROR,
+        ERROR_CODE_CAMERA_NOT_INITIALIZED,
+        ERROR_CODE_NVIDIA_DRIVER_OUT_OF_DATE,
+        ERROR_CODE_INVALID_FUNCTION_CALL,
+        ERROR_CODE_CORRUPTED_SDK_INSTALLATION,
+        ERROR_CODE_INCOMPATIBLE_SDK_VERSION,
+        ERROR_CODE_INVALID_AREA_FILE,
+        ERROR_CODE_INCOMPATIBLE_AREA_FILE,
+        ERROR_CODE_CAMERA_DETECTION_ISSUE,
+        ERROR_CODE_CAMERA_ALREADY_IN_USE,
+        ERROR_CODE_NO_GPU_DETECTED,
         ERROR_CODE_LAST
 
     String errorCode2str(ERROR_CODE err)
 
     void sleep_ms(int time)
 
+    ctypedef enum MODEL:
+        MODEL_ZED,
+        MODEL_ZED_M,
+        MODEL_LAST
+
+    String model2str(MODEL model)
 
     cdef cppclass String 'sl::String':
 
@@ -62,6 +78,7 @@ cdef extern from "sl/types.hpp" namespace "sl":
         void set(const char *data)
         const char *get() const
         bool empty() const
+        string std_str() const
 
 
     cdef cppclass Vector2[T]:

@@ -228,6 +228,16 @@ cdef class PyMesh:
     def get_number_of_triangles(self):
         return self.mesh.getNumberOfTriangles()
 
+    def merge_chunks(self, faces_per_chunk):
+        self.mesh.mergeChunks(faces_per_chunk)
+
+    def get_gravity_estimate(self):
+        gravity = self.mesh.getGravityEstimate()
+        cdef np.ndarray arr = np.zeros(3)
+        for i in range(3):
+            arr[i] = gravity[i]
+        return arr
+
     def get_visible_list(self, core.PyTransform camera_pose):
         return self.mesh.getVisibleList(camera_pose.transform)
 

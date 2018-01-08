@@ -488,6 +488,42 @@ cdef class PyPose:
         return self.pose.pose_confidence
 
 
+cdef class PyIMUData:
+    cdef IMUData imuData
+
+    def __cinit__(self):
+        self.imuData = IMUData()
+        
+    def init_imuData(self, PyIMUData imuData):
+        self.imuData = IMUData(imuData.imuData)
+
+    def init_transform(self, core.PyTransform pose_data, mtimestamp=0, mconfidence=0):
+        self.imuData = IMUData(pose_data.transform, mtimestamp, mconfidence)
+
+    def get_orientation_covariance(self, types.PyMatrix3f orientation_covariance):
+        orientation_covariance.mat = self.imuData.orientation_covariance
+        return orientation_covariance
+
+    def get_angular_velocity(self, angular_velocity):
+        for i in range(3):
+            angular_velocity[i] = self.imuData.angular_velocity[i]
+        return angular_velocity
+
+    def get_linear_acceleration(self, linear_acceleration):
+        for i in range(3):
+            linear_acceleration[i] = self.imuData.linear_acceleration[i]
+        return linear_acceleration
+
+    def get_angular_velocity_convariance(self, types.PyMatrix3f angular_velocity_convariance):
+        angular_velocity_convariance.mat = self.imuData.angular_velocity_convariance
+        return angular_velocity_convariance
+
+    def get_linear_acceleration_convariance(self, types.PyMatrix3f linear_acceleration_convariance):
+        linear_acceleration_convariance.mat = self.imuData.linear_acceleration_convariance
+        return linear_acceleration_convariance
+
+
+
 cdef class PyZEDCamera:
     def __cinit__(self):
         self.camera = Camera()
@@ -580,10 +616,16 @@ cdef class PyZEDCamera:
     def get_current_timestamp(self):
         return self.camera.getCurrentTimestamp()
 
+    def get_timestamp(self, time_reference):
+        if isinstance(time_reference, defines.PyTIME_REFERENCE):
+            return self.camera.getTimestamp(time_reference.value)
+        else:
+            raise TypeError("Argument is not of PyTIME_REFERENCE type.")
+
     def get_frame_dropped_count(self):
         return self.camera.getFrameDroppedCount()
 
-    def get_camera_information(self, resizer=core.PyResolution(0, 0)):
+    def get_camera_information(self, resizer = core.PyResolution(0, 0)):
         return core.PyCameraInformation(self, resizer)
 
     def get_self_calibration_state(self):
@@ -597,8 +639,17 @@ cdef class PyZEDCamera:
             return types.PyERROR_CODE(self.camera.enableTracking(deref(py_tracking.tracking)))
         else:
             print("TrackingParameters must be initialized first with PyTrackingParameters().")
+   
+    def get_imu_data(self, PyIMUData py_imu_data, time_reference = defines.PyTIME_REFERENCE.PyTIME_REFERENCE_CURRENT):
+        if isinstance(time_reference, defines.PyTIME_REFERENCE):
+            return types.PyERROR_CODE(self.camera.getIMUData(py_imu_data.imuData, time_reference.value))
+        else:
+            raise TypeError("Argument is not of PyTIME_REFERENCE type.")
+    
+    def set_imu_prior(self, core.PyTransform transfom):
+        return types.PyERROR_CODE(self.camera.setIMUPrior(transfom.transform))
 
-    def get_position(self, PyPose py_pose, reference_frame=defines.PyREFERENCE_FRAME.PyREFERENCE_FRAME_WORLD):
+    def get_position(self, PyPose py_pose, reference_frame = defines.PyREFERENCE_FRAME.PyREFERENCE_FRAME_WORLD):
         if isinstance(reference_frame, defines.PyREFERENCE_FRAME):
             return defines.PyTRACKING_STATE(self.camera.getPosition(py_pose.pose, reference_frame.value))
         else:
@@ -606,13 +657,18 @@ cdef class PyZEDCamera:
 
     def get_area_export_state(self):
         return defines.PyAREA_EXPORT_STATE(self.camera.getAreaExportState())
+   
+    def save_current_area(self, str area_file_path):
+        filename = area_file_path.encode()
+        return types.PyERROR_CODE(self.camera.saveCurrentArea(types.String(<char*> filename)))
 
-    def disable_tracking(self, area_file_path=None):
-        if area_file_path is None:
-            self.camera.disableTracking(types.String(""))
+    def disable_tracking(self, str area_file_path):
+        filename = area_file_path.encode()
+        self.camera.disableTracking(types.String(<char*> filename))
+
 
     def reset_tracking(self, core.PyTransform path):
-        self.camera.resetTracking(path.transform)
+        return types.PyERROR_CODE(self.camera.resetTracking(path.transform))
 
     def enable_spatial_mapping(self, PySpatialMappingParameters py_spatial):
         if py_spatial:

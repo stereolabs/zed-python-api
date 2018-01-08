@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <sl/Core.hpp>
 #include <sl/Camera.hpp>
 
 namespace sl {
@@ -173,6 +172,10 @@ namespace sl {
 
     bool saveMatPointCloudAs(sl::Mat &cloud, sl::POINT_CLOUD_FORMAT format, sl::String name, bool with_color = false) {
         return savePointCloudAs(cloud, format, name, with_color);
+    }
+
+    std::string to_str(sl::String sl_str) {
+        return std::string(sl_str.c_str());
     }
 
 }

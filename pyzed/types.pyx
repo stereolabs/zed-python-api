@@ -33,6 +33,7 @@ class PyERROR_CODE(enum.Enum):
     PyERROR_CODE_NO_GPU_COMPATIBLE = ERROR_CODE_NO_GPU_COMPATIBLE
     PyERROR_CODE_NOT_ENOUGH_GPUMEM = ERROR_CODE_NOT_ENOUGH_GPUMEM
     PyERROR_CODE_CAMERA_NOT_DETECTED = ERROR_CODE_CAMERA_NOT_DETECTED
+    PyERROR_CODE_SENSOR_NOT_DETECTED = ERROR_CODE_SENSOR_NOT_DETECTED
     PyERROR_CODE_INVALID_RESOLUTION = ERROR_CODE_INVALID_RESOLUTION
     PyERROR_CODE_LOW_USB_BANDWIDTH = ERROR_CODE_LOW_USB_BANDWIDTH
     PyERROR_CODE_CALIBRATION_FILE_NOT_AVAILABLE = ERROR_CODE_CALIBRATION_FILE_NOT_AVAILABLE
@@ -40,19 +41,37 @@ class PyERROR_CODE(enum.Enum):
     PyERROR_CODE_SVO_RECORDING_ERROR = ERROR_CODE_SVO_RECORDING_ERROR
     PyERROR_CODE_INVALID_COORDINATE_SYSTEM = ERROR_CODE_INVALID_COORDINATE_SYSTEM
     PyERROR_CODE_INVALID_FIRMWARE = ERROR_CODE_INVALID_FIRMWARE
+    PyERROR_CODE_INVALID_FUNCTION_PARAMETERS = ERROR_CODE_INVALID_FUNCTION_PARAMETERS
     PyERROR_CODE_NOT_A_NEW_FRAME = ERROR_CODE_NOT_A_NEW_FRAME
     PyERROR_CODE_CUDA_ERROR = ERROR_CODE_CUDA_ERROR
     PyERROR_CODE_CAMERA_NOT_INITIALIZED = ERROR_CODE_CAMERA_NOT_INITIALIZED
     PyERROR_CODE_NVIDIA_DRIVER_OUT_OF_DATE = ERROR_CODE_NVIDIA_DRIVER_OUT_OF_DATE
     PyERROR_CODE_INVALID_FUNCTION_CALL = ERROR_CODE_INVALID_FUNCTION_CALL
     PyERROR_CODE_CORRUPTED_SDK_INSTALLATION = ERROR_CODE_CORRUPTED_SDK_INSTALLATION
+    PyERROR_CODE_INCOMPATIBLE_SDK_VERSION = ERROR_CODE_INCOMPATIBLE_SDK_VERSION
+    PyERROR_CODE_INVALID_AREA_FILE = ERROR_CODE_INVALID_AREA_FILE
+    PyERROR_CODE_INCOMPATIBLE_AREA_FILE = ERROR_CODE_INCOMPATIBLE_AREA_FILE 
+    PyERROR_CODE_CAMERA_DETECTION_ISSUE = ERROR_CODE_CAMERA_DETECTION_ISSUE
+    PyERROR_CODE_CAMERA_ALREADY_IN_USE = ERROR_CODE_CAMERA_ALREADY_IN_USE
+    PyERROR_CODE_NO_GPU_DETECTED = ERROR_CODE_NO_GPU_DETECTED
     PyERROR_CODE_LAST = ERROR_CODE_LAST
 
     def __str__(self):
-        return errorCode2str(self.value).get()
+        return to_str(errorCode2str(self.value)).decode()
 
     def __repr__(self):
-        return errorCode2str(self.value).get()
+        return to_str(errorCode2str(self.value)).decode()
+
+class PyMODEL(enum.Enum):
+    PyMODEL_ZED = MODEL_ZED
+    PyMODEL_ZED_M = MODEL_ZED_M
+    PyMODEL_LAST = MODEL_LAST
+    
+    def __str__(self):
+        return to_str(model2str(self.value)).decode()
+
+    def __repr__(self):
+        return to_str(model2str(self.value)).decode()
 
 
 def c_sleep_ms(int time):
@@ -90,13 +109,13 @@ cdef class PyMatrix3f:
 
     def set_zeros(self):
         self.mat.setZeros()
-
+ 
     def zeros(self):
         self.mat.zeros()
         return self
 
     def get_infos(self):
-        return self.mat.getInfos().get().decode()
+        return to_str(self.mat.getInfos()).decode()
 
     @property
     def matrix_name(self):
@@ -217,7 +236,7 @@ cdef class PyMatrix4f:
         return self
 
     def get_infos(self):
-        return self.mat.getInfos().get().decode()
+        return to_str(self.mat.getInfos()).decode()
 
     def set_sub_matrix3f(self, PyMatrix3f input, row=0, column=0):
         if row != 0 and row != 1 or column != 0 and column != 1:

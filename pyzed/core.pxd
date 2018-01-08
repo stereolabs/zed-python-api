@@ -60,7 +60,7 @@ cdef extern from "sl/Core.hpp" namespace "sl":
         CalibrationParameters calibration_parameters_raw
         unsigned int serial_number
         unsigned int firmware_version
-
+        types.MODEL camera_model
 
     cdef enum MEM:
         MEM_CPU
@@ -252,6 +252,8 @@ cdef extern from "Utils.cpp" namespace "sl":
     float4 *getPointerFloat4(Mat &mat, MEM memory_type)
 
 
+
+
 cdef class PyMat:
     cdef Mat mat
 
@@ -288,3 +290,4 @@ cdef class PyCameraInformation:
     cdef PyCalibrationParameters py_calib_raw
     cdef unsigned int serial_number
     cdef unsigned int firmware_version
+    cdef types.MODEL camera_model

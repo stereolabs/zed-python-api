@@ -147,7 +147,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool load(types.String filename)
 
 
-    cdef cppclass Pose 'sl::Pose':
+    cdef cppclass Pose:
         Pose()
         Pose(const Pose &pose)
         Pose(const core.Transform &pose_data, unsigned long long mtimestamp, int mconfidence)
@@ -163,6 +163,18 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         core.Transform pose_data
 
         int pose_confidence
+
+
+    cdef cppclass IMUData(Pose):
+        IMUData()
+        IMUData(const IMUData &pose)
+        IMUData(const core.Transform &pose_data, unsigned long long mtimestamp, int mconfidence)
+                
+        types.Matrix3f orientation_covariance
+        types.Vector3[float] angular_velocity
+        types.Vector3[float] linear_acceleration
+        types.Matrix3f angular_velocity_convariance
+        types.Matrix3f linear_acceleration_convariance
 
 
     cdef cppclass Camera 'sl::Camera':
@@ -188,8 +200,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float getCameraFPS()
         void setCameraFPS(int desired_fps)
         float getCurrentFPS()
-        types.timeStamp getCameraTimestamp()
-        types.timeStamp getCurrentTimestamp()
+        types.timeStamp getCameraTimestamp() # deprecated
+        types.timeStamp getCurrentTimestamp() # deprecated
+        types.timeStamp getTimestamp(defines.TIME_REFERENCE reference_time)
         unsigned int getFrameDroppedCount()
         core.CameraInformation getCameraInformation(core.Resolution resizer);
         defines.SELF_CALIBRATION_STATE getSelfCalibrationState()
@@ -197,9 +210,12 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         types.ERROR_CODE enableTracking(TrackingParameters tracking_params)
         defines.TRACKING_STATE getPosition(Pose &camera_pose, defines.REFERENCE_FRAME reference_frame)
+        types.ERROR_CODE saveCurrentArea(types.String area_file_path);
         defines.AREA_EXPORT_STATE getAreaExportState()
         void disableTracking(types.String area_file_path)
-        void resetTracking(core.Transform &path)
+        types.ERROR_CODE resetTracking(core.Transform &path)
+        types.ERROR_CODE getIMUData(IMUData &imu_data, defines.TIME_REFERENCE reference_time)
+        types.ERROR_CODE setIMUPrior(core.Transform &transfom)
 
         types.ERROR_CODE enableSpatialMapping(SpatialMappingParameters spatial_mapping_parameters)
         void pauseSpatialMapping(bool status)

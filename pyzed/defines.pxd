@@ -79,6 +79,7 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         DEPTH_MODE_PERFORMANCE
         DEPTH_MODE_MEDIUM
         DEPTH_MODE_QUALITY
+        DEPTH_MODE_ULTRA
         DEPTH_MODE_LAST
 
 
@@ -126,6 +127,10 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         VIEW_NORMALS_RIGHT
         VIEW_LAST
 
+    ctypedef enum TIME_REFERENCE:
+        TIME_REFERENCE_IMAGE
+        TIME_REFERENCE_CURRENT
+        TIME_REFERENCE_LAST
 
     ctypedef enum DEPTH_FORMAT:
         DEPTH_FORMAT_PNG

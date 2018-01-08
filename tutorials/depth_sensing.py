@@ -24,7 +24,7 @@ import pyzed.types as tp
 import pyzed.core as core
 import math
 import numpy as np
-
+import sys
 
 def main():
     # Create a PyZEDCamera object
@@ -73,9 +73,11 @@ def main():
             if not np.isnan(distance) and not np.isinf(distance):
                 distance = round(distance)
                 print("Distance to Camera at ({0}, {1}): {2} mm\n".format(x, y, distance))
-
                 # Increment the loop
                 i = i + 1
+            else:
+                print("Can't estimate distance at this position, move the camera\n")
+            sys.stdout.flush()
 
     # Close the camera
     zed.close()

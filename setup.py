@@ -22,29 +22,27 @@
 """
     Setup file to build, install, clean the pyzed package.
 """
-from distutils.core import setup, Extension
-from Cython.Build import cythonize
-
-import numpy
 import os
 import sys
 import shutil
 import re
+import numpy
+
+from distutils.core import setup, Extension
+from Cython.Build import cythonize
 
 incDirs = ""
 libDirs = ""
 libs = ""
 cflags = ""
 
-ZED_SDK_MAJOR="2"
-ZED_SDK_MINOR="2"
+ZED_SDK_MAJOR = "2"
+ZED_SDK_MINOR = "3"
 
-def check_zed_sdk_version(file_path):
-    file_path=file_path+"/sl/defines.hpp"
-    
-    with open (file_path, "r") as myfile:
+def check_zed_sdk_version_private(file_path):
+    with open(file_path, "r") as myfile:
         data = myfile.read()
-        
+
     p = re.compile("ZED_SDK_MAJOR_VERSION (.*)")
     major = p.search(data).group(1)
 
@@ -53,15 +51,23 @@ def check_zed_sdk_version(file_path):
 
     p = re.compile("ZED_SDK_PATCH_VERSION (.*)")
     patch = p.search(data).group(1)
-    
-    if major==ZED_SDK_MAJOR and minor>=ZED_SDK_MINOR:
+
+    if major == ZED_SDK_MAJOR and minor >= ZED_SDK_MINOR:
         print("ZED SDK Version: OK")
     else:
         print("WARNING ! Required ZED SDK version: " + ZED_SDK_MAJOR + "." + ZED_SDK_MINOR)
         print("ZED SDK detected: " + major + "." + minor + "." + patch)
         print("Aborting")
         sys.exit(0)
-    
+
+def check_zed_sdk_version(file_path):
+    file_path_prior_23 = file_path+"/sl/defines.hpp"
+    file_path_ = file_path+"/sl_zed/defines.hpp"
+    try:
+        check_zed_sdk_version_private(file_path_prior_23)
+    except AttributeError:
+        check_zed_sdk_version_private(file_path_)
+   
 def clean_cpp():
     if os.path.isfile("pyzed/camera.cpp"):
         os.remove("pyzed/camera.cpp")
@@ -90,19 +96,19 @@ if "cleanall" in "".join(sys.argv[1:]):
     sys.exit()
 
 if sys.platform == "win32":
-    if os.getenv("ZED_INCLUDE_DIRS") is None:
-        print("Error: you must install the ZED SDK.")
+    if os.getenv("ZED_SDK_ROOT_DIR") is None:
+        print(" you must install the ZED SDK.")
     elif os.getenv("CUDA_PATH") is None:
         print("Error: you must install Cuda.")
     else:
-        check_zed_sdk_version(os.getenv("ZED_INCLUDE_DIRS"))
-        incDirs = [numpy.get_include(), os.getenv("ZED_INCLUDE_DIRS"),
+        check_zed_sdk_version(os.getenv("ZED_SDK_ROOT_DIR")+"/include")
+        incDirs = [numpy.get_include(), os.getenv("ZED_SDK_ROOT_DIR")+"/include",
                    os.getenv("CUDA_PATH") + "/include"]
 
-        libDirs = [numpy.get_include(), os.getenv("ZED_LIBRARY_DIR"),
+        libDirs = [numpy.get_include(), os.getenv("ZED_SDK_ROOT_DIR")+"/lib",
                    os.getenv("CUDA_PATH")+"/lib/x64"]
 
-        libs = ["sl_core64", "sl_scanning64", "sl_zed64"]
+        libs = ["sl_core64", "sl_zed64"]
 
 cuda_path = "/usr/local/cuda"
 
@@ -121,9 +127,9 @@ if sys.platform == "linux":
         libDirs = [numpy.get_include(), zed_path + "/lib",
                    cuda_path + "/lib64"]
 
-        libs = ["sl_core", "sl_scanning", "sl_zed"]
+        libs = ["sl_core", "sl_zed"]
 
-        cflags = ["-std=c++11"]
+        cflags = ["-std=c++11", "-Wno-reorder", "-Wno-deprecated-declarations", "-Wno-cpp", "-O3"]
 
 cython_directives = {"embedsignature": True}
 
@@ -176,7 +182,7 @@ for mod in GPUmodulesTable:
     extensions.extend(extList)
 
 setup(name="pyzed",
-      version="2.2",
+      version="2.3",
       author_email="developers@stereolabs.com",
       description="Use the ZED SDK with Python",
       packages=py_packages,

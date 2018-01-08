@@ -87,6 +87,8 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
         vector[types.Vector2[float]] uv
         Texture texture
         size_t getNumberOfTriangles()
+        void mergeChunks(int faces_per_chunk)
+        types.Vector3[float] getGravityEstimate()
         chunkList getVisibleList(core.Transform camera_pose)
         chunkList getSurroundingList(core.Transform camera_pose, float radius)
         void updateMeshFromChunkList(chunkList IDs)
