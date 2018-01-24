@@ -39,6 +39,8 @@ cflags = ""
 ZED_SDK_MAJOR = "2"
 ZED_SDK_MINOR = "3"
 
+cuda_path = "/usr/local/cuda"
+
 def check_zed_sdk_version_private(file_path):
     with open(file_path, "r") as myfile:
         data = myfile.read()
@@ -109,10 +111,7 @@ if sys.platform == "win32":
                    os.getenv("CUDA_PATH")+"/lib/x64"]
 
         libs = ["sl_core64", "sl_zed64"]
-
-cuda_path = "/usr/local/cuda"
-
-if sys.platform == "linux":
+elif "linux" in sys.platform:
     zed_path = "/usr/local/zed"
     if not os.path.isdir(zed_path):
         print("Error: you must install the ZED SDK.")
@@ -130,9 +129,16 @@ if sys.platform == "linux":
         libs = ["sl_core", "sl_zed"]
 
         cflags = ["-std=c++11", "-Wno-reorder", "-Wno-deprecated-declarations", "-Wno-cpp", "-O3"]
+else:
+    print ("Unknown system.platform: %s  Installation failed, see setup.py." % sys.platform)
+    exit(1)    
+
+print ("compilation flags:", cflags)
+print ("include dirs:", incDirs)
+print ("library dirs:", libDirs)
+print ("libraries:", libs)
 
 cython_directives = {"embedsignature": True}
-
 
 def create_extension(name, sources):
     global incDirs
@@ -150,8 +156,7 @@ def create_extension(name, sources):
                         )
 
         return ext
-
-    if sys.platform == "linux":
+    elif "linux" in sys.platform:
         ext = Extension(name,
                         sources=sources,
                         include_dirs=incDirs,
@@ -163,6 +168,9 @@ def create_extension(name, sources):
                         )
 
         return ext
+    else:
+        print ("Unknown system.platform: %s" % sys.platform)
+        return None
 
 extensions = list()
 
@@ -178,7 +186,11 @@ GPUmodulesTable = [("pyzed.defines", ["pyzed/defines.pyx"]),
                    ]
 
 for mod in GPUmodulesTable:
-    extList = cythonize(create_extension(mod[0], mod[1]), compiler_directives=cython_directives)
+    print ("Building module:", mod)
+    extension = create_extension(mod[0], mod[1])
+    if extension == None:
+        print ("WARNING: extension is None, see setup.py:", mod)
+    extList = cythonize(extension, compiler_directives=cython_directives)
     extensions.extend(extList)
 
 setup(name="pyzed",
