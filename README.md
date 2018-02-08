@@ -55,6 +55,8 @@ The packages *.pyd* for Windows or *.so* for Linux will be generated and install
 
 You can use `python setup.py cleanall` to remove every cpp files generated and build directory.
 
+> Make sure to be **out** of the plugin driectory when using it. It will prevent Python from considering the `pyzed` folder of the plugin as the **pyzed** package.
+
 ## Use the plugin
 
 ### Code
