@@ -50,8 +50,10 @@ def main():
     # Track the camera position during 1000 frames
     i = 0
     zed_pose = zcam.PyPose()
+    runtime_parameters = zcam.PyRuntimeParameters()
+    
     while i < 1000:
-        if zed.grab(zcam.PyRuntimeParameters()) == tp.PyERROR_CODE.PySUCCESS:
+        if zed.grab(runtime_parameters) == tp.PyERROR_CODE.PySUCCESS:
             # Get the pose of the left eye of the camera with reference to the world frame
             zed.get_position(zed_pose, sl.PyREFERENCE_FRAME.PyREFERENCE_FRAME_WORLD)
 

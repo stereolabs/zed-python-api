@@ -58,10 +58,11 @@ def main():
     # Grab data during 500 frames
     i = 0
     py_mesh = mesh.PyMesh()  # Create a PyMesh object
+    runtime_parameters = zcam.PyRuntimeParameters()
 
     while i < 500:
         # For each new grab, mesh data is updated
-        if zed.grab(zcam.PyRuntimeParameters()) == tp.PyERROR_CODE.PySUCCESS:
+        if zed.grab(runtime_parameters) == tp.PyERROR_CODE.PySUCCESS:
             # In the background, spatial mapping will use newly retrieved images, depth and pose to update the mesh
             mapping_state = zed.get_spatial_mapping_state()
 

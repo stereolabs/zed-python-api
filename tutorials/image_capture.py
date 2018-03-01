@@ -41,9 +41,10 @@ def main():
     # Capture 50 frames and stop
     i = 0
     image = core.PyMat()
+    runtime_parameters = zcam.PyRuntimeParameters()
     while i < 50:
         # Grab an image, a PyRuntimeParameters object must be given to grab()
-        if zed.grab(zcam.PyRuntimeParameters()) == tp.PyERROR_CODE.PySUCCESS:
+        if zed.grab(runtime_parameters) == tp.PyERROR_CODE.PySUCCESS:
             # A new image is available if grab() returns PySUCCESS
             zed.retrieve_image(image, sl.PyVIEW.PyVIEW_LEFT)
             timestamp = zed.get_timestamp(sl.PyTIME_REFERENCE.PyTIME_REFERENCE_CURRENT)  # Get the timestamp at the time the image was captured
