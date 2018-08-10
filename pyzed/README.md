@@ -8,7 +8,7 @@ The **Cython** documentation: http://cython.org/
 The **Cython** wiki: https://github.com/cython/cython/wiki
 
 The **ZED SDK** documentation:
-https://www.stereolabs.com/developers/documentation/API/index.html
+https://www.stereolabs.com/developers/documentation/API/latest
 
 ## Configuration
 

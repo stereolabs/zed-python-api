@@ -50,12 +50,14 @@ def main():
     # Track the camera position during 1000 frames
     i = 0
     zed_pose = zcam.PyPose()
+    zed_imu = zcam.PyIMUData()
     runtime_parameters = zcam.PyRuntimeParameters()
     
     while i < 1000:
         if zed.grab(runtime_parameters) == tp.PyERROR_CODE.PySUCCESS:
             # Get the pose of the left eye of the camera with reference to the world frame
             zed.get_position(zed_pose, sl.PyREFERENCE_FRAME.PyREFERENCE_FRAME_WORLD)
+            zed.get_imu_data(zed_imu, sl.PyTIME_REFERENCE.PyTIME_REFERENCE_IMAGE)
 
             # Display the translation and timestamp
             py_translation = core.PyTranslation()
@@ -71,6 +73,30 @@ def main():
             oz = round(zed_pose.get_orientation(py_orientation).get()[2], 3)
             ow = round(zed_pose.get_orientation(py_orientation).get()[3], 3)
             print("Orientation: Ox: {0}, Oy: {1}, Oz {2}, Ow: {3}\n".format(ox, oy, oz, ow))
+            
+            #Display the IMU acceleratoin
+            acceleration = [0,0,0]
+            zed_imu.get_linear_acceleration(acceleration)
+            ax = round(acceleration[0], 3)
+            ay = round(acceleration[1], 3)
+            az = round(acceleration[2], 3)
+            print("IMU Acceleration: Ax: {0}, Ay: {1}, Az {2}\n".format(ax, ay, az))
+            
+            #Display the IMU angular velocity
+            a_velocity = [0,0,0]
+            zed_imu.get_angular_velocity(a_velocity)
+            vx = round(a_velocity[0], 3)
+            vy = round(a_velocity[1], 3)
+            vz = round(a_velocity[2], 3)
+            print("IMU Angular Velocity: Vx: {0}, Vy: {1}, Vz {2}\n".format(vx, vy, vz))
+
+            # Display the IMU orientation quaternion
+            imu_orientation = core.PyOrientation()
+            ox = round(zed_imu.get_orientation(imu_orientation).get()[0], 3)
+            oy = round(zed_imu.get_orientation(imu_orientation).get()[1], 3)
+            oz = round(zed_imu.get_orientation(imu_orientation).get()[2], 3)
+            ow = round(zed_imu.get_orientation(imu_orientation).get()[3], 3)
+            print("IMU Orientation: Ox: {0}, Oy: {1}, Oz {2}, Ow: {3}\n".format(ox, oy, oz, ow))
 
             i = i + 1
 

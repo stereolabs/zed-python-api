@@ -522,8 +522,43 @@ cdef class PyIMUData:
         linear_acceleration_convariance.mat = self.imuData.linear_acceleration_convariance
         return linear_acceleration_convariance
 
+    def get_translation(self, core.PyTranslation py_translation):
+        py_translation.translation = self.imuData.getTranslation()
+        return py_translation
 
+    def get_orientation(self, core.PyOrientation py_orientation):
+        py_orientation.orientation = self.imuData.getOrientation()
+        return py_orientation
 
+    def get_rotation_matrix(self, core.PyRotation py_rotation):
+        py_rotation.rotation = self.imuData.getRotationMatrix()
+        py_rotation.mat = self.imuData.getRotationMatrix()
+        return py_rotation
+
+    def get_rotation_vector(self):
+        cdef np.ndarray arr = np.zeros(3)
+        for i in range(3):
+            arr[i] = self.imuData.getRotationVector()[i]
+        return arr
+
+    def get_euler_angles(self, radian=True):
+        cdef np.ndarray arr = np.zeros(3)
+        if isinstance(radian, bool):
+            for i in range(3):
+                arr[i] = self.imuData.getEulerAngles(radian)[i]
+        else:
+            raise TypeError("Argument is not of bool type.")
+        return arr
+		
+    def pose_data(self, core.PyTransform pose_data):
+        pose_data.transform = self.imuData.pose_data
+        pose_data.mat = self.imuData.pose_data
+        return pose_data
+    
+    @property
+    def timestamp(self):
+        return self.imuData.timestamp
+		
 cdef class PyZEDCamera:
     def __cinit__(self):
         self.camera = Camera()
