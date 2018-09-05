@@ -140,11 +140,11 @@ def main():
                 # Copy the right image to the right side of SBS image
                 svo_image_sbs_rgba[0:, width:, :] = right_image.get_data()
 
-                # Convert SVO image from RGBA to BGR
-                ocv_image_sbs_bgr = cv2.cvtColor(svo_image_sbs_rgba, cv2.COLOR_RGBA2BGR)
+                # Convert SVO image from RGBA to RGB
+                ocv_image_sbs_rgb = cv2.cvtColor(svo_image_sbs_rgba, cv2.COLOR_RGBA2RGB)
 
                 # Write the RGB image in the video
-                video_writer.write(ocv_image_sbs_bgr)
+                video_writer.write(ocv_image_sbs_rgb)
             else:
                 # Generate file names
                 filename1 = output_path / ("left%s.png" % str(svo_position).zfill(6))
