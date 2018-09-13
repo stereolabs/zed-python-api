@@ -340,21 +340,15 @@ cdef class PyTrackingParameters:
 
 cdef class PySpatialMappingParameters:
     cdef SpatialMappingParameters* spatial
-    def __cinit__(self, resolution=PyRESOLUTION.PyRESOLUTION_HIGH, range=PyRANGE.PyRANGE_MEDIUM,
+    def __cinit__(self, resolution=PyRESOLUTION.PyRESOLUTION_HIGH, mapping_range=PyRANGE.PyRANGE_MEDIUM,
                   max_memory_usage=2048, save_texture=True, use_chunk_only=True,
                   reverse_vertex_order=False):
-        if (isinstance(resolution, PyRESOLUTION) and isinstance(range, PyRANGE) and
+        if (isinstance(resolution, PyRESOLUTION) and isinstance(mapping_range, PyRANGE) and
             isinstance(use_chunk_only, bool) and isinstance(reverse_vertex_order, bool)):
-            self.spatial = new SpatialMappingParameters(resolution.value, range.value, max_memory_usage, save_texture,
+            self.spatial = new SpatialMappingParameters(resolution.value, mapping_range.value, max_memory_usage, save_texture,
                                                         use_chunk_only, reverse_vertex_order)
         else:
             raise TypeError()
-
-    def get_resolution(self, resolution=PyRESOLUTION.PyRESOLUTION_HIGH):
-        if isinstance(resolution, PyRESOLUTION):
-            return self.spatial.get(<MAPPING_RESOLUTION> resolution.value)
-        else:
-            raise TypeError("Argument is not of PyRESOLUTION type.")
 
     def set_resolution(self, resolution=PyRESOLUTION.PyRESOLUTION_HIGH):
         if isinstance(resolution, PyRESOLUTION):
@@ -362,17 +356,23 @@ cdef class PySpatialMappingParameters:
         else:
             raise TypeError("Argument is not of PyRESOLUTION type.")
 
-    def get_range(self, range=PyRANGE.PyRANGE_MEDIUM):
-        if isinstance(range, PyRANGE):
-            return self.spatial.get(<MAPPING_RANGE> range.value)
+    def set_range(self, mapping_range=PyRANGE.PyRANGE_MEDIUM):
+        if isinstance(mapping_range, PyRANGE):
+            self.spatial.set(<MAPPING_RANGE> mapping_range.value)
         else:
             raise TypeError("Argument is not of PyRANGE type.")
 
-    def set_range(self, range=PyRANGE.PyRANGE_MEDIUM):
-        if isinstance(range, PyRANGE):
-            self.spatial.set(<MAPPING_RANGE> range.value)
+    def get_range_preset(self, mapping_range):
+        if isinstance(mapping_range, PyRANGE):
+            return self.spatial.get(<MAPPING_RANGE> mapping_range.value)
         else:
             raise TypeError("Argument is not of PyRANGE type.")
+
+    def get_resolution_preset(self, resolution):
+        if isinstance(resolution, PyRESOLUTION):
+            return self.spatial.get(<MAPPING_RESOLUTION> resolution.value)
+        else:
+            raise TypeError("Argument is not of PyRESOLUTION type.")
 
     @property
     def max_memory_usage(self):
@@ -416,7 +416,12 @@ cdef class PySpatialMappingParameters:
 
     @range_meter.setter
     def range_meter(self, float value):
+        print("THERE !")
+        print(value)
         self.spatial.range_meter = value
+        print(self.spatial.range_meter)
+        print("-")
+
 
     @property
     def allowed_resolution(self):
