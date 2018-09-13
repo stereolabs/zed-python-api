@@ -697,7 +697,7 @@ cdef class PyZEDCamera:
         filename = area_file_path.encode()
         return types.PyERROR_CODE(self.camera.saveCurrentArea(types.String(<char*> filename)))
 
-    def disable_tracking(self, str area_file_path):
+    def disable_tracking(self, str area_file_path=""):
         filename = area_file_path.encode()
         self.camera.disableTracking(types.String(<char*> filename))
 
