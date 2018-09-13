@@ -76,6 +76,9 @@ cdef class PyInitParameters:
         else:
             raise TypeError("Argument is not of right type.")
 
+    def __dealloc__(self):
+        del self.init
+
     def save(self, str filename):
         filename_save = filename.encode()
         return self.init.save(types.String(<char*> filename_save))
@@ -255,6 +258,9 @@ cdef class PyRuntimeParameters:
         else:
             raise TypeError()
 
+    def __dealloc__(self):
+        del self.runtime
+
     def save(self, str filename):
         filename_save = filename.encode()
         return self.runtime.save(types.String(<char*> filename_save))
@@ -301,6 +307,9 @@ cdef class PyTrackingParameters:
             self.tracking = new TrackingParameters(init_pos.transform, _enable_memory, types.String())
         else:
             raise TypeError("Argument init_pos must be initialized first with PyTransform().")
+    
+    def __dealloc__(self):
+        del self.tracking
 
     def save(self, str filename):
         filename_save = filename.encode()
@@ -349,6 +358,9 @@ cdef class PySpatialMappingParameters:
                                                         use_chunk_only, reverse_vertex_order)
         else:
             raise TypeError()
+
+    def __dealloc__(self):
+        del self.spatial
 
     def set_resolution(self, resolution=PyRESOLUTION.PyRESOLUTION_HIGH):
         if isinstance(resolution, PyRESOLUTION):
