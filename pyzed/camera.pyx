@@ -416,12 +416,7 @@ cdef class PySpatialMappingParameters:
 
     @range_meter.setter
     def range_meter(self, float value):
-        print("THERE !")
-        print(value)
         self.spatial.range_meter = value
-        print(self.spatial.range_meter)
-        print("-")
-
 
     @property
     def allowed_resolution(self):
