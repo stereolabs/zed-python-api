@@ -57,10 +57,10 @@ class PyERROR_CODE(enum.Enum):
     PyERROR_CODE_LAST = ERROR_CODE_LAST
 
     def __str__(self):
-        return to_str(errorCode2str(self.value)).decode()
+        return to_str(toString(<ERROR_CODE>self.value)).decode()
 
     def __repr__(self):
-        return to_str(errorCode2str(self.value)).decode()
+        return to_str(toString(<ERROR_CODE>self.value)).decode()
 
 class PyMODEL(enum.Enum):
     PyMODEL_ZED = MODEL_ZED
@@ -68,14 +68,85 @@ class PyMODEL(enum.Enum):
     PyMODEL_LAST = MODEL_LAST
     
     def __str__(self):
-        return to_str(model2str(self.value)).decode()
+        return to_str(toString(<MODEL>self.value)).decode()
 
     def __repr__(self):
-        return to_str(model2str(self.value)).decode()
+        return to_str(toString(<MODEL>self.value)).decode()
 
+class PyCAMERA_STATE(enum.Enum):
+    PyCAMERA_STATE_AVAILABLE = CAMERA_STATE_AVAILABLE
+    PyCAMERA_STATE_NOT_AVAILABLE = CAMERA_STATE_NOT_AVAILABLE
+    PyCAMERA_STATE_LAST = CAMERA_STATE_LAST
+
+    def __str__(self):
+        return to_str(toString(<CAMERA_STATE>self.value)).decode()
+
+    def __repr__(self):
+        return to_str(toString(<CAMERA_STATE>self.value)).decode()
 
 def c_sleep_ms(int time):
     sleep_ms(time)
+
+cdef class PyDeviceProperties:
+    cdef DeviceProperties c_device_properties
+
+    def __cinit__(self):
+        self.c_device_properties = DeviceProperties()
+
+    @property
+    def camera_state(self):
+        return self.c_device_properties.camera_state
+    @camera_state.setter
+    def camera_state(self, camera_state):
+        if isinstance(camera_state, PyCAMERA_STATE):
+            self.c_device_properties.camera_state = (<CAMERA_STATE> camera_state.value)
+        elif isinstance(camera_state, int):
+            self.c_device_properties.camera_state = (<CAMERA_STATE> camera_state)
+        else:
+            raise TypeError("Argument is not of PyCAMERA_STATE type.")
+
+    @property
+    def id(self):
+        return self.c_device_properties.id
+    @id.setter
+    def id(self, id):
+        self.c_device_properties.id = id
+
+    @property
+    def path(self):
+        if not self.c_device_properties.path.empty():
+            return self.c_device_properties.path.get().decode()
+        else:
+            return ""
+    @path.setter
+    def path(self, str path):
+        path_ = path.encode()
+        self.c_device_properties.path = (String(<char*> path_))
+
+    @property
+    def camera_model(self):
+        return self.c_device_properties.camera_model
+    @camera_model.setter
+    def camera_model(self, camera_model):
+        if isinstance(camera_model, PyMODEL):
+            self.c_device_properties.camera_model = (<MODEL> camera_model.value)
+        elif isinstance(camera_model, int):
+            self.c_device_properties.camera_model = (<MODEL> camera_model)
+        else:
+            raise TypeError("Argument is not of PyMODEL type.")
+
+    @property
+    def serial_number(self):
+        return self.c_device_properties.serial_number
+    @serial_number.setter
+    def serial_number(self, serial_number):
+        self.c_device_properties.serial_number = serial_number
+
+    def __str__(self):
+        return to_str(toString(self.c_device_properties)).decode()
+
+    def __repr__(self):
+        return to_str(toString(self.c_device_properties)).decode()
 
 
 cdef class PyMatrix3f:

@@ -22,6 +22,7 @@
 
 from libcpp cimport bool
 from libcpp.pair cimport pair
+from libcpp.vector cimport vector
 
 cimport pyzed.defines as defines
 cimport pyzed.core as core
@@ -238,6 +239,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         @staticmethod
         types.ERROR_CODE sticktoCPUCore(int cpu_core)
+
+        @staticmethod
+        vector[types.DeviceProperties] getDeviceList()
 
     bool saveDepthAs(Camera &zed, defines.DEPTH_FORMAT format, types.String name, float factor)
     bool savePointCloudAs(Camera &zed, defines.POINT_CLOUD_FORMAT format, types.String name,

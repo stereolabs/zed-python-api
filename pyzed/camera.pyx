@@ -713,7 +713,6 @@ cdef class PyZEDCamera:
         filename = area_file_path.encode()
         self.camera.disableTracking(types.String(<char*> filename))
 
-
     def reset_tracking(self, core.PyTransform path):
         return types.PyERROR_CODE(self.camera.resetTracking(path.transform))
 
@@ -762,15 +761,27 @@ cdef class PyZEDCamera:
     def disable_recording(self):
         self.camera.disableRecording()
 
-    def get_sdk_version(self):
-        return self.camera.getSDKVersion().get().decode()
+    def get_sdk_version(cls):
+        return cls.camera.getSDKVersion().get().decode()
 
-    def is_zed_connected(self):
-        return self.camera.isZEDconnected()
+    def is_zed_connected(cls):
+        return cls.camera.isZEDconnected()
 
-    def stickto_cpu_core(self, int cpu_core):
-        return types.PyERROR_CODE(self.camera.sticktoCPUCore(cpu_core))
+    def stickto_cpu_core(cls, int cpu_core):
+        return types.PyERROR_CODE(cls.camera.sticktoCPUCore(cpu_core))
 
+    def get_device_list(cls):
+        vect_ = cls.camera.getDeviceList()
+        vect_python = []
+        for i in range(vect_.size()):
+            prop = types.PyDeviceProperties()
+            prop.camera_state = vect_[i].camera_state
+            prop.id = vect_[i].id
+            prop.path = vect_[i].path.get().decode()
+            prop.camera_model = vect_[i].camera_model
+            prop.serial_number = vect_[i].serial_number
+            vect_python.append(prop)
+        return vect_python
 
 def save_camera_depth_as(PyZEDCamera zed, format, str name, factor=1):
     if isinstance(format, defines.PyDEPTH_FORMAT) and factor <= 65536:
@@ -778,7 +789,6 @@ def save_camera_depth_as(PyZEDCamera zed, format, str name, factor=1):
         return saveDepthAs(zed.camera, format.value, types.String(<char*>name_save), factor)
     else:
         raise TypeError("Arguments must be of PyDEPTH_FORMAT type and factor not over 65536.")
-
 
 def save_camera_point_cloud_as(PyZEDCamera zed, format, str name, with_color=False):
     if isinstance(format, defines.PyPOINT_CLOUD_FORMAT):
