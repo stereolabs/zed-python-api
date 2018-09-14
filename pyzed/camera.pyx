@@ -76,6 +76,9 @@ cdef class PyInitParameters:
         else:
             raise TypeError("Argument is not of right type.")
 
+    def __dealloc__(self):
+        del self.init
+
     def save(self, str filename):
         filename_save = filename.encode()
         return self.init.save(types.String(<char*> filename_save))
@@ -255,6 +258,9 @@ cdef class PyRuntimeParameters:
         else:
             raise TypeError()
 
+    def __dealloc__(self):
+        del self.runtime
+
     def save(self, str filename):
         filename_save = filename.encode()
         return self.runtime.save(types.String(<char*> filename_save))
@@ -301,6 +307,9 @@ cdef class PyTrackingParameters:
             self.tracking = new TrackingParameters(init_pos.transform, _enable_memory, types.String())
         else:
             raise TypeError("Argument init_pos must be initialized first with PyTransform().")
+    
+    def __dealloc__(self):
+        del self.tracking
 
     def save(self, str filename):
         filename_save = filename.encode()
@@ -349,6 +358,9 @@ cdef class PySpatialMappingParameters:
                                                         use_chunk_only, reverse_vertex_order)
         else:
             raise TypeError()
+
+    def __dealloc__(self):
+        del self.spatial
 
     def set_resolution(self, resolution=PyRESOLUTION.PyRESOLUTION_HIGH):
         if isinstance(resolution, PyRESOLUTION):
@@ -701,7 +713,6 @@ cdef class PyZEDCamera:
         filename = area_file_path.encode()
         self.camera.disableTracking(types.String(<char*> filename))
 
-
     def reset_tracking(self, core.PyTransform path):
         return types.PyERROR_CODE(self.camera.resetTracking(path.transform))
 
@@ -750,15 +761,27 @@ cdef class PyZEDCamera:
     def disable_recording(self):
         self.camera.disableRecording()
 
-    def get_sdk_version(self):
-        return self.camera.getSDKVersion().get().decode()
+    def get_sdk_version(cls):
+        return cls.camera.getSDKVersion().get().decode()
 
-    def is_zed_connected(self):
-        return self.camera.isZEDconnected()
+    def is_zed_connected(cls):
+        return cls.camera.isZEDconnected()
 
-    def stickto_cpu_core(self, int cpu_core):
-        return types.PyERROR_CODE(self.camera.sticktoCPUCore(cpu_core))
+    def stickto_cpu_core(cls, int cpu_core):
+        return types.PyERROR_CODE(cls.camera.sticktoCPUCore(cpu_core))
 
+    def get_device_list(cls):
+        vect_ = cls.camera.getDeviceList()
+        vect_python = []
+        for i in range(vect_.size()):
+            prop = types.PyDeviceProperties()
+            prop.camera_state = vect_[i].camera_state
+            prop.id = vect_[i].id
+            prop.path = vect_[i].path.get().decode()
+            prop.camera_model = vect_[i].camera_model
+            prop.serial_number = vect_[i].serial_number
+            vect_python.append(prop)
+        return vect_python
 
 def save_camera_depth_as(PyZEDCamera zed, format, str name, factor=1):
     if isinstance(format, defines.PyDEPTH_FORMAT) and factor <= 65536:
@@ -766,7 +789,6 @@ def save_camera_depth_as(PyZEDCamera zed, format, str name, factor=1):
         return saveDepthAs(zed.camera, format.value, types.String(<char*>name_save), factor)
     else:
         raise TypeError("Arguments must be of PyDEPTH_FORMAT type and factor not over 65536.")
-
 
 def save_camera_point_cloud_as(PyZEDCamera zed, format, str name, with_color=False):
     if isinstance(format, defines.PyPOINT_CLOUD_FORMAT):

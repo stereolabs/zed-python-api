@@ -60,7 +60,7 @@ cdef extern from "sl/types.hpp" namespace "sl":
         ERROR_CODE_NO_GPU_DETECTED,
         ERROR_CODE_LAST
 
-    String errorCode2str(ERROR_CODE err)
+    String toString(ERROR_CODE o)
 
     void sleep_ms(int time)
 
@@ -70,9 +70,16 @@ cdef extern from "sl/types.hpp" namespace "sl":
         MODEL_LAST
 
     String model2str(MODEL model)
+    String toString(MODEL o)
+
+    ctypedef enum CAMERA_STATE:
+        CAMERA_STATE_AVAILABLE,
+        CAMERA_STATE_NOT_AVAILABLE,
+        CAMERA_STATE_LAST
+
+    String toString(CAMERA_STATE o)
 
     cdef cppclass String 'sl::String':
-
         String()
         String(const char *data)
         void set(const char *data)
@@ -80,6 +87,15 @@ cdef extern from "sl/types.hpp" namespace "sl":
         bool empty() const
         string std_str() const
 
+    cdef cppclass DeviceProperties:
+        DeviceProperties()
+        CAMERA_STATE camera_state
+        int id
+        String path
+        MODEL camera_model
+        unsigned int serial_number
+
+    String toString(DeviceProperties o)
 
     cdef cppclass Vector2[T]:
         int size()

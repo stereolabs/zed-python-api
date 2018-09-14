@@ -52,6 +52,9 @@ cdef class PyMeshFilterParameters:
     def __cinit__(self):
         self.meshFilter = new MeshFilterParameters(MESH_FILTER_LOW)
 
+    def __dealloc__(self):
+        del self.meshFilter
+
     def set(self, filter=PyFILTER.PyFILTER_LOW):
         if isinstance(filter, PyFILTER):
             self.meshFilter.set(filter.value)
@@ -147,6 +150,9 @@ cdef class PyChunk:
 cdef class PyMesh:
     def __cinit__(self):
         self.mesh = new Mesh()
+        
+    def __dealloc__(self):
+        del self.mesh
 
     @property
     def chunks(self):
