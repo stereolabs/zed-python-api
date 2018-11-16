@@ -39,7 +39,8 @@ def main():
     print("Reading SVO file: {0}".format(filepath))
 
     cam = zcam.PyZEDCamera()
-    init = zcam.PyInitParameters(svo_input_filename=filepath)
+    init = zcam.PyInitParameters()
+    init.set_from_svo_file(filepath)
     status = cam.open(init)
     if status != tp.PyERROR_CODE.PySUCCESS:
         print(repr(status))

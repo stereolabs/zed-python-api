@@ -289,6 +289,16 @@ cdef class PyInitParameters:
         value_filename = value.encode()
         self.init.optional_settings_path.set(<char*>value_filename)
 
+    def set_from_camera_id(self, id):
+        self.init.input.setFromCameraID(id)
+
+    def set_from_serial_number(self, serial_number):
+        self.init.input.setFromSerialNumber(serial_number)
+
+    def set_from_svo_file(self, str svo_input_filename):
+        filename = svo_input_filename.encode()
+        self.init.input.setFromSVOFile(types.String(<char*> filename))
+
 
 cdef class PyRuntimeParameters:
     cdef RuntimeParameters* runtime
