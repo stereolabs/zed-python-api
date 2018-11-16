@@ -42,6 +42,7 @@ cdef extern from "sl/types.hpp" namespace "sl":
         COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP
         COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
         COORDINATE_SYSTEM_LEFT_HANDED_Z_UP
+        COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
         COORDINATE_SYSTEM_LAST
 
 cdef extern from "sl/defines.hpp" namespace "sl":
@@ -184,6 +185,8 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         SVO_COMPRESSION_MODE_RAW
         SVO_COMPRESSION_MODE_LOSSLESS
         SVO_COMPRESSION_MODE_LOSSY
+        SVO_COMPRESSION_MODE_AVCHD
+        SVO_COMPRESSION_MODE_HEVC
         SVO_COMPRESSION_MODE_LAST
 
 

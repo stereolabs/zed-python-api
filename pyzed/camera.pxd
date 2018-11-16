@@ -29,6 +29,10 @@ cimport pyzed.core as core
 cimport pyzed.types as types
 cimport pyzed.mesh as mesh
 
+cdef extern from 'cuda.h' :
+    cdef struct CUctx_st :
+        pass
+    ctypedef CUctx_st* CUcontext
 
 cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
@@ -43,6 +47,13 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         MAPPING_RANGE_MEDIUM 'sl::SpatialMappingParameters::MAPPING_RANGE::MAPPING_RANGE_MEDIUM'
         MAPPING_RANGE_FAR 'sl::SpatialMappingParameters::MAPPING_RANGE::MAPPING_RANGE_FAR'
 
+    cdef cppclass InputType 'sl::InputType':
+        InputType()
+        InputType(InputType &type)
+
+        void setFromCameraID(unsigned int id)
+        void setFromSerialNumber(unsigned int serial_number)
+        void setFromSVOFile(types.String svo_input_filename)
 
     cdef cppclass InitParameters 'sl::InitParameters':
         defines.RESOLUTION camera_resolution
@@ -64,6 +75,10 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         types.String sdk_verbose_log_file
 
+        CUcontext sdk_cuda_ctx
+        InputType input
+        types.String optional_settings_path
+
         InitParameters(defines.RESOLUTION camera_resolution,
                        int camera_fps,
                        int camera_linux_id,
@@ -80,7 +95,10 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        bool enable_right_side_measure,
                        int camera_buffer_count_linux,
                        types.String sdk_verbose_log_file,
-                       bool depth_stabilization)
+                       bool depth_stabilization,
+                       CUcontext sdk_cuda_ctx,
+                       InputType input,
+                       types.String optional_settings_path)
 
         bool save(types.String filename)
         bool load(types.String filename)
@@ -104,7 +122,10 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
     cdef cppclass TrackingParameters 'sl::TrackingParameters':
         core.Transform initial_world_transform
         bool enable_spatial_memory
+        bool enable_pose_smoothing
+        bool set_floor_as_origin
         types.String area_file_path
+        bool enable_imu_fusion
 
         TrackingParameters(core.Transform init_pos,
                            bool _enable_memory,
@@ -112,7 +133,6 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         bool save(types.String filename)
         bool load(types.String filename)
-
 
     cdef cppclass SpatialMappingParameters 'sl::SpatialMappingParameters':
         ctypedef pair[float, float] interval
@@ -131,6 +151,12 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         @staticmethod
         float get(MAPPING_RANGE range)
+
+        @staticmethod
+        float getRecommendedRange(MAPPING_RESOLUTION mapping_resolution, Camera &camera)
+
+        @staticmethod
+        float getRecommendedRange(float resolution_meters, Camera &camera)
 
         void set(MAPPING_RANGE range)
 
@@ -164,7 +190,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         core.Transform pose_data
 
         int pose_confidence
-
+        float pose_covariance[36]
 
     cdef cppclass IMUData(Pose):
         IMUData()
@@ -227,6 +253,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         types.ERROR_CODE retrieveMeshAsync(mesh.Mesh &mesh)
         void disableSpatialMapping()
 
+        types.ERROR_CODE findPlaneAtHit(types.Vector2[uint] coord, mesh.Plane &plane)
+        types.ERROR_CODE findFloorPlane(mesh.Plane &plane, core.Transform &resetTrackingFloorFrame, float floor_height_prior, core.Rotation world_orientation_prior, float floor_height_prior_tolerance)
+
         types.ERROR_CODE enableRecording(types.String video_filename, defines.SVO_COMPRESSION_MODE compression_mode)
         defines.RecordingState record()
         void disableRecording()
@@ -253,6 +282,8 @@ cdef extern from "Utils.cpp" namespace "sl":
     bool saveMatPointCloudAs(core.Mat &cloud, defines.POINT_CLOUD_FORMAT format, types.String name,
                           bool with_color)
 
+cdef class PyInputType:
+    cdef InputType input
 
 cdef class PyZEDCamera:
     cdef Camera camera

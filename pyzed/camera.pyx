@@ -44,6 +44,26 @@ class PyRANGE(enum.Enum):
     PyRANGE_MEDIUM = MAPPING_RANGE_MEDIUM
     PyRANGE_FAR = MAPPING_RANGE_FAR
 
+cdef class PyInputType:
+    def __cinit__(self, input_type=0):
+        if input_type == 0 :
+            self.input = InputType()
+        elif isinstance(input_type, PyInputType) :
+            input_t = <PyInputType> input_type
+            self.input = InputType(input_t.input)
+        else :
+            raise TypeError("Argument is not of right type.")
+
+    def set_from_camera_id(self, id):
+        self.input.setFromCameraID(id)
+
+    def set_from_serial_number(self, serial_number):
+        self.input.setFromSerialNumber(serial_number)
+
+    def set_from_svo_file(self, str svo_input_filename):
+        filename = svo_input_filename.encode()
+        self.input.setFromSVOFile(types.String(<char*> filename))
+ 
 
 cdef class PyInitParameters:
     cdef InitParameters* init
@@ -54,7 +74,8 @@ cdef class PyInitParameters:
                   coordinate_system=defines.PyCOORDINATE_SYSTEM.PyCOORDINATE_SYSTEM_IMAGE,
                   sdk_verbose=False, sdk_gpu_id=-1, depth_minimum_distance=-1.0, camera_disable_self_calib=False,
                   camera_image_flip=False, enable_right_side_measure=False, camera_buffer_count_linux=4,
-                  sdk_verbose_log_file="", depth_stabilization=True):
+                  sdk_verbose_log_file="", depth_stabilization=True, PyInputType input_t=PyInputType(),
+                  optional_settings_path=""):
         if (isinstance(camera_resolution, defines.PyRESOLUTION) and isinstance(camera_fps, int) and
             isinstance(camera_linux_id, int) and isinstance(svo_input_filename, str) and
             isinstance(svo_real_time_mode, bool) and isinstance(depth_mode, defines.PyDEPTH_MODE) and
@@ -63,16 +84,19 @@ cdef class PyInitParameters:
             isinstance(sdk_gpu_id, int) and isinstance(depth_minimum_distance, float) and
             isinstance(camera_disable_self_calib, bool) and isinstance(camera_image_flip, bool) and
             isinstance(enable_right_side_measure, bool) and isinstance(camera_buffer_count_linux, int) and
-            isinstance(sdk_verbose_log_file, str) and isinstance(depth_stabilization, bool)):
+            isinstance(sdk_verbose_log_file, str) and isinstance(depth_stabilization, bool) and
+            isinstance(input_t, PyInputType) and isinstance(optional_settings_path, str)):
 
             filename = svo_input_filename.encode()
             filelog = sdk_verbose_log_file.encode()
+            fileoption = optional_settings_path.encode()
             self.init = new InitParameters(camera_resolution.value, camera_fps, camera_linux_id,
                                            types.String(<char*> filename), svo_real_time_mode, depth_mode.value,
                                            coordinate_units.value, coordinate_system.value, sdk_verbose, sdk_gpu_id,
                                            depth_minimum_distance, camera_disable_self_calib, camera_image_flip,
                                            enable_right_side_measure, camera_buffer_count_linux,
-                                           types.String(<char*> filelog), depth_stabilization)
+                                           types.String(<char*> filelog), depth_stabilization,
+                                           <CUcontext> 0, input_t.input, types.String(<char*> fileoption))
         else:
             raise TypeError("Argument is not of right type.")
 
@@ -243,6 +267,28 @@ cdef class PyInitParameters:
     def depth_stabilization(self, bool value):
         self.init.depth_stabilization = value
 
+    @property
+    def input(self):
+        input_t = PyInputType()
+        input_t.input = self.init.input
+        return input_t
+
+    @input.setter
+    def input(self, PyInputType input_t):
+        self.init.input = input_t.input
+
+    @property
+    def optional_settings_path(self):
+        if not self.init.svo_input_filename.empty():
+            return self.init.optional_settings_path.get().decode()
+        else:
+            return ""
+
+    @optional_settings_path.setter
+    def optional_settings_path(self, str value):
+        value_filename = value.encode()
+        self.init.optional_settings_path.set(<char*>value_filename)
+
 
 cdef class PyRuntimeParameters:
     cdef RuntimeParameters* runtime
@@ -335,6 +381,30 @@ cdef class PyTrackingParameters:
         self.tracking.enable_spatial_memory = value
 
     @property
+    def enable_pose_smoothing(self):
+        return self.tracking.enable_pose_smoothing
+
+    @enable_pose_smoothing.setter
+    def enable_pose_smoothing(self, bool value):
+        self.tracking.enable_pose_smoothing = value
+
+    @property
+    def set_floor_as_origin(self):
+        return self.tracking.set_floor_as_origin
+
+    @set_floor_as_origin.setter
+    def set_floor_as_origin(self, bool value):
+        self.tracking.set_floor_as_origin = value
+
+    @property
+    def enable_imu_fusion(self):
+        return self.tracking.enable_imu_fusion
+
+    @enable_imu_fusion.setter
+    def enable_imu_fusion(self, bool value):
+        self.tracking.enable_imu_fusion = value
+
+    @property
     def area_file_path(self):
         if not self.tracking.area_file_path.empty():
             return self.tracking.area_file_path.get().decode()
@@ -385,6 +455,14 @@ cdef class PySpatialMappingParameters:
             return self.spatial.get(<MAPPING_RESOLUTION> resolution.value)
         else:
             raise TypeError("Argument is not of PyRESOLUTION type.")
+
+    def get_recommended_range(self, resolution, PyZEDCamera py_cam):
+        if isinstance(resolution, PyRESOLUTION):
+            return self.spatial.getRecommendedRange(<MAPPING_RESOLUTION> resolution.value, py_cam.camera)
+        elif isinstance(resolution, float):
+            return self.spatial.getRecommendedRange(<float> resolution, py_cam.camera)
+        else:
+            raise TypeError("Argument is not of PyRESOLUTION or float type.")
 
     @property
     def max_memory_usage(self):
@@ -499,6 +577,12 @@ cdef class PyPose:
     def pose_confidence(self):
         return self.pose.pose_confidence
 
+    @property
+    def pose_covariance(self):
+        cdef np.ndarray arr = np.zeros(36)
+        for i in range(36) :
+            arr[i] = self.pose.pose_covariance[i]
+        return arr
 
 cdef class PyIMUData:
     cdef IMUData imuData
@@ -742,6 +826,13 @@ cdef class PyZEDCamera:
 
     def retrieve_mesh_async(self, mesh.PyMesh py_mesh):
         return types.PyERROR_CODE(self.camera.retrieveMeshAsync(deref(py_mesh.mesh)))
+
+    def find_plane_at_hit(self, coord, mesh.PyPlane py_plane):
+        cdef types.Vector2[uint] vec = types.Vector2[uint](coord[0], coord[1])
+        return types.PyERROR_CODE(self.camera.findPlaneAtHit(vec, py_plane.plane))
+
+    def find_floor_plane(self, mesh.PyPlane py_plane, core.PyTransform resetTrackingFloorFrame, floor_height_prior = float('nan'), core.PyRotation world_orientation_prior = core.PyRotation(types.PyMatrix3f().zeros()), floor_height_prior_tolerance = float('nan')) :
+        return types.PyERROR_CODE(self.camera.findFloorPlane(py_plane.plane, resetTrackingFloorFrame.transform, floor_height_prior, world_orientation_prior.rotation, floor_height_prior_tolerance))
 
     def disable_spatial_mapping(self):
         self.camera.disableSpatialMapping()

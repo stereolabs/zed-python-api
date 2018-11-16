@@ -46,6 +46,11 @@ class PyFILTER(enum.Enum):
     PyFILTER_MEDIUM = MESH_FILTER_MEDIUM
     PyFILTER_HIGH = MESH_FILTER_HIGH
 
+class PyPLANE_TYPE(enum.Enum):
+    PyPLANE_TYPE_HORIZONTAL = PLANE_TYPE_HORIZONTAL
+    PyPLANE_TYPE_VERTICAL = PLANE_TYPE_VERTICAL
+    PyPLANE_TYPE_UNKNOWN = PLANE_TYPE_UNKNOWN
+    PyPLANE_TYPE_LAST = PLANE_TYPE_LAST
 
 cdef class PyMeshFilterParameters:
     cdef MeshFilterParameters* meshFilter
@@ -252,3 +257,68 @@ cdef class PyMesh:
 
     def update_mesh_from_chunklist(self, id=[]):
         self.mesh.updateMeshFromChunkList(id)
+
+cdef class PyPlane:
+    def __cinit__(self):
+        self.plane = Plane()
+
+    @property
+    def type(self):
+        return self.plane.type
+
+    def clear(self):
+        return self.plane.clear()
+
+    def get_normal(self):
+        normal = self.plane.getNormal()
+        cdef np.ndarray arr = np.zeros(3)
+        for i in range(3):
+            arr[i] = normal[i]
+        return arr
+
+    def get_center(self):
+        center = self.plane.getCenter()
+        cdef np.ndarray arr = np.zeros(3)
+        for i in range(3):
+            arr[i] = center[i]
+        return arr
+
+    def get_pose(self, core.PyTransform py_pose):
+        py_pose.transform = self.plane.getPose()
+        return py_pose
+
+    def get_extents(self):
+        extents = self.plane.getExtents()
+        cdef np.ndarray arr = np.zeros(2)
+        for i in range(2):
+            arr[i] = extents[i]
+        return arr
+
+    def get_plane_equation(self):
+        plane_eq = self.plane.getPlaneEquation()
+        cdef np.ndarray arr = np.zeros(4)
+        for i in range(4):
+            arr[i] = plane_eq[i]
+        return arr
+
+    def get_bounds(self):
+        cdef np.ndarray arr = np.zeros((self.plane.getBounds().size(), 3))
+        for i in range(self.plane.getBounds().size()):
+            for j in range(3):
+                arr[i,j] = self.plane.getBounds()[i].ptr()[j]
+        return arr
+
+    def extract_mesh(self):
+        ext_mesh = self.plane.extractMesh()
+        pymesh = PyMesh()
+        pymesh.mesh[0] = ext_mesh
+        return pymesh
+
+    def get_closest_distance(self, point=[0,0,0]):
+        cdef types.Vector3[float] vec = types.Vector3[float](point[0], point[1], point[2])
+        return self.plane.getClosestDistance(vec)
+
+    def get_floor_confidence(self):
+        return self.plane.getFloorConfidence()
+
+

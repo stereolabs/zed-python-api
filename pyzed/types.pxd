@@ -43,6 +43,7 @@ cdef extern from "sl/types.hpp" namespace "sl":
         ERROR_CODE_INVALID_CALIBRATION_FILE,
         ERROR_CODE_INVALID_SVO_FILE,
         ERROR_CODE_SVO_RECORDING_ERROR,
+        ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION,
         ERROR_CODE_INVALID_COORDINATE_SYSTEM,
         ERROR_CODE_INVALID_FIRMWARE,
         ERROR_CODE_INVALID_FUNCTION_PARAMETERS,
@@ -55,9 +56,11 @@ cdef extern from "sl/types.hpp" namespace "sl":
         ERROR_CODE_INCOMPATIBLE_SDK_VERSION,
         ERROR_CODE_INVALID_AREA_FILE,
         ERROR_CODE_INCOMPATIBLE_AREA_FILE,
+        ERROR_CODE_CAMERA_FAILED_TO_SETUP,
         ERROR_CODE_CAMERA_DETECTION_ISSUE,
         ERROR_CODE_CAMERA_ALREADY_IN_USE,
         ERROR_CODE_NO_GPU_DETECTED,
+        ERROR_CODE_PLANE_NOT_FOUND,
         ERROR_CODE_LAST
 
     String toString(ERROR_CODE o)
@@ -119,7 +122,6 @@ cdef extern from "sl/types.hpp" namespace "sl":
         Vector4(const T v0, const T v1, const T v2, const T v3)
         T *ptr()
         T &operator[](int i)
-        const T &operator[](int i) const
 
 
     cdef cppclass Matrix3f 'sl::Matrix3f':
