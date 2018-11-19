@@ -114,6 +114,11 @@ class PyCOORDINATE_SYSTEM(enum.Enum):
     PyCOORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD = COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
     PyCOORDINATE_SYSTEM_LAST = COORDINATE_SYSTEM_LAST
 
+    def __str__(self):
+        return to_str(toString(<COORDINATE_SYSTEM>self.value)).decode()
+
+    def __repr__(self):
+        return to_str(toString(<COORDINATE_SYSTEM>self.value)).decode()
 
 class PyMEASURE(enum.Enum):
     PyMEASURE_DISPARITY = MEASURE_DISPARITY
@@ -135,6 +140,11 @@ class PyMEASURE(enum.Enum):
     PyMEASURE_NORMALS_RIGHT = MEASURE_NORMALS_RIGHT
     PyMEASURE_LAST = MEASURE_LAST
 
+    def __str__(self):
+        return to_str(toString(<MEASURE>self.value)).decode()
+
+    def __repr__(self):
+        return to_str(toString(<MEASURE>self.value)).decode()
 
 class PyVIEW(enum.Enum):
     PyVIEW_LEFT = VIEW_LEFT
@@ -153,6 +163,11 @@ class PyVIEW(enum.Enum):
     PyVIEW_NORMALS_RIGHT = VIEW_NORMALS_RIGHT
     PyVIEW_LAST = VIEW_LAST
 
+    def __str__(self):
+        return to_str(toString(<VIEW>self.value)).decode()
+
+    def __repr__(self):
+        return to_str(toString(<VIEW>self.value)).decode()
 
 class PyDEPTH_FORMAT(enum.Enum):
     PyDEPTH_FORMAT_PNG = DEPTH_FORMAT_PNG
@@ -160,6 +175,11 @@ class PyDEPTH_FORMAT(enum.Enum):
     PyDEPTH_FORMAT_PGM = DEPTH_FORMAT_PGM
     PyDEPTH_FORMAT_LAST = DEPTH_FORMAT_LAST
 
+    def __str__(self):
+        return to_str(toString(<DEPTH_FORMAT>self.value)).decode()
+
+    def __repr__(self):
+        return to_str(toString(<DEPTH_FORMAT>self.value)).decode()
 
 class PyPOINT_CLOUD_FORMAT(enum.Enum):
     PyPOINT_CLOUD_FORMAT_XYZ_ASCII = POINT_CLOUD_FORMAT_XYZ_ASCII
@@ -168,6 +188,11 @@ class PyPOINT_CLOUD_FORMAT(enum.Enum):
     PyPOINT_CLOUD_FORMAT_VTK_ASCII = POINT_CLOUD_FORMAT_VTK_ASCII
     PyPOINT_CLOUD_FORMAT_LAST = POINT_CLOUD_FORMAT_LAST
 
+    def __str__(self):
+        return to_str(toString(<POINT_CLOUD_FORMAT>self.value)).decode()
+
+    def __repr__(self):
+        return to_str(toString(<POINT_CLOUD_FORMAT>self.value)).decode()
 
 class PyTRACKING_STATE(enum.Enum):
     PyTRACKING_STATE_SEARCHING = TRACKING_STATE_SEARCHING
@@ -192,18 +217,33 @@ class PyAREA_EXPORT_STATE(enum.Enum):
     PyAREA_EXPORT_STATE_SPATIAL_MEMORY_DISABLED = AREA_EXPORT_STATE_SPATIAL_MEMORY_DISABLED
     PyAREA_EXPORT_STATE_LAST = AREA_EXPORT_STATE_LAST
 
+    def __str__(self):
+        return to_str(toString(<AREA_EXPORT_STATE>self.value)).decode()
+
+    def __repr__(self):
+        return to_str(toString(<AREA_EXPORT_STATE>self.value)).decode()
 
 class PyREFERENCE_FRAME(enum.Enum):
     PyREFERENCE_FRAME_WORLD = REFERENCE_FRAME_WORLD
     PyREFERENCE_FRAME_CAMERA = REFERENCE_FRAME_CAMERA
     PyREFERENCE_FRAME_LAST = REFERENCE_FRAME_LAST
 
+    def __str__(self):
+        return to_str(toString(<REFERENCE_FRAME>self.value)).decode()
+
+    def __repr__(self):
+        return to_str(toString(<REFERENCE_FRAME>self.value)).decode()
 
 class PyTIME_REFERENCE(enum.Enum):
     PyTIME_REFERENCE_IMAGE = TIME_REFERENCE_IMAGE
     PyTIME_REFERENCE_CURRENT = TIME_REFERENCE_CURRENT
     PyTIME_REFERENCE_LAST = TIME_REFERENCE_LAST
 
+    def __str__(self):
+        return to_str(toString(<TIME_REFERENCE>self.value)).decode()
+
+    def __repr__(self):
+        return to_str(toString(<TIME_REFERENCE>self.value)).decode()
 
 class PySPATIAL_MAPPING_STATE(enum.Enum):
     PySPATIAL_MAPPING_STATE_INITIALIZING = SPATIAL_MAPPING_STATE_INITIALIZING
@@ -227,6 +267,12 @@ class PySVO_COMPRESSION_MODE(enum.Enum):
     PySVO_COMPRESSION_MODE_AVCHD = SVO_COMPRESSION_MODE_AVCHD
     PySVO_COMPRESSION_MODE_HEVC = SVO_COMPRESSION_MODE_HEVC
     PySVO_COMPRESSION_MODE_LAST = SVO_COMPRESSION_MODE_LAST
+
+    def __str__(self):
+        return to_str(toString(<SVO_COMPRESSION_MODE>self.value)).decode()
+
+    def __repr__(self):
+        return to_str(toString(<SVO_COMPRESSION_MODE>self.value)).decode()
 
 def video_modes():
     return cameraResolution
