@@ -1,6 +1,6 @@
 ########################################################################
 #
-# Copyright (c) 2017, STEREOLABS.
+# Copyright (c) 2018, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -19,8 +19,7 @@
 ########################################################################
 
 """
-    Mesh sample shows mesh information after filtering and applying texture on frames. The mesh and its filter
-    parameters can be saved.
+    Plane sample that save the floor plane detected as a mesh.
 """
 import sys
 import pyzed.camera as zcam
@@ -30,17 +29,14 @@ import pyzed.types as tp
 
 
 def main():
-
-    if len(sys.argv) != 2:
-        print("Please specify path to .svo file.")
-        exit()
-
-    filepath = sys.argv[1]
-    print("Reading SVO file: {0}".format(filepath))
-
     cam = zcam.PyZEDCamera()
     init = zcam.PyInitParameters()
-    init.set_from_svo_file(filepath)
+    
+    if len(sys.argv) == 2:
+        filepath = sys.argv[1]
+        print("Reading SVO file: {0}".format(filepath))
+        init.set_from_svo_file(filepath)
+
     status = cam.open(init)
     if status != tp.PyERROR_CODE.PySUCCESS:
         print(repr(status))
