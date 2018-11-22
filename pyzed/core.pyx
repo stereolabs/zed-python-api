@@ -167,6 +167,8 @@ cdef class PyCameraInformation:
         self.py_calib_raw.calibration = py_camera.camera.getCameraInformation(res).calibration_parameters_raw
         self.py_calib.set()
         self.py_calib_raw.set()
+        self.py_camera_imu_transform = PyTransform()
+        self.py_camera_imu_transform.transform = py_camera.camera.getCameraInformation(res).camera_imu_transform
         self.serial_number = py_camera.camera.getCameraInformation(res).serial_number
         self.firmware_version = py_camera.camera.getCameraInformation(res).firmware_version
         self.camera_model = py_camera.camera.getCameraInformation(res).camera_model
@@ -182,6 +184,10 @@ cdef class PyCameraInformation:
     @property
     def calibration_parameters_raw(self):
         return self.py_calib_raw
+
+    @property
+    def camera_imu_transform(self):
+        return self.py_camera_imu_transform
 
     @property
     def serial_number(self):

@@ -20,13 +20,25 @@
 
 # File containing the Cython declarations to use the defines.hpp functions.
 
+from libcpp.string cimport string
 from libc.string cimport const_char
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp cimport bool
 
+cdef extern from "Utils.cpp" namespace "sl":
+    string to_str(String sl_str)
 
 cdef extern from "sl/types.hpp" namespace "sl":
+
+    cdef cppclass String 'sl::String':
+        String()
+        String(const char *data)
+        void set(const char *data)
+        const char *get() const
+        bool empty() const
+        string std_str() const
+
     ctypedef enum UNIT:
         UNIT_MILLIMETER
         UNIT_CENTIMETER
@@ -35,6 +47,7 @@ cdef extern from "sl/types.hpp" namespace "sl":
         UNIT_FOOT
         UNIT_LAST
 
+    String toString(UNIT o)
 
     ctypedef enum COORDINATE_SYSTEM:
         COORDINATE_SYSTEM_IMAGE
@@ -42,7 +55,10 @@ cdef extern from "sl/types.hpp" namespace "sl":
         COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP
         COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
         COORDINATE_SYSTEM_LEFT_HANDED_Z_UP
+        COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
         COORDINATE_SYSTEM_LAST
+
+    String toString(COORDINATE_SYSTEM o)
 
 cdef extern from "sl/defines.hpp" namespace "sl":
 
@@ -53,6 +69,7 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         RESOLUTION_VGA
         RESOLUTION_LAST
 
+    String toString(RESOLUTION o)
 
     ctypedef enum CAMERA_SETTINGS:
         CAMERA_SETTINGS_BRIGHTNESS
@@ -65,6 +82,7 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         CAMERA_SETTINGS_AUTO_WHITEBALANCE
         CAMERA_SETTINGS_LAST
 
+    String toString(CAMERA_SETTINGS o)
 
     ctypedef enum SELF_CALIBRATION_STATE:
         SELF_CALIBRATION_STATE_NOT_STARTED
@@ -73,6 +91,7 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         SELF_CALIBRATION_STATE_SUCCESS
         SELF_CALIBRATION_STATE_LAST
 
+    String toString(SELF_CALIBRATION_STATE o)
 
     ctypedef enum DEPTH_MODE:
         DEPTH_MODE_NONE
@@ -82,12 +101,14 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         DEPTH_MODE_ULTRA
         DEPTH_MODE_LAST
 
+    String toString(DEPTH_MODE o)
 
     ctypedef enum SENSING_MODE:
         SENSING_MODE_STANDARD
         SENSING_MODE_FILL
         SENSING_MODE_LAST
 
+    String toString(SENSING_MODE o)
 
     ctypedef enum MEASURE:
         MEASURE_DISPARITY
@@ -109,6 +130,7 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         MEASURE_NORMALS_RIGHT
         MEASURE_LAST
 
+    String toString(MEASURE o)
 
     ctypedef enum VIEW:
         VIEW_LEFT
@@ -127,10 +149,14 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         VIEW_NORMALS_RIGHT
         VIEW_LAST
 
+    String toString(VIEW o)
+
     ctypedef enum TIME_REFERENCE:
         TIME_REFERENCE_IMAGE
         TIME_REFERENCE_CURRENT
         TIME_REFERENCE_LAST
+
+    String toString(TIME_REFERENCE o)
 
     ctypedef enum DEPTH_FORMAT:
         DEPTH_FORMAT_PNG
@@ -138,6 +164,7 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         DEPTH_FORMAT_PGM
         DEPTH_FORMAT_LAST
 
+    String toString(DEPTH_FORMAT o)
 
     ctypedef enum POINT_CLOUD_FORMAT:
         POINT_CLOUD_FORMAT_XYZ_ASCII
@@ -146,6 +173,7 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         POINT_CLOUD_FORMAT_VTK_ASCII
         POINT_CLOUD_FORMAT_LAST
 
+    String toString(POINT_CLOUD_FORMAT o)
 
     ctypedef enum TRACKING_STATE:
         TRACKING_STATE_SEARCHING
@@ -154,6 +182,7 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         TRACKING_STATE_FPS_TOO_LOW
         TRACKING_STATE_LAST
 
+    String toString(TRACKING_STATE o)
 
     ctypedef enum AREA_EXPORT_STATE:
         AREA_EXPORT_STATE_SUCCESS
@@ -164,12 +193,14 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         AREA_EXPORT_STATE_SPATIAL_MEMORY_DISABLED
         AREA_EXPORT_STATE_LAST
 
+    String toString(AREA_EXPORT_STATE o)
 
     ctypedef enum REFERENCE_FRAME:
         REFERENCE_FRAME_WORLD
         REFERENCE_FRAME_CAMERA
         REFERENCE_FRAME_LAST
 
+    String toString(REFERENCE_FRAME o)
 
     ctypedef enum SPATIAL_MAPPING_STATE:
         SPATIAL_MAPPING_STATE_INITIALIZING
@@ -179,13 +210,17 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         SPATIAL_MAPPING_STATE_FPS_TOO_LOW
         SPATIAL_MAPPING_STATE_LAST
 
+    String toString(SPATIAL_MAPPING_STATE o)
 
     ctypedef enum SVO_COMPRESSION_MODE:
         SVO_COMPRESSION_MODE_RAW
         SVO_COMPRESSION_MODE_LOSSLESS
         SVO_COMPRESSION_MODE_LOSSY
+        SVO_COMPRESSION_MODE_AVCHD
+        SVO_COMPRESSION_MODE_HEVC
         SVO_COMPRESSION_MODE_LAST
 
+    String toString(SVO_COMPRESSION_MODE o)
 
     cdef struct RecordingState:
         bool status

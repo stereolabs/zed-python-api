@@ -50,6 +50,11 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
         MESH_FILTER_MEDIUM 'sl::MeshFilterParameters::MESH_FILTER::MESH_FILTER_MEDIUM'
         MESH_FILTER_HIGH 'sl::MeshFilterParameters::MESH_FILTER::MESH_FILTER_HIGH'
 
+    ctypedef enum PLANE_TYPE:
+        PLANE_TYPE_HORIZONTAL
+        PLANE_TYPE_VERTICAL
+        PLANE_TYPE_UNKNOWN
+        PLANE_TYPE_LAST
 
     cdef cppclass MeshFilterParameters 'sl::MeshFilterParameters':
         MeshFilterParameters(MESH_FILTER filtering_)
@@ -98,6 +103,19 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
         bool load(const types.String filename, bool updateMesh)
         void clear()
 
+    cdef cppclass Plane 'sl::Plane':
+        Plane()
+        PLANE_TYPE type
+        void clear()
+        types.Vector3[float] getNormal()
+        types.Vector3[float] getCenter()
+        core.Transform getPose()
+        types.Vector2[float] getExtents()
+        types.Vector4[float] getPlaneEquation()
+        vector[types.Vector3[float]] getBounds()
+        Mesh extractMesh()
+        float getClosestDistance(types.Vector3[float] point)
+
 
 cdef class PyTexture:
     cdef Texture texture
@@ -107,3 +125,6 @@ cdef class PyChunk:
 
 cdef class PyMesh:
     cdef Mesh* mesh
+
+cdef class PyPlane:
+    cdef Plane plane

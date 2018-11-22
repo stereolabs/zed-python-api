@@ -58,6 +58,7 @@ cdef extern from "sl/Core.hpp" namespace "sl":
     cdef struct CameraInformation:
         CalibrationParameters calibration_parameters
         CalibrationParameters calibration_parameters_raw
+        Transform camera_imu_transform
         unsigned int serial_number
         unsigned int firmware_version
         types.MODEL camera_model
@@ -291,3 +292,4 @@ cdef class PyCameraInformation:
     cdef unsigned int serial_number
     cdef unsigned int firmware_version
     cdef types.MODEL camera_model
+    cdef PyTransform py_camera_imu_transform
