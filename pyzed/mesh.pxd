@@ -115,7 +115,6 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
         vector[types.Vector3[float]] getBounds()
         Mesh extractMesh()
         float getClosestDistance(types.Vector3[float] point)
-        float getFloorConfidence()
 
 
 cdef class PyTexture:

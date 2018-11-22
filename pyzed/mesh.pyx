@@ -318,7 +318,4 @@ cdef class PyPlane:
         cdef types.Vector3[float] vec = types.Vector3[float](point[0], point[1], point[2])
         return self.plane.getClosestDistance(vec)
 
-    def get_floor_confidence(self):
-        return self.plane.getFloorConfidence()
-
 
