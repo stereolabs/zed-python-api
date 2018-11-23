@@ -106,7 +106,6 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
     cdef cppclass Plane 'sl::Plane':
         Plane()
         PLANE_TYPE type
-        void clear()
         types.Vector3[float] getNormal()
         types.Vector3[float] getCenter()
         core.Transform getPose()

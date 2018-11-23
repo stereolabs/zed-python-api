@@ -266,9 +266,6 @@ cdef class PyPlane:
     def type(self):
         return self.plane.type
 
-    def clear(self):
-        return self.plane.clear()
-
     def get_normal(self):
         normal = self.plane.getNormal()
         cdef np.ndarray arr = np.zeros(3)
