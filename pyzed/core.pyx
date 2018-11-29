@@ -335,26 +335,26 @@ cdef class PyMat:
 
     def get_value(self, x, y, memory_type=PyMEM.PyMEM_CPU):
         cdef uchar1 value1u
-        cdef types.Vector2[uchar1]* value2u = new types.Vector2[uchar1]()
-        cdef types.Vector3[uchar1]* value3u = new types.Vector3[uchar1]()
-        cdef types.Vector4[uchar1]* value4u = new types.Vector4[uchar1]()
+        cdef types.Vector2[uchar1] value2u =  types.Vector2[uchar1]()
+        cdef types.Vector3[uchar1] value3u =  types.Vector3[uchar1]()
+        cdef types.Vector4[uchar1] value4u =  types.Vector4[uchar1]()
 
         cdef float1 value1f
-        cdef types.Vector2[float1]* value2f = new types.Vector2[float1]()
-        cdef types.Vector3[float1]* value3f = new types.Vector3[float1]()
-        cdef types.Vector4[float1]* value4f = new types.Vector4[float1]()
+        cdef types.Vector2[float1] value2f =  types.Vector2[float1]()
+        cdef types.Vector3[float1] value3f =  types.Vector3[float1]()
+        cdef types.Vector4[float1] value4f =  types.Vector4[float1]()
 
         if self.get_data_type() == PyMAT_TYPE.PyMAT_TYPE_8U_C1:
             status = getValueUchar1(self.mat, x, y, &value1u, memory_type.value)
             return types.PyERROR_CODE(status), self.get_data()[x, y]
         elif self.get_data_type() == PyMAT_TYPE.PyMAT_TYPE_8U_C2:
-            status = getValueUchar2(self.mat, x, y, value2u, memory_type.value)
+            status = getValueUchar2(self.mat, x, y, &value2u, memory_type.value)
             return types.PyERROR_CODE(status), np.array([value2u.ptr()[0], value2u.ptr()[1]])
         elif self.get_data_type() == PyMAT_TYPE.PyMAT_TYPE_8U_C3:
-            status = getValueUchar3(self.mat, x, y, value3u, memory_type.value)
+            status = getValueUchar3(self.mat, x, y, &value3u, memory_type.value)
             return types.PyERROR_CODE(status), np.array([value3u.ptr()[0], value3u.ptr()[1], value3u.ptr()[2]])
         elif self.get_data_type() == PyMAT_TYPE.PyMAT_TYPE_8U_C4:
-            status = getValueUchar4(self.mat, x, y, value4u, memory_type.value)
+            status = getValueUchar4(self.mat, x, y, &value4u, memory_type.value)
             return types.PyERROR_CODE(status), np.array([value4u.ptr()[0], value4u.ptr()[1], value4u.ptr()[2],
                                                          value4u.ptr()[3]])
 
@@ -362,13 +362,13 @@ cdef class PyMat:
             status = getValueFloat1(self.mat, x, y, &value1f, memory_type.value)
             return types.PyERROR_CODE(status), self.get_data()[x, y]
         elif self.get_data_type() == PyMAT_TYPE.PyMAT_TYPE_32F_C2:
-            status = getValueFloat2(self.mat, x, y, value2f, memory_type.value)
+            status = getValueFloat2(self.mat, x, y, &value2f, memory_type.value)
             return types.PyERROR_CODE(status), np.array([value2f.ptr()[0], value2f.ptr()[1]])
         elif self.get_data_type() == PyMAT_TYPE.PyMAT_TYPE_32F_C3:
-            status = getValueFloat3(self.mat, x, y, value3f, memory_type.value)
+            status = getValueFloat3(self.mat, x, y, &value3f, memory_type.value)
             return types.PyERROR_CODE(status), np.array([value3f.ptr()[0], value3f.ptr()[1], value3f.ptr()[2]])
         elif self.get_data_type() == PyMAT_TYPE.PyMAT_TYPE_32F_C4:
-            status = getValueFloat4(self.mat, x, y, value4f, memory_type.value)
+            status = getValueFloat4(self.mat, x, y, &value4f, memory_type.value)
             return types.PyERROR_CODE(status), np.array([value4f.ptr()[0], value4f.ptr()[1], value4f.ptr()[2],
                                                          value4f.ptr()[3]])
 
