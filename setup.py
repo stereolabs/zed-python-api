@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 ########################################################################
 #
-# Copyright (c) 2017, STEREOLABS.
+# Copyright (c) 2018, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -37,7 +37,7 @@ libs = ""
 cflags = ""
 
 ZED_SDK_MAJOR = "2"
-ZED_SDK_MINOR = "3"
+ZED_SDK_MINOR = "7"
 
 cuda_path = "/usr/local/cuda"
 
@@ -176,13 +176,7 @@ extensions = list()
 
 py_packages = ["pyzed"]
 
-package_data = {"pyzed": ["*.pxd"]}
-
-GPUmodulesTable = [("pyzed.defines", ["pyzed/defines.pyx"]),
-                   ("pyzed.types", ["pyzed/types.pyx"]),
-                   ("pyzed.core", ["pyzed/core.pyx"]),
-                   ("pyzed.mesh", ["pyzed/mesh.pyx"]),
-                   ("pyzed.camera", ["pyzed/camera.pyx"])
+GPUmodulesTable = [("pyzed.sl", ["pyzed/sl.pyx"])
                    ]
 
 for mod in GPUmodulesTable:
@@ -194,9 +188,8 @@ for mod in GPUmodulesTable:
     extensions.extend(extList)
 
 setup(name="pyzed",
-      version="2.3",
+      version="2.7",
       author_email="developers@stereolabs.com",
       description="Use the ZED SDK with Python",
       packages=py_packages,
-      ext_modules=extensions,
-      package_data=package_data)
+      ext_modules=extensions)

@@ -18,21 +18,20 @@
 #
 ########################################################################
 
-import pyzed.camera as zcam
-import pyzed.types as tp
+import pyzed.sl as sl
 
 
 def main():
-    # Create a PyZEDCamera object
-    zed = zcam.PyZEDCamera()
+    # Create a Camera object
+    zed = sl.Camera()
 
-    # Create a PyInitParameters object and set configuration parameters
-    init_params = zcam.PyInitParameters()
+    # Create a InitParameters object and set configuration parameters
+    init_params = sl.InitParameters()
     init_params.sdk_verbose = False
 
     # Open the camera
     err = zed.open(init_params)
-    if err != tp.PyERROR_CODE.PySUCCESS:
+    if err != sl.ERROR_CODE.SUCCESS:
         exit(1)
 
     # Get camera information (ZED serial number)

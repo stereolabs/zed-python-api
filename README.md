@@ -1,6 +1,12 @@
-# Stereolabs ZED - Python Integration (beta)
+# Stereolabs ZED - Python API
 
 This package lets you use the ZED stereo camera in Python 3.
+
+## Stable API notice
+
+The ZED Python API is now stable but has some breaking changes from the previous (beta) version. The older beta version can be found in the [legacy branch](https://github.com/stereolabs/zed-python-api/tree/legacy).
+
+The changes were made to better reflect the C++ API and ease of use. Mainly all classes have a similar name to the C++ SDK (without the "Py" prefix), and all components were migrated to a unified `sl` namespace.
 
 ## Getting started
 
@@ -63,17 +69,11 @@ You can use `python setup.py cleanall` to remove every cpp files generated and b
 
 Import the packages in your Python terminal or file like this:
 ```
-import pyzed.camera as zcam
-import pyzed.core as mat
-import pyzed.defines as sl
-import pyzed.types as types
-import pyzed.mesh as mesh
-import numpy as np
+import pyzed.sl as sl
 ```
+
 Vectors operations like norm, sum, square, dot, cross, distance but also simple operations can be done with
 Numpy package.
-
-**Note:** **pyzed.camera* is linked with *pyzed.core* and *pyzed.mesh* packages so you must import *pyzed.camera* before *pyzed.core* and *pyzed.mesh* to avoid import errors.
 
 ### Run the tutorials
 
@@ -85,4 +85,4 @@ Please refer to the [examples](examples) README for more informations.
 
 ## Contributing
 
-This is a beta version of the wrapper. Feel free to open an issue if you find a bug, or a pull request for bug fixes, features or other improvements.
+Feel free to open an issue if you find a bug, or a pull request for bug fixes, features or other improvements.

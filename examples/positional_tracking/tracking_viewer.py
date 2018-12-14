@@ -9,7 +9,7 @@ import threading
 
 import positional_tracking.utils as ut
 import positional_tracking.zed_model as zm
-import pyzed.defines as sl
+import pyzed.sl as sl
 
 
 def safe_glut_bitmap_string(w):
@@ -145,7 +145,7 @@ class PyTrackingViewer:
         self.zed_path = []
         self.path_locker = threading.Lock()
         self.zed3d = zm.Zed3D()
-        self.track_state = sl.PyTRACKING_STATE
+        self.track_state = sl.TRACKING_STATE
         self.txt_t = ""
         self.txt_r = ""
         self.startx = 0
@@ -413,7 +413,7 @@ class PyTrackingViewer:
         start_w = 20
         start_h = h_wnd - 40
 
-        if self.track_state == sl.PyTRACKING_STATE.PyTRACKING_STATE_OK:
+        if self.track_state == sl.TRACKING_STATE.TRACKING_STATE_OK:
             tracking_is_ok = 1
         else:
             tracking_is_ok = 0

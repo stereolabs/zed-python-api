@@ -18,36 +18,33 @@
 #
 ########################################################################
 
-import pyzed.camera as zcam
-import pyzed.defines as sl
-import pyzed.types as tp
-import pyzed.core as core
+import pyzed.sl as sl
 
 
 def main():
-    # Create a PyZEDCamera object
-    zed = zcam.PyZEDCamera()
+    # Create a Camera object
+    zed = sl.Camera()
 
-    # Create a PyInitParameters object and set configuration parameters
-    init_params = zcam.PyInitParameters()
-    init_params.camera_resolution = sl.PyRESOLUTION.PyRESOLUTION_HD1080  # Use HD1080 video mode
+    # Create a InitParameters object and set configuration parameters
+    init_params = sl.InitParameters()
+    init_params.camera_resolution = sl.RESOLUTION.RESOLUTION_HD1080  # Use HD1080 video mode
     init_params.camera_fps = 30  # Set fps at 30
 
     # Open the camera
     err = zed.open(init_params)
-    if err != tp.PyERROR_CODE.PySUCCESS:
+    if err != sl.ERROR_CODE.SUCCESS:
         exit(1)
 
     # Capture 50 frames and stop
     i = 0
-    image = core.PyMat()
-    runtime_parameters = zcam.PyRuntimeParameters()
+    image = sl.Mat()
+    runtime_parameters = sl.RuntimeParameters()
     while i < 50:
-        # Grab an image, a PyRuntimeParameters object must be given to grab()
-        if zed.grab(runtime_parameters) == tp.PyERROR_CODE.PySUCCESS:
-            # A new image is available if grab() returns PySUCCESS
-            zed.retrieve_image(image, sl.PyVIEW.PyVIEW_LEFT)
-            timestamp = zed.get_timestamp(sl.PyTIME_REFERENCE.PyTIME_REFERENCE_CURRENT)  # Get the timestamp at the time the image was captured
+        # Grab an image, a RuntimeParameters object must be given to grab()
+        if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
+            # A new image is available if grab() returns SUCCESS
+            zed.retrieve_image(image, sl.VIEW.VIEW_LEFT)
+            timestamp = zed.get_timestamp(sl.TIME_REFERENCE.TIME_REFERENCE_CURRENT)  # Get the timestamp at the time the image was captured
             print("Image resolution: {0} x {1} || Image timestamp: {2}\n".format(image.get_width(), image.get_height(),
                   timestamp))
             i = i + 1

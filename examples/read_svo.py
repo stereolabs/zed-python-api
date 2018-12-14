@@ -23,10 +23,7 @@
     a JPEG or PNG file. Depth map and Point Cloud can also be saved into files.
 """
 import sys
-import pyzed.camera as zcam
-import pyzed.types as tp
-import pyzed.core as core
-import pyzed.defines as sl
+import pyzed.sl as sl
 import cv2
 
 
@@ -39,22 +36,22 @@ def main():
     filepath = sys.argv[1]
     print("Reading SVO file: {0}".format(filepath))
 
-    init = zcam.PyInitParameters(svo_input_filename=filepath,svo_real_time_mode=False)
-    cam = zcam.PyZEDCamera()
+    init = sl.InitParameters(svo_input_filename=filepath,svo_real_time_mode=False)
+    cam = sl.Camera()
     status = cam.open(init)
-    if status != tp.PyERROR_CODE.PySUCCESS:
+    if status != sl.ERROR_CODE.SUCCESS:
         print(repr(status))
         exit()
 
-    runtime = zcam.PyRuntimeParameters()
-    mat = core.PyMat()
+    runtime = sl.RuntimeParameters()
+    mat = sl.Mat()
 
     key = ''
     print("  Save the current image:     s")
     print("  Quit the video reading:     q\n")
     while key != 113:  # for 'q' key
         err = cam.grab(runtime)
-        if err == tp.PyERROR_CODE.PySUCCESS:
+        if err == sl.ERROR_CODE.SUCCESS:
             cam.retrieve_image(mat)
             cv2.imshow("ZED", mat.get_data())
             key = cv2.waitKey(1)
@@ -99,12 +96,12 @@ def print_camera_information(cam):
 
 def saving_image(key, mat):
     if key == 115:
-        img = tp.PyERROR_CODE.PyERROR_CODE_FAILURE
-        while img != tp.PyERROR_CODE.PySUCCESS:
+        img = sl.ERROR_CODE.ERROR_CODE_FAILURE
+        while img != sl.ERROR_CODE.SUCCESS:
             filepath = input("Enter filepath name: ")
             img = mat.write(filepath)
             print("Saving image : {0}".format(repr(img)))
-            if img == tp.PyERROR_CODE.PySUCCESS:
+            if img == sl.ERROR_CODE.SUCCESS:
                 break
             else:
                 print("Help: you must enter the filepath + filename + PNG extension.")
@@ -117,7 +114,7 @@ def saving_depth(cam):
             save_depth = 0
             while not save_depth:
                 filepath = input("Enter filepath name: ")
-                save_depth = zcam.save_camera_depth_as(cam, sl.PyDEPTH_FORMAT.PyDEPTH_FORMAT_PNG, filepath)
+                save_depth = sl.save_camera_depth_as(cam, sl.DEPTH_FORMAT.DEPTH_FORMAT_PNG, filepath)
                 if save_depth:
                     print("Depth saved.")
                     break
@@ -138,9 +135,9 @@ def saving_point_cloud(cam):
             save_point_cloud = 0
             while not save_point_cloud:
                 filepath = input("Enter filepath name: ")
-                save_point_cloud = zcam.save_camera_point_cloud_as(cam,
-                                                                   sl.PyPOINT_CLOUD_FORMAT.
-                                                                   PyPOINT_CLOUD_FORMAT_PCD_ASCII,
+                save_point_cloud = sl.save_camera_point_cloud_as(cam,
+                                                                   sl.POINT_CLOUD_FORMAT.
+                                                                   POINT_CLOUD_FORMAT_PCD_ASCII,
                                                                    filepath, True)
                 if save_point_cloud:
                     print("Point cloud saved.")
