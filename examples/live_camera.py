@@ -24,29 +24,26 @@
 """
 
 import cv2
-import pyzed.camera as zcam
-import pyzed.types as tp
-import pyzed.core as core
-import pyzed.defines as sl
+import pyzed.sl as sl
 
-camera_settings = sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_BRIGHTNESS
+camera_settings = sl.CAMERA_SETTINGS.CAMERA_SETTINGS_BRIGHTNESS
 str_camera_settings = "BRIGHTNESS"
 step_camera_settings = 1
 
 
 def main():
     print("Running...")
-    init = zcam.PyInitParameters()
-    cam = zcam.PyZEDCamera()
+    init = sl.InitParameters()
+    cam = sl.Camera()
     if not cam.is_opened():
         print("Opening ZED Camera...")
     status = cam.open(init)
-    if status != tp.PyERROR_CODE.PySUCCESS:
+    if status != sl.ERROR_CODE.SUCCESS:
         print(repr(status))
         exit()
 
-    runtime = zcam.PyRuntimeParameters()
-    mat = core.PyMat()
+    runtime = sl.RuntimeParameters()
+    mat = sl.Mat()
 
     print_camera_information(cam)
     print_help()
@@ -54,8 +51,8 @@ def main():
     key = ''
     while key != 113:  # for 'q' key
         err = cam.grab(runtime)
-        if err == tp.PyERROR_CODE.PySUCCESS:
-            cam.retrieve_image(mat, sl.PyVIEW.PyVIEW_LEFT)
+        if err == sl.ERROR_CODE.SUCCESS:
+            cam.retrieve_image(mat, sl.VIEW.VIEW_LEFT)
             cv2.imshow("ZED", mat.get_data())
             key = cv2.waitKey(5)
             settings(key, cam, runtime, mat)
@@ -97,13 +94,13 @@ def settings(key, cam, runtime, mat):
             cam.set_camera_settings(camera_settings, current_value - step_camera_settings)
             print(str_camera_settings + ": " + str(current_value - step_camera_settings))
     elif key == 114:  # for 'r' key
-        cam.set_camera_settings(sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_BRIGHTNESS, -1, True)
-        cam.set_camera_settings(sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_CONTRAST, -1, True)
-        cam.set_camera_settings(sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_HUE, -1, True)
-        cam.set_camera_settings(sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_SATURATION, -1, True)
-        cam.set_camera_settings(sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_GAIN, -1, True)
-        cam.set_camera_settings(sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_EXPOSURE, -1, True)
-        cam.set_camera_settings(sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_WHITEBALANCE, -1, True)
+        cam.set_camera_settings(sl.CAMERA_SETTINGS.CAMERA_SETTINGS_BRIGHTNESS, -1, True)
+        cam.set_camera_settings(sl.CAMERA_SETTINGS.CAMERA_SETTINGS_CONTRAST, -1, True)
+        cam.set_camera_settings(sl.CAMERA_SETTINGS.CAMERA_SETTINGS_HUE, -1, True)
+        cam.set_camera_settings(sl.CAMERA_SETTINGS.CAMERA_SETTINGS_SATURATION, -1, True)
+        cam.set_camera_settings(sl.CAMERA_SETTINGS.CAMERA_SETTINGS_GAIN, -1, True)
+        cam.set_camera_settings(sl.CAMERA_SETTINGS.CAMERA_SETTINGS_EXPOSURE, -1, True)
+        cam.set_camera_settings(sl.CAMERA_SETTINGS.CAMERA_SETTINGS_WHITEBALANCE, -1, True)
         print("Camera settings: reset")
     elif key == 122:  # for 'z' key
         record(cam, runtime, mat)
@@ -112,51 +109,51 @@ def settings(key, cam, runtime, mat):
 def switch_camera_settings():
     global camera_settings
     global str_camera_settings
-    if camera_settings == sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_BRIGHTNESS:
-        camera_settings = sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_CONTRAST
+    if camera_settings == sl.CAMERA_SETTINGS.CAMERA_SETTINGS_BRIGHTNESS:
+        camera_settings = sl.CAMERA_SETTINGS.CAMERA_SETTINGS_CONTRAST
         str_camera_settings = "Contrast"
         print("Camera settings: CONTRAST")
-    elif camera_settings == sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_CONTRAST:
-        camera_settings = sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_HUE
+    elif camera_settings == sl.CAMERA_SETTINGS.CAMERA_SETTINGS_CONTRAST:
+        camera_settings = sl.CAMERA_SETTINGS.CAMERA_SETTINGS_HUE
         str_camera_settings = "Hue"
         print("Camera settings: HUE")
-    elif camera_settings == sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_HUE:
-        camera_settings = sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_SATURATION
+    elif camera_settings == sl.CAMERA_SETTINGS.CAMERA_SETTINGS_HUE:
+        camera_settings = sl.CAMERA_SETTINGS.CAMERA_SETTINGS_SATURATION
         str_camera_settings = "Saturation"
         print("Camera settings: SATURATION")
-    elif camera_settings == sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_SATURATION:
-        camera_settings = sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_GAIN
+    elif camera_settings == sl.CAMERA_SETTINGS.CAMERA_SETTINGS_SATURATION:
+        camera_settings = sl.CAMERA_SETTINGS.CAMERA_SETTINGS_GAIN
         str_camera_settings = "Gain"
         print("Camera settings: GAIN")
-    elif camera_settings == sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_GAIN:
-        camera_settings = sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_EXPOSURE
+    elif camera_settings == sl.CAMERA_SETTINGS.CAMERA_SETTINGS_GAIN:
+        camera_settings = sl.CAMERA_SETTINGS.CAMERA_SETTINGS_EXPOSURE
         str_camera_settings = "Exposure"
         print("Camera settings: EXPOSURE")
-    elif camera_settings == sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_EXPOSURE:
-        camera_settings = sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_WHITEBALANCE
+    elif camera_settings == sl.CAMERA_SETTINGS.CAMERA_SETTINGS_EXPOSURE:
+        camera_settings = sl.CAMERA_SETTINGS.CAMERA_SETTINGS_WHITEBALANCE
         str_camera_settings = "White Balance"
         print("Camera settings: WHITEBALANCE")
-    elif camera_settings == sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_WHITEBALANCE:
-        camera_settings = sl.PyCAMERA_SETTINGS.PyCAMERA_SETTINGS_BRIGHTNESS
+    elif camera_settings == sl.CAMERA_SETTINGS.CAMERA_SETTINGS_WHITEBALANCE:
+        camera_settings = sl.CAMERA_SETTINGS.CAMERA_SETTINGS_BRIGHTNESS
         str_camera_settings = "Brightness"
         print("Camera settings: BRIGHTNESS")
 
 
 def record(cam, runtime, mat):
-    vid = tp.PyERROR_CODE.PyERROR_CODE_FAILURE
+    vid = sl.ERROR_CODE.ERROR_CODE_FAILURE
     out = False
-    while vid != tp.PyERROR_CODE.PySUCCESS and not out:
+    while vid != sl.ERROR_CODE.SUCCESS and not out:
         filepath = input("Enter filepath name: ")
         vid = cam.enable_recording(filepath)
         print(repr(vid))
-        if vid == tp.PyERROR_CODE.PySUCCESS:
+        if vid == sl.ERROR_CODE.SUCCESS:
             print("Recording started...")
             out = True
             print("Hit spacebar to stop recording: ")
             key = False
             while key != 32:  # for spacebar
                 err = cam.grab(runtime)
-                if err == tp.PyERROR_CODE.PySUCCESS:
+                if err == sl.ERROR_CODE.SUCCESS:
                     cam.retrieve_image(mat)
                     cv2.imshow("ZED", mat.get_data())
                     key = cv2.waitKey(5)

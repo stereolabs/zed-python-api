@@ -23,10 +23,7 @@
     parameters can be saved.
 """
 import sys
-import pyzed.camera as zcam
-import pyzed.core as core
-import pyzed.mesh as mesh
-import pyzed.types as tp
+import pyzed.sl as sl
 
 
 def main():
@@ -38,22 +35,22 @@ def main():
     filepath = sys.argv[1]
     print("Reading SVO file: {0}".format(filepath))
 
-    cam = zcam.PyZEDCamera()
-    init = zcam.PyInitParameters(svo_input_filename=filepath)
+    cam = sl.Camera()
+    init = sl.InitParameters(svo_input_filename=filepath)
     status = cam.open(init)
-    if status != tp.PyERROR_CODE.PySUCCESS:
+    if status != sl.ERROR_CODE.SUCCESS:
         print(repr(status))
         exit()
 
-    runtime = zcam.PyRuntimeParameters()
-    spatial = zcam.PySpatialMappingParameters()
-    transform = core.PyTransform()
-    tracking = zcam.PyTrackingParameters(transform)
+    runtime = sl.RuntimeParameters()
+    spatial = sl.SpatialMappingParameters()
+    transform = sl.Transform()
+    tracking = sl.TrackingParameters(transform)
 
     cam.enable_tracking(tracking)
     cam.enable_spatial_mapping(spatial)
 
-    pymesh = mesh.PyMesh()
+    pymesh = sl.Mesh()
     print("Processing...")
     for i in range(200):
         cam.grab(runtime)
@@ -63,11 +60,11 @@ def main():
     cam.disable_tracking()
     cam.disable_spatial_mapping()
 
-    filter_params = mesh.PyMeshFilterParameters()
-    filter_params.set(mesh.PyFILTER.PyFILTER_HIGH)
+    filter_params = sl.MeshFilterParameters()
+    filter_params.set(sl.MESH_FILTER.MESH_FILTER_HIGH)
     print("Filtering params : {0}.".format(pymesh.filter(filter_params)))
 
-    apply_texture = pymesh.apply_texture(mesh.PyMESH_TEXTURE_FORMAT.PyMESH_TEXTURE_RGBA)
+    apply_texture = pymesh.apply_texture(sl.MESH_TEXTURE_FORMAT.MESH_TEXTURE_RGBA)
     print("Applying texture : {0}.".format(apply_texture))
     print_mesh_information(pymesh, apply_texture)
 
@@ -88,7 +85,7 @@ def print_mesh_information(pymesh, apply_texture):
                 print("Triangles : \n{0} \n".format(pymesh.triangles))
                 break
             else:
-                print("Cannot display information of the mesh.")
+                print("Cannot display information of the sl.")
                 break
         if res == "n":
             print("Mesh information will not be displayed.")
@@ -101,8 +98,8 @@ def save_filter(filter_params):
     while True:
         res = input("Do you want to save the mesh filter parameters? [y/n]: ")
         if res == "y":
-            params = tp.PyERROR_CODE.PyERROR_CODE_FAILURE
-            while params != tp.PyERROR_CODE.PySUCCESS:
+            params = sl.ERROR_CODE.ERROR_CODE_FAILURE
+            while params != sl.ERROR_CODE.SUCCESS:
                 filepath = input("Enter filepath name : ")
                 params = filter_params.save(filepath)
                 print("Saving mesh filter parameters: {0}".format(repr(params)))
@@ -122,8 +119,8 @@ def save_mesh(pymesh):
     while True:
         res = input("Do you want to save the mesh? [y/n]: ")
         if res == "y":
-            msh = tp.PyERROR_CODE.PyERROR_CODE_FAILURE
-            while msh != tp.PyERROR_CODE.PySUCCESS:
+            msh = sl.ERROR_CODE.ERROR_CODE_FAILURE
+            while msh != sl.ERROR_CODE.SUCCESS:
                 filepath = input("Enter filepath name: ")
                 msh = pymesh.save(filepath)
                 print("Saving mesh: {0}".format(repr(msh)))

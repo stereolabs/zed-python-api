@@ -23,38 +23,35 @@
 """
 
 import cv2
-import pyzed.camera as zcam
-import pyzed.types as tp
-import pyzed.core as core
-import pyzed.defines as sl
+import pyzed.sl as sl
 
 
 def main():
     print("Running...")
-    init = zcam.PyInitParameters()
-    init.camera_resolution = sl.PyRESOLUTION.PyRESOLUTION_HD720
+    init = sl.InitParameters()
+    init.camera_resolution = sl.RESOLUTION.RESOLUTION_HD720
     init.camera_linux_id = 0
     init.camera_fps = 30  # The framerate is lowered to avoid any USB3 bandwidth issues
-    cam = zcam.PyZEDCamera()
+    cam = sl.Camera()
     if not cam.is_opened():
         print("Opening ZED Camera 1...")
     status = cam.open(init)
-    if status != tp.PyERROR_CODE.PySUCCESS:
+    if status != sl.ERROR_CODE.SUCCESS:
         print(repr(status))
         exit()
 
     init.camera_linux_id = 1  # selection of the ZED ID
-    cam2 = zcam.PyZEDCamera()
+    cam2 = sl.Camera()
     if not cam2.is_opened():
         print("Opening ZED Camera 2...")
     status = cam2.open(init)
-    if status != tp.PyERROR_CODE.PySUCCESS:
+    if status != sl.ERROR_CODE.SUCCESS:
         print(repr(status))
         exit()
 
-    runtime = zcam.PyRuntimeParameters()
-    mat = core.PyMat()
-    mat2 = core.PyMat()
+    runtime = sl.RuntimeParameters()
+    mat = sl.Mat()
+    mat2 = sl.Mat()
 
     print_camera_information(cam)
     print_camera_information(cam2)
@@ -63,13 +60,13 @@ def main():
     while key != 113:  # for 'q' key
         # The computation could also be done in a thread, one for each camera
         err = cam.grab(runtime)
-        if err == tp.PyERROR_CODE.PySUCCESS:
-            cam.retrieve_image(mat, sl.PyVIEW.PyVIEW_LEFT)
+        if err == sl.ERROR_CODE.SUCCESS:
+            cam.retrieve_image(mat, sl.VIEW.VIEW_LEFT)
             cv2.imshow("ZED 1", mat.get_data())
 
         err = cam2.grab(runtime)
-        if err == tp.PyERROR_CODE.PySUCCESS:
-            cam2.retrieve_image(mat2, sl.PyVIEW.PyVIEW_LEFT)
+        if err == sl.ERROR_CODE.SUCCESS:
+            cam2.retrieve_image(mat2, sl.VIEW.VIEW_LEFT)
             cv2.imshow("ZED 2", mat2.get_data())
 
         key = cv2.waitKey(5)

@@ -18,47 +18,44 @@
 #
 ########################################################################
 
-import pyzed.camera as zcam
-import pyzed.defines as sl
-import pyzed.types as tp
-import pyzed.core as core
+import pyzed.sl as sl
 import math
 import numpy as np
 import sys
 
 def main():
-    # Create a PyZEDCamera object
-    zed = zcam.PyZEDCamera()
+    # Create a Camera object
+    zed = sl.Camera()
 
-    # Create a PyInitParameters object and set configuration parameters
-    init_params = zcam.PyInitParameters()
-    init_params.depth_mode = sl.PyDEPTH_MODE.PyDEPTH_MODE_PERFORMANCE  # Use PERFORMANCE depth mode
-    init_params.coordinate_units = sl.PyUNIT.PyUNIT_MILLIMETER  # Use milliliter units (for depth measurements)
+    # Create a InitParameters object and set configuration parameters
+    init_params = sl.InitParameters()
+    init_params.depth_mode = sl.DEPTH_MODE.DEPTH_MODE_PERFORMANCE  # Use PERFORMANCE depth mode
+    init_params.coordinate_units = sl.UNIT.UNIT_MILLIMETER  # Use milliliter units (for depth measurements)
 
     # Open the camera
     err = zed.open(init_params)
-    if err != tp.PyERROR_CODE.PySUCCESS:
+    if err != sl.ERROR_CODE.SUCCESS:
         exit(1)
 
-    # Create and set PyRuntimeParameters after opening the camera
-    runtime_parameters = zcam.PyRuntimeParameters()
-    runtime_parameters.sensing_mode = sl.PySENSING_MODE.PySENSING_MODE_STANDARD  # Use STANDARD sensing mode
+    # Create and set RuntimeParameters after opening the camera
+    runtime_parameters = sl.RuntimeParameters()
+    runtime_parameters.sensing_mode = sl.SENSING_MODE.SENSING_MODE_STANDARD  # Use STANDARD sensing mode
 
     # Capture 50 images and depth, then stop
     i = 0
-    image = core.PyMat()
-    depth = core.PyMat()
-    point_cloud = core.PyMat()
+    image = sl.Mat()
+    depth = sl.Mat()
+    point_cloud = sl.Mat()
 
     while i < 50:
-        # A new image is available if grab() returns PySUCCESS
-        if zed.grab(runtime_parameters) == tp.PyERROR_CODE.PySUCCESS:
+        # A new image is available if grab() returns SUCCESS
+        if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
             # Retrieve left image
-            zed.retrieve_image(image, sl.PyVIEW.PyVIEW_LEFT)
+            zed.retrieve_image(image, sl.VIEW.VIEW_LEFT)
             # Retrieve depth map. Depth is aligned on the left image
-            zed.retrieve_measure(depth, sl.PyMEASURE.PyMEASURE_DEPTH)
+            zed.retrieve_measure(depth, sl.MEASURE.MEASURE_DEPTH)
             # Retrieve colored point cloud. Point cloud is aligned on the left image.
-            zed.retrieve_measure(point_cloud, sl.PyMEASURE.PyMEASURE_XYZRGBA)
+            zed.retrieve_measure(point_cloud, sl.MEASURE.MEASURE_XYZRGBA)
 
             # Get and print distance value in mm at the center of the image
             # We measure the distance camera - object using Euclidean distance

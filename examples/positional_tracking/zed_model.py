@@ -1,7 +1,6 @@
 from OpenGL.GL import *
 import numpy as np
-import pyzed.camera as cam
-import pyzed.core as core
+import pyzed.sl as sl
 import positional_tracking.utils as ut
 
 
@@ -197,7 +196,7 @@ class Zed3D:
     def __init__(self):
         self.body_io = []
         self.path_mem = []
-        self.path = core.PyTransform()
+        self.path = sl.Transform()
 
         self.set_path(self.path, self.path_mem)
 

@@ -19,18 +19,19 @@
 ########################################################################
 
 """
-    Plane sample that save the floor plane detected as a mesh.
+    Plane sample that save the floor plane detected as a sl.
 """
 import sys
-import pyzed.camera as zcam
-import pyzed.core as core
-import pyzed.mesh as mesh
-import pyzed.types as tp
+import pyzed.sl as sl
+from time import sleep
 
 
 def main():
-    cam = zcam.PyZEDCamera()
-    init = zcam.PyInitParameters()
+    cam = sl.Camera()
+    init = sl.InitParameters()
+    init.depth_mode = sl.DEPTH_MODE.DEPTH_MODE_ULTRA
+    init.coordinate_units = sl.UNIT.UNIT_METER
+    init.coordinate_system = sl.COORDINATE_SYSTEM.COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP
     
     if len(sys.argv) == 2:
         filepath = sys.argv[1]
@@ -38,32 +39,34 @@ def main():
         init.set_from_svo_file(filepath)
 
     status = cam.open(init)
-    if status != tp.PyERROR_CODE.PySUCCESS:
+    if status != sl.ERROR_CODE.SUCCESS:
         print(repr(status))
         exit(1)
 
-    runtime = zcam.PyRuntimeParameters()
-    spatial = zcam.PySpatialMappingParameters()
+    runtime = sl.RuntimeParameters()
+    runtime.sensing_mode = sl.SENSING_MODE.SENSING_MODE_STANDARD
+    runtime.measure3D_reference_frame = sl.REFERENCE_FRAME.REFERENCE_FRAME_WORLD
+    spatial = sl.SpatialMappingParameters()
 
-    transform = core.PyTransform()
-    tracking = zcam.PyTrackingParameters(transform)
-
+    transform = sl.Transform()
+    tracking = sl.TrackingParameters(transform)
     cam.enable_tracking(tracking)
-    cam.enable_spatial_mapping(spatial)
 
-    pymesh = mesh.PyMesh()
-    pyplane = mesh.PyPlane()
-    reset_tracking_floor_frame = core.PyTransform()
+    pymesh = sl.Mesh()
+    pyplane = sl.Plane()
+    reset_tracking_floor_frame = sl.Transform()
     found = 0
     print("Processing...")
-    for i in range(1000):
-        cam.grab(runtime)
-        err = cam.find_floor_plane(pyplane, reset_tracking_floor_frame)
-        if i > 200 and err == tp.PyERROR_CODE.PySUCCESS:
-            found = 1
-            print('Floor found!')
-            pymesh = pyplane.extract_mesh()
-            break
+    i = 0
+    while i < 1000:
+        if cam.grab(runtime) == sl.ERROR_CODE.SUCCESS :
+            err = cam.find_floor_plane(pyplane, reset_tracking_floor_frame)
+            if i > 200 and err == sl.ERROR_CODE.SUCCESS:
+                found = 1
+                print('Floor found!')
+                pymesh = pyplane.extract_mesh()
+                break
+            i+=1
 
     if found == 0:
         print('Floor was not found, please try with another SVO.')
@@ -71,8 +74,6 @@ def main():
         exit(0)
 
     cam.disable_tracking()
-    cam.disable_spatial_mapping()
-
     save_mesh(pymesh)
     cam.close()
     print("\nFINISH")
@@ -82,8 +83,8 @@ def save_mesh(pymesh):
     while True:
         res = input("Do you want to save the mesh? [y/n]: ")
         if res == "y":
-            msh = tp.PyERROR_CODE.PyERROR_CODE_FAILURE
-            while msh != tp.PyERROR_CODE.PySUCCESS:
+            msh = sl.ERROR_CODE.ERROR_CODE_FAILURE
+            while msh != sl.ERROR_CODE.SUCCESS:
                 filepath = input("Enter filepath name: ")
                 msh = pymesh.save(filepath)
                 print("Saving mesh: {0}".format(repr(msh)))

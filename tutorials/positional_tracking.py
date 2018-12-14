@@ -18,56 +18,52 @@
 #
 ########################################################################
 
-import pyzed.camera as zcam
-import pyzed.defines as sl
-import pyzed.types as tp
-import pyzed.core as core
-
+import pyzed.sl as sl
 
 def main():
-    # Create a PyZEDCamera object
-    zed = zcam.PyZEDCamera()
+    # Create a Camera object
+    zed = sl.Camera()
 
-    # Create a PyInitParameters object and set configuration parameters
-    init_params = zcam.PyInitParameters()
-    init_params.camera_resolution = sl.PyRESOLUTION.PyRESOLUTION_HD720  # Use HD720 video mode (default fps: 60)
+    # Create a InitParameters object and set configuration parameters
+    init_params = sl.InitParameters()
+    init_params.camera_resolution = sl.RESOLUTION.RESOLUTION_HD720  # Use HD720 video mode (default fps: 60)
     # Use a right-handed Y-up coordinate system
-    init_params.coordinate_system = sl.PyCOORDINATE_SYSTEM.PyCOORDINATE_SYSTEM_RIGHT_HANDED_Y_UP
-    init_params.coordinate_units = sl.PyUNIT.PyUNIT_METER  # Set units in meters
+    init_params.coordinate_system = sl.COORDINATE_SYSTEM.COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP
+    init_params.coordinate_units = sl.UNIT.UNIT_METER  # Set units in meters
 
     # Open the camera
     err = zed.open(init_params)
-    if err != tp.PyERROR_CODE.PySUCCESS:
+    if err != sl.ERROR_CODE.SUCCESS:
         exit(1)
 
     # Enable positional tracking with default parameters
-    py_transform = core.PyTransform()  # First create a PyTransform object for PyTrackingParameters object
-    tracking_parameters = zcam.PyTrackingParameters(init_pos=py_transform)
+    py_transform = sl.Transform()  # First create a Transform object for TrackingParameters object
+    tracking_parameters = sl.TrackingParameters(init_pos=py_transform)
     err = zed.enable_tracking(tracking_parameters)
-    if err != tp.PyERROR_CODE.PySUCCESS:
+    if err != sl.ERROR_CODE.SUCCESS:
         exit(1)
 
     # Track the camera position during 1000 frames
     i = 0
-    zed_pose = zcam.PyPose()
-    zed_imu = zcam.PyIMUData()
-    runtime_parameters = zcam.PyRuntimeParameters()
+    zed_pose = sl.Pose()
+    zed_imu = sl.IMUData()
+    runtime_parameters = sl.RuntimeParameters()
     
     while i < 1000:
-        if zed.grab(runtime_parameters) == tp.PyERROR_CODE.PySUCCESS:
+        if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
             # Get the pose of the left eye of the camera with reference to the world frame
-            zed.get_position(zed_pose, sl.PyREFERENCE_FRAME.PyREFERENCE_FRAME_WORLD)
-            zed.get_imu_data(zed_imu, sl.PyTIME_REFERENCE.PyTIME_REFERENCE_IMAGE)
+            zed.get_position(zed_pose, sl.REFERENCE_FRAME.REFERENCE_FRAME_WORLD)
+            zed.get_imu_data(zed_imu, sl.TIME_REFERENCE.TIME_REFERENCE_IMAGE)
 
             # Display the translation and timestamp
-            py_translation = core.PyTranslation()
+            py_translation = sl.Translation()
             tx = round(zed_pose.get_translation(py_translation).get()[0], 3)
             ty = round(zed_pose.get_translation(py_translation).get()[1], 3)
             tz = round(zed_pose.get_translation(py_translation).get()[2], 3)
             print("Translation: Tx: {0}, Ty: {1}, Tz {2}, Timestamp: {3}\n".format(tx, ty, tz, zed_pose.timestamp))
 
             # Display the orientation quaternion
-            py_orientation = core.PyOrientation()
+            py_orientation = sl.Orientation()
             ox = round(zed_pose.get_orientation(py_orientation).get()[0], 3)
             oy = round(zed_pose.get_orientation(py_orientation).get()[1], 3)
             oz = round(zed_pose.get_orientation(py_orientation).get()[2], 3)
@@ -91,7 +87,7 @@ def main():
             print("IMU Angular Velocity: Vx: {0}, Vy: {1}, Vz {2}\n".format(vx, vy, vz))
 
             # Display the IMU orientation quaternion
-            imu_orientation = core.PyOrientation()
+            imu_orientation = sl.Orientation()
             ox = round(zed_imu.get_orientation(imu_orientation).get()[0], 3)
             oy = round(zed_imu.get_orientation(imu_orientation).get()[1], 3)
             oz = round(zed_imu.get_orientation(imu_orientation).get()[2], 3)

@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-import pyzed.camera as zcam
-import pyzed.core as core
-import pyzed.defines as sl
-import pyzed.types as tp
+import pyzed.sl as sl
 import numpy as np
 import cv2
 from pathlib import Path
@@ -68,17 +65,17 @@ def main():
         exit()
 
     # Specify SVO path parameter
-    init_params = zcam.PyInitParameters()
+    init_params = sl.InitParameters()
     init_params.svo_input_filename = str(svo_input_path)
     init_params.svo_real_time_mode = False  # Don't convert in realtime
-    init_params.coordinate_units = sl.PyUNIT.PyUNIT_MILLIMETER  # Use milliliter units (for depth measurements)
+    init_params.coordinate_units = sl.UNIT.UNIT_MILLIMETER  # Use milliliter units (for depth measurements)
 
     # Create ZED objects
-    zed = zcam.PyZEDCamera()
+    zed = sl.Camera()
 
     # Open the SVO file specified as a parameter
     err = zed.open(init_params)
-    if err != tp.PyERROR_CODE.PySUCCESS:
+    if err != sl.ERROR_CODE.SUCCESS:
         sys.stdout.write(repr(err))
         zed.close()
         exit()
@@ -93,9 +90,9 @@ def main():
     svo_image_sbs_rgba = np.zeros((height, width_sbs, 4), dtype=np.uint8)
 
     # Prepare single image containers
-    left_image = core.PyMat()
-    right_image = core.PyMat()
-    depth_image = core.PyMat()
+    left_image = sl.Mat()
+    right_image = sl.Mat()
+    depth_image = sl.Mat()
 
     video_writer = None
     if output_as_video:
@@ -111,8 +108,8 @@ def main():
             zed.close()
             exit()
     
-    rt_param = zcam.PyRuntimeParameters()
-    rt_param.sensing_mode = sl.PySENSING_MODE.PySENSING_MODE_FILL
+    rt_param = sl.RuntimeParameters()
+    rt_param.sensing_mode = sl.SENSING_MODE.SENSING_MODE_FILL
 
     # Start SVO conversion to AVI/SEQUENCE
     sys.stdout.write("Converting SVO... Use Ctrl-C to interrupt conversion.\n")
@@ -120,18 +117,18 @@ def main():
     nb_frames = zed.get_svo_number_of_frames()
 
     while True:
-        if zed.grab(rt_param) == tp.PyERROR_CODE.PySUCCESS:
+        if zed.grab(rt_param) == sl.ERROR_CODE.SUCCESS:
             svo_position = zed.get_svo_position()
 
             # Retrieve SVO images
-            zed.retrieve_image(left_image, sl.PyVIEW.PyVIEW_LEFT)
+            zed.retrieve_image(left_image, sl.VIEW.VIEW_LEFT)
 
             if app_type == AppType.LEFT_AND_RIGHT:
-                zed.retrieve_image(right_image, sl.PyVIEW.PyVIEW_RIGHT)
+                zed.retrieve_image(right_image, sl.VIEW.VIEW_RIGHT)
             elif app_type == AppType.LEFT_AND_DEPTH:
-                zed.retrieve_image(right_image, sl.PyVIEW.PyVIEW_DEPTH)
+                zed.retrieve_image(right_image, sl.VIEW.VIEW_DEPTH)
             elif app_type == AppType.LEFT_AND_DEPTH_16:
-                zed.retrieve_measure(depth_image, sl.PyMEASURE.PyMEASURE_DEPTH)
+                zed.retrieve_measure(depth_image, sl.MEASURE.MEASURE_DEPTH)
 
             if output_as_video:
                 # Copy the left image to the left side of SBS image

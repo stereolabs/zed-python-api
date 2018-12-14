@@ -23,37 +23,34 @@
 """
 from OpenGL.GLUT import *
 import positional_tracking.tracking_viewer as tv
-import pyzed.camera as zcam
-import pyzed.types as tp
-import pyzed.core as core
-import pyzed.defines as sl
+import pyzed.sl as sl
 import threading
 
 
 def main():
 
-    init = zcam.PyInitParameters(camera_resolution=sl.PyRESOLUTION.PyRESOLUTION_HD720,
-                                 depth_mode=sl.PyDEPTH_MODE.PyDEPTH_MODE_PERFORMANCE,
-                                 coordinate_units=sl.PyUNIT.PyUNIT_METER,
-                                 coordinate_system=sl.PyCOORDINATE_SYSTEM.PyCOORDINATE_SYSTEM_RIGHT_HANDED_Y_UP,
+    init = sl.InitParameters(camera_resolution=sl.RESOLUTION.RESOLUTION_HD720,
+                                 depth_mode=sl.DEPTH_MODE.DEPTH_MODE_PERFORMANCE,
+                                 coordinate_units=sl.UNIT.UNIT_METER,
+                                 coordinate_system=sl.COORDINATE_SYSTEM.COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP,
                                  sdk_verbose=True)
-    cam = zcam.PyZEDCamera()
+    cam = sl.Camera()
     status = cam.open(init)
-    if status != tp.PyERROR_CODE.PySUCCESS:
+    if status != sl.ERROR_CODE.SUCCESS:
         print(repr(status))
         exit()
 
-    transform = core.PyTransform()
-    tracking_params = zcam.PyTrackingParameters(transform)
+    transform = sl.Transform()
+    tracking_params = sl.TrackingParameters(transform)
     cam.enable_tracking(tracking_params)
 
-    runtime = zcam.PyRuntimeParameters()
-    camera_pose = zcam.PyPose()
+    runtime = sl.RuntimeParameters()
+    camera_pose = sl.Pose()
 
     viewer = tv.PyTrackingViewer()
     viewer.init()
 
-    py_translation = core.PyTranslation()
+    py_translation = sl.Translation()
 
     start_zed(cam, runtime, camera_pose, viewer, py_translation)
 
@@ -68,11 +65,11 @@ def start_zed(cam, runtime, camera_pose, viewer, py_translation):
 
 def run(cam, runtime, camera_pose, viewer, py_translation):
     while True:
-        if cam.grab(runtime) == tp.PyERROR_CODE.PySUCCESS:
+        if cam.grab(runtime) == sl.ERROR_CODE.SUCCESS:
             tracking_state = cam.get_position(camera_pose)
             text_translation = ""
             text_rotation = ""
-            if tracking_state == sl.PyTRACKING_STATE.PyTRACKING_STATE_OK:
+            if tracking_state == sl.TRACKING_STATE.TRACKING_STATE_OK:
                 rotation = camera_pose.get_rotation_vector()
                 rx = round(rotation[0], 2)
                 ry = round(rotation[1], 2)
@@ -85,12 +82,12 @@ def run(cam, runtime, camera_pose, viewer, py_translation):
 
                 text_translation = str((tx, ty, tz))
                 text_rotation = str((rx, ry, rz))
-                pose_data = camera_pose.pose_data(core.PyTransform())
+                pose_data = camera_pose.pose_data(sl.Transform())
                 viewer.update_zed_position(pose_data)
 
             viewer.update_text(text_translation, text_rotation, tracking_state)
         else:
-            tp.c_sleep_ms(1)
+            sl.c_sleep_ms(1)
 
 
 if __name__ == "__main__":
