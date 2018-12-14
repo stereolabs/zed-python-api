@@ -4,7 +4,7 @@ This package lets you use the ZED stereo camera in Python 3.
 
 ## Stable API notice
 
-The ZED Python API is now stable but has some breaking changes from the previous (beta) version. The older beta version can be found in the legacy branch.
+The ZED Python API is now stable but has some breaking changes from the previous (beta) version. The older beta version can be found in the [legacy branch](https://github.com/stereolabs/zed-python-api/tree/legacy).
 
 The changes were made to better reflect the C++ API and ease of use. Mainly all classes have a similar name to the C++ SDK (without the "Py" prefix), and all components were migrated to a unified `sl` namespace.
 
