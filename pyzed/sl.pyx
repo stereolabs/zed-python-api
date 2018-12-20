@@ -208,6 +208,10 @@ cdef class Matrix3f:
         else:
             return ""
 
+    @matrix_name.setter
+    def matrix_name(self, str name):
+        self.mat.matrix_name.set(name.encode()) 
+
     @property
     def nbElem(self):
         return self.mat.nbElem
@@ -345,6 +349,10 @@ cdef class Matrix4f:
             return self.mat.matrix_name.get().decode()
         else:
             return ""
+
+    @matrix_name.setter
+    def matrix_name(self, str name):
+        self.mat.matrix_name.set(name.encode())
 
     @property
     def m(self):
@@ -734,9 +742,17 @@ cdef class Resolution:
     def width(self):
         return self.width
 
+    @width.setter
+    def width(self, value):
+        self.width = value
+
     @property
     def height(self):
         return self.height
+
+    @height.setter
+    def height(self, value):
+        self.height = value
 
     def __richcmp__(Resolution left, Resolution right, int op):
         if op == 2:
@@ -753,38 +769,86 @@ cdef class CameraParameters:
     def fx(self):
         return self.camera_params.fx
 
+    @fx.setter
+    def fx(self, float fx_):
+        self.camera_params.fx = fx_
+
     @property
     def fy(self):
         return self.camera_params.fy
+
+    @fy.setter
+    def fy(self, float fy_):
+        self.camera_params.fy = fy_
 
     @property
     def cx(self):
         return self.camera_params.cx
 
+    @cx.setter
+    def cx(self, float cx_):
+        self.camera_params.cx = cx_
+
     @property
     def cy(self):
         return self.camera_params.cy
 
+    @cy.setter
+    def cy(self, float cy_):
+        self.camera_params.cy = cy_
+
     @property
     def disto(self):
-        return self.camera_params.disto
+        cdef np.ndarray arr = np.zeros(5)
+        for i in range(5):
+            arr[i] = self.camera_params.disto[i]
+        return arr
+
+    def set_disto(self, float value1, float value2, float value3, float value4, float value5):
+        self.camera_params.disto[0] = value1
+        self.camera_params.disto[1] = value2
+        self.camera_params.disto[2] = value3
+        self.camera_params.disto[3] = value4
+        self.camera_params.disto[4] = value5
 
     @property
     def v_fov(self):
         return self.camera_params.v_fov
 
+    @v_fov.setter
+    def v_fov(self, float v_fov_):
+        self.camera_params.v_fov = v_fov_
+
     @property
     def h_fov(self):
         return self.camera_params.h_fov
+
+    @h_fov.setter
+    def h_fov(self, float h_fov_):
+        self.camera_params.h_fov = h_fov_
 
     @property
     def d_fov(self):
         return self.camera_params.d_fov
 
+    @d_fov.setter
+    def d_fov(self, float d_fov_):
+        self.camera_params.d_fov = d_fov_
+
     @property
     def image_size(self):
-        return self.camera_params.image_size
+        return Resolution(self.camera_params.image_size.width, self.camera_params.image_size.height)
 
+    @image_size.setter
+    def image_size(self, Resolution size_):
+        self.camera_params.image_size.width = size_.width
+        self.camera_params.image_size.height = size_.height
+
+    def set_up(self, float fx_, float fy_, float cx_, float cy_) :
+        self.camera_params.fx = fx_
+        self.camera_params.fy = fy_
+        self.camera_params.cx = cx_
+        self.camera_params.cy = cy_
 
 cdef class CalibrationParameters:
     cdef c_CalibrationParameters calibration
@@ -810,6 +874,12 @@ cdef class CalibrationParameters:
             arr[i] = self.calibration.R[i]
         return arr
 
+    def set_R(self, float value1, float value2, float value3) :
+        self.calibration.R[0] = value1
+        self.calibration.R[1] = value2
+        self.calibration.R[3] = value3
+        self.set()
+
     @property
     def T(self):
         cdef np.ndarray arr = np.zeros(3)
@@ -817,13 +887,29 @@ cdef class CalibrationParameters:
             arr[i] = self.calibration.T[i]
         return arr
 
+    def set_T(self, float value1, float value2, float value3) :
+        self.calibration.T[0] = value1
+        self.calibration.T[1] = value2
+        self.calibration.T[2] = value3
+        self.set()
+
     @property
     def left_cam(self):
         return self.py_left_cam
 
+    @left_cam.setter
+    def left_cam(self, CameraParameters left_cam_) :
+        self.calibration.left_cam = left_cam_.camera_params
+        self.set()
+
     @property
     def right_cam(self):
         return self.py_right_cam
+
+    @right_cam.setter
+    def right_cam(self, CameraParameters right_cam_) :
+        self.calibration.right_cam = right_cam_.camera_params
+        self.set()
 
 
 cdef class CameraInformation:
@@ -850,7 +936,7 @@ cdef class CameraInformation:
 
     @property
     def camera_model(self):
-        return self.camera_model
+        return MODEL(self.camera_model)
 
     @property
     def calibration_parameters(self):
@@ -875,49 +961,47 @@ cdef class CameraInformation:
 
 cdef class Mat:
     cdef c_Mat mat
-    def __cinit__(self):
-        self.mat = c_Mat()
+    def __cinit__(self, width=0, height=0, mat_type=MAT_TYPE.MAT_TYPE_32F_C1, memory_type=MEM.MEM_CPU):
+        c_Mat(width, height, <c_MAT_TYPE>(mat_type.value), <c_MEM>(memory_type.value)).move(self.mat)
 
     def init_mat_type(self, width, height, mat_type, memory_type=MEM.MEM_CPU):
         if isinstance(mat_type, MAT_TYPE) and isinstance(memory_type, MEM):
-            self.mat = c_Mat(width, height, mat_type.value, memory_type.value)
+            c_Mat(width, height, <c_MAT_TYPE>(mat_type.value), <c_MEM>(memory_type.value)).move(self.mat)
         else:
             raise TypeError("Argument are not of MAT_TYPE or MEM type.")
 
     def init_mat_cpu(self, width, height, mat_type, ptr, step, memory_type=MEM.MEM_CPU):
         if isinstance(mat_type, MAT_TYPE) and isinstance(memory_type, MEM):
-            self.mat = c_Mat(width, height, mat_type.value, ptr.encode(), step, memory_type.value)
+            c_Mat(width, height, <c_MAT_TYPE>(mat_type.value), ptr.encode(), step, <c_MEM>(memory_type.value)).move(self.mat)
         else:
             raise TypeError("Argument are not of MAT_TYPE or MEM type.")
 
     def init_mat_cpu_gpu(self, width, height, mat_type, ptr_cpu, step_cpu, ptr_gpu, step_gpu):
         if isinstance(mat_type, MAT_TYPE):
-             self.mat = c_Mat(width, height, mat_type.value, ptr_cpu.encode(), step_cpu, ptr_gpu.encode(), step_gpu)
+             c_Mat(width, height, mat_type.value, ptr_cpu.encode(), step_cpu, ptr_gpu.encode(), step_gpu).move(self.mat)
         else:
             raise TypeError("Argument is not of MAT_TYPE type.")
 
     def init_mat_resolution(self, Resolution resolution, mat_type, memory_type):
         if isinstance(mat_type, MAT_TYPE) and isinstance(memory_type, MEM):
-            self.mat = c_Mat(c_Resolution(resolution.width, resolution.height), mat_type.value, memory_type.value)
+            c_Mat(c_Resolution(resolution.width, resolution.height), mat_type.value, memory_type.value).move(self.mat)
         else:
             raise TypeError("Argument are not of MAT_TYPE or MEM type.")
 
     def init_mat_resolution_cpu(self, Resolution resolution, mat_type, ptr, step, memory_type=MEM.MEM_CPU):
         if isinstance(mat_type, MAT_TYPE) and isinstance(memory_type, MEM):
-            self.mat = c_Mat(c_Resolution(resolution.width, resolution.height), mat_type.value, ptr.encode(),
-                            step, memory_type.value)
+            c_Mat(c_Resolution(resolution.width, resolution.height), mat_type.value, ptr.encode(), step, memory_type.value).move(self.mat)
         else:
             raise TypeError("Argument are not of MAT_TYPE or MEM type.")
 
     def init_mat_resolution_cpu_gpu(self, Resolution resolution, mat_type, ptr_cpu, step_cpu, ptr_gpu, step_gpu):
         if isinstance(mat_type, MAT_TYPE):
-             self.mat = matResolution(c_Resolution(resolution.width, resolution.height), mat_type.value, ptr_cpu.encode(),
-                             step_cpu, ptr_gpu.encode(), step_gpu)
+             matResolution(c_Resolution(resolution.width, resolution.height), mat_type.value, ptr_cpu.encode(), step_cpu, ptr_gpu.encode(), step_gpu).move(self.mat)
         else:
             raise TypeError("Argument is not of MAT_TYPE type.")
 
     def init_mat(self, Mat matrix):
-        self.mat = c_Mat(matrix.mat)
+        c_Mat(matrix.mat).move(self.mat)
 
     def alloc_size(self, width, height, mat_type, memory_type=MEM.MEM_CPU):
         if isinstance(mat_type, MAT_TYPE) and isinstance(memory_type, MEM):
@@ -1151,9 +1235,17 @@ cdef class Mat:
         else:
             return ""
 
+    @name.setter
+    def name(self, str name_):
+        self.mat.name.set(name_.encode())
+
     @property
     def verbose(self):
         return self.mat.verbose
+
+    @verbose.setter
+    def verbose(self, bool verbose_):
+        self.mat.verbose = verbose_
 
     def __repr__(self):
         return self.get_infos()
@@ -1437,6 +1529,10 @@ cdef class Texture:
         else:
             return ""
 
+    @name.setter
+    def name(self, str name_):
+        self.texture.name.set(name_.encode())
+
     def get_data(self, Mat py_mat):
        py_mat.mat = self.texture.data
        return py_mat
@@ -1618,7 +1714,14 @@ cdef class Plane:
 
     @property
     def type(self):
-        return self.plane.type
+        return PLANE_TYPE(self.plane.type)
+
+    @type.setter
+    def type(self, type_):
+        if isinstance(type_, PLANE_TYPE) :
+            self.plane.type = <c_PLANE_TYPE>(type_.value)
+        else :
+            raise TypeError("Argument is not of PLANE_TYPE type")
 
     def get_normal(self):
         normal = self.plane.getNormal()
@@ -2225,7 +2328,7 @@ cdef class Pose:
     def timestamp(self, unsigned long long timestamp):
         self.pose.timestamp = timestamp
 
-    def pose_data(self, Transform pose_data):
+    def pose_data(self, Transform pose_data = Transform()):
         pose_data.transform = self.pose.pose_data
         pose_data.mat = self.pose.pose_data
         return pose_data
@@ -2312,7 +2415,7 @@ cdef class IMUData:
             raise TypeError("Argument is not of bool type.")
         return arr
         
-    def pose_data(self, Transform pose_data):
+    def pose_data(self, Transform pose_data = Transform()):
         pose_data.transform = self.imuData.pose_data
         pose_data.mat = self.imuData.pose_data
         return pose_data
