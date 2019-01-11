@@ -19,14 +19,14 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'pyzed'
-copyright = '2018, Arnaud Bastie'
-author = 'Arnaud Bastie'
+project = 'ZED Python API'
+copyright = '2018, Stereolabs'
+author = 'Stereolabs'
 
 # The short X.Y version
-version = ''
+version = '2.7'
 # The full version, including alpha/beta/rc tags
-release = '2.7'
+release = version
 
 
 # -- General configuration ---------------------------------------------------
@@ -91,7 +91,7 @@ autodoc_member_order = 'bysource'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['pyzedstatic']
+# html_static_path = ['pyzedstatic']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -135,7 +135,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'pyzed.tex', 'pyzed Documentation',
-     'Arnaud Bastie', 'manual'),
+     author, 'manual'),
 ]
 
 
