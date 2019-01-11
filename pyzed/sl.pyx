@@ -1423,6 +1423,7 @@ cdef class CameraParameters:
 
     @property
     def disto(self):
+
         """
         Distortion factor : [ k1, k2, p1, p2, k3 ]. Radial (k1,k2,k3) and Tangential (p1,p2) distortion.
         """
