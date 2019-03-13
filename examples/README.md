@@ -34,14 +34,6 @@ Mesh sample shows mesh information after filtering and applying texture on frame
 python examples/mesh_example.py svo_file.svo
 ```
 
-### Object
-
-Object sample shows the objects detected and tracked by the AI module with their bouding boxes and their 3D positions
-
-```
-python examples/object_example.py
-```
-
 ### Plane
 
 Plane sample is searching for the floor in a video and extracts it into a mesh if it found it.
