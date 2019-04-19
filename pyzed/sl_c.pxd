@@ -267,6 +267,7 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         CAMERA_SETTINGS_EXPOSURE
         CAMERA_SETTINGS_WHITEBALANCE
         CAMERA_SETTINGS_AUTO_WHITEBALANCE
+        CAMERA_SETTINGS_LED_STATUS
         CAMERA_SETTINGS_LAST
 
     String toString(CAMERA_SETTINGS o)
@@ -716,10 +717,19 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
 
     cdef cppclass Chunk 'sl::Chunk':
         Chunk()
-        vector[Vector3[float]] vertices
+        vector[Vector4[float]] vertices
         vector[Vector3[uint]] triangles
         vector[Vector3[float]] normals
         vector[Vector2[float]] uv
+        unsigned long long timestamp
+        Vector3[float] barycenter
+        bool has_been_updated
+        void clear()
+
+    cdef cppclass PointCloudChunk 'sl::PointCloudChunk':
+        PointCloudChunk()
+        vector[Vector4[float]] vertices
+        vector[Vector3[float]] normals
         unsigned long long timestamp
         Vector3[float] barycenter
         bool has_been_updated
@@ -730,7 +740,7 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
         Mesh()
         vector[Chunk] chunks
         Chunk &operator[](int index)
-        vector[Vector3[float]] vertices
+        vector[Vector4[float]] vertices
         vector[Vector3[uint]] triangles
         vector[Vector3[float]] normals
         vector[Vector2[float]] uv
@@ -746,6 +756,21 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
         bool save(String filename, MESH_FILE_FORMAT type, chunkList IDs)
         bool load(const String filename, bool updateMesh)
         void clear()
+
+    cdef cppclass FusedPointCloud 'sl::FusedPointCloud':
+        ctypedef vector[size_t] chunkList
+        FusedPointCloud()
+        vector[PointCloudChunk] chunks
+        PointCloudChunk &operator[](int index)
+        vector[Vector4[float]] vertices
+        vector[Vector3[float]] normals
+        size_t getNumberOfPoints()
+        void updateFromChunkList(chunkList IDs)
+        bool save(String filename, MESH_FILE_FORMAT type, chunkList IDs)
+        bool load(const String filename, bool updateMesh)
+        void clear()
+
+
 
     cdef cppclass Plane 'sl::Plane':
         Plane()
@@ -768,6 +793,10 @@ cdef extern from 'cuda.h' :
 
 cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
+    ctypedef enum SPATIAL_MAP_TYPE 'sl::SpatialMappingParameters::SPATIAL_MAP_TYPE':
+        SPATIAL_MAP_TYPE_MESH 'sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::SPATIAL_MAP_TYPE_MESH'
+        SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD 'sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD'
+
     ctypedef enum MAPPING_RESOLUTION 'sl::SpatialMappingParameters::MAPPING_RESOLUTION':
         MAPPING_RESOLUTION_HIGH 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::MAPPING_RESOLUTION_HIGH'
         MAPPING_RESOLUTION_MEDIUM 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::MAPPING_RESOLUTION_MEDIUM'
@@ -786,6 +815,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         void setFromCameraID(unsigned int id)
         void setFromSerialNumber(unsigned int serial_number)
         void setFromSVOFile(String svo_input_filename)
+        void setFromStream(String senderIP, unsigned short port)
 
     cdef cppclass InitParameters 'sl::InitParameters':
         RESOLUTION camera_resolution
@@ -874,7 +904,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                                  int max_memory_usage_,
                                  bool save_texture_,
                                  bool use_chunk_only_,
-                                 bool reverse_vertex_order_)
+                                 bool reverse_vertex_order_,
+                                 SPATIAL_MAP_TYPE map_type_)
 
         @staticmethod
         float get(MAPPING_RESOLUTION resolution)
@@ -897,6 +928,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool use_chunk_only
         bool reverse_vertex_order
 
+        SPATIAL_MAP_TYPE map_type
+
         const interval allowed_range
         float range_meter
         const interval allowed_resolution
@@ -904,6 +937,27 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         bool save(String filename)
         bool load(String filename)
+
+
+    cdef enum STREAMING_CODEC:
+        STREAMING_CODEC_AVCHD
+        STREAMING_CODEC_HEVC
+        STREAMING_CODEC_LAST
+
+    cdef struct StreamingProperties:
+        String ip
+        unsigned short port
+        unsigned int serial_number
+        int current_bitrate
+        STREAMING_CODEC codec
+
+    cdef cppclass StreamingParameters:
+        STREAMING_CODEC codec
+        unsigned short port
+        unsigned int bitrate
+        int gop_size
+        bool adaptative_bitrate
+        StreamingParameters(STREAMING_CODEC codec, unsigned short port_, unsigned int bitrate, int gop_size, bool adaptative_bitrate_)
 
     cdef cppclass Pose:
         Pose()
@@ -984,12 +1038,24 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE retrieveMeshAsync(Mesh &mesh)
         void disableSpatialMapping()
 
+        void requestSpatialMapAsync()
+        ERROR_CODE getSpatialMapRequestStatusAsync()
+        ERROR_CODE retrieveSpatialMapAsync(Mesh &mesh)
+        ERROR_CODE retrieveSpatialMapAsync(FusedPointCloud &fpc)
+        ERROR_CODE extractWholeSpatialMap(Mesh &mesh)
+        ERROR_CODE extractWholeSpatialMap(FusedPointCloud &fpc)
+
         ERROR_CODE findPlaneAtHit(Vector2[uint] coord, Plane &plane)
         ERROR_CODE findFloorPlane(Plane &plane, Transform &resetTrackingFloorFrame, float floor_height_prior, Rotation world_orientation_prior, float floor_height_prior_tolerance)
 
         ERROR_CODE enableRecording(String video_filename, SVO_COMPRESSION_MODE compression_mode)
         RecordingState record()
         void disableRecording()
+
+        ERROR_CODE enableStreaming(StreamingParameters streaming_parameters)
+        void disableStreaming()
+        bool isStreamingEnabled()
+
 
         @staticmethod
         String getSDKVersion()
@@ -1002,6 +1068,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         @staticmethod
         vector[DeviceProperties] getDeviceList()
+
+        @staticmethod
+        vector[StreamingProperties] getStreamingDeviceList()
 
     bool saveDepthAs(Camera &zed, DEPTH_FORMAT format, String name, float factor)
     bool savePointCloudAs(Camera &zed, POINT_CLOUD_FORMAT format, String name,
