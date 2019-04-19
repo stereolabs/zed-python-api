@@ -37,7 +37,7 @@ libs = ""
 cflags = ""
 
 ZED_SDK_MAJOR = "2"
-ZED_SDK_MINOR = "7"
+ZED_SDK_MINOR = "8"
 
 cuda_path = "/usr/local/cuda"
 
@@ -188,7 +188,7 @@ for mod in GPUmodulesTable:
     extensions.extend(extList)
 
 setup(name="pyzed",
-      version="2.7",
+      version= ZED_SDK_MAJOR + "." + ZED_SDK_MINOR,
       author_email="developers@stereolabs.com",
       description="Use the ZED SDK with Python",
       packages=py_packages,

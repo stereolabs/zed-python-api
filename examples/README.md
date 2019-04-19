@@ -41,3 +41,16 @@ Plane sample is searching for the floor in a video and extracts it into a mesh i
 ```
 python examples/plane_example.py svo_file.svo
 ```
+
+### Streaming
+
+These 2 samples show the local network streaming capabilities of the SDK. The sender is opening the camera and transmitting the images. 
+The receiver opens the network image stream and display the images.
+
+```
+python examples/camera_streaming/sender/streaming_sender.py
+```
+
+```
+python examples/camera_streaming/receiver/streaming_receiver.py 127.0.0.1
+```

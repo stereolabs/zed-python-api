@@ -24,8 +24,7 @@ from libcpp.vector cimport vector
 from libc.string cimport const_char
 from libcpp.string cimport string
 from libcpp.pair cimport pair
-from sl_c cimport to_str, ERROR_CODE as c_ERROR_CODE, toString, sleep_ms, MODEL as c_MODEL, model2str, CAMERA_STATE as c_CAMERA_STATE, String, DeviceProperties as c_DeviceProperties, Vector2, Vector3, Vector4, Matrix3f as c_Matrix3f, Matrix4f as c_Matrix4f, UNIT as c_UNIT, COORDINATE_SYSTEM as c_COORDINATE_SYSTEM, RESOLUTION as c_RESOLUTION, CAMERA_SETTINGS as c_CAMERA_SETTINGS, SELF_CALIBRATION_STATE as c_SELF_CALIBRATION_STATE, DEPTH_MODE as c_DEPTH_MODE, SENSING_MODE as c_SENSING_MODE, MEASURE as c_MEASURE, VIEW as c_VIEW, TIME_REFERENCE as c_TIME_REFERENCE, DEPTH_FORMAT as c_DEPTH_FORMAT, POINT_CLOUD_FORMAT as c_POINT_CLOUD_FORMAT, TRACKING_STATE as c_TRACKING_STATE, AREA_EXPORT_STATE as c_AREA_EXPORT_STATE, REFERENCE_FRAME as c_REFERENCE_FRAME, SPATIAL_MAPPING_STATE as c_SPATIAL_MAPPING_STATE, SVO_COMPRESSION_MODE as c_SVO_COMPRESSION_MODE, RecordingState, cameraResolution, resolution2str, statusCode2str, str2mode, depthMode2str, sensingMode2str, unit2str, str2unit, trackingState2str, spatialMappingState2str, getCurrentTimeStamp, Resolution as c_Resolution, CameraParameters as c_CameraParameters, CalibrationParameters as c_CalibrationParameters, CameraInformation as c_CameraInformation, MEM as c_MEM, COPY_TYPE as c_COPY_TYPE, MAT_TYPE as c_MAT_TYPE, Mat as c_Mat, Rotation as c_Rotation, Translation as c_Translation, Orientation as c_Orientation, Transform as c_Transform, uchar1, uchar2, uchar3, uchar4, float1, float2, float3, float4, matResolution, setToUchar1, setToUchar2, setToUchar3, setToUchar4, setToFloat1, setToFloat2, setToFloat3, setToFloat4, setValueUchar1, setValueUchar2, setValueUchar3, setValueUchar4, setValueFloat1, setValueFloat2, setValueFloat3, setValueFloat4, getValueUchar1, getValueUchar2, getValueUchar3, getValueUchar4, getValueFloat1, getValueFloat2, getValueFloat3, getValueFloat4, getPointerUchar1, getPointerUchar2, getPointerUchar3, getPointerUchar4, getPointerFloat1, getPointerFloat2, getPointerFloat3, getPointerFloat4, uint, MESH_FILE_FORMAT as c_MESH_FILE_FORMAT, MESH_TEXTURE_FORMAT as c_MESH_TEXTURE_FORMAT, MESH_FILTER as c_MESH_FILTER, PLANE_TYPE as c_PLANE_TYPE, MeshFilterParameters as c_MeshFilterParameters, Texture as c_Texture, Chunk as c_Chunk, Mesh as c_Mesh, Plane as c_Plane, CUctx_st, CUcontext, MAPPING_RESOLUTION as c_MAPPING_RESOLUTION, MAPPING_RANGE as c_MAPPING_RANGE, InputType as c_InputType, InitParameters as c_InitParameters, RuntimeParameters as c_RuntimeParameters, TrackingParameters as c_TrackingParameters, SpatialMappingParameters as c_SpatialMappingParameters, Pose as c_Pose, IMUData as c_IMUData, Camera as c_Camera, saveDepthAs, savePointCloudAs, saveMatDepthAs, saveMatPointCloudAs
-
+from sl_c cimport to_str, ERROR_CODE as c_ERROR_CODE, toString, sleep_ms, MODEL as c_MODEL, model2str, CAMERA_STATE as c_CAMERA_STATE, String, DeviceProperties as c_DeviceProperties, Vector2, Vector3, Vector4, Matrix3f as c_Matrix3f, Matrix4f as c_Matrix4f, UNIT as c_UNIT, COORDINATE_SYSTEM as c_COORDINATE_SYSTEM, RESOLUTION as c_RESOLUTION, CAMERA_SETTINGS as c_CAMERA_SETTINGS, SELF_CALIBRATION_STATE as c_SELF_CALIBRATION_STATE, DEPTH_MODE as c_DEPTH_MODE, SENSING_MODE as c_SENSING_MODE, MEASURE as c_MEASURE, VIEW as c_VIEW, TIME_REFERENCE as c_TIME_REFERENCE, DEPTH_FORMAT as c_DEPTH_FORMAT, POINT_CLOUD_FORMAT as c_POINT_CLOUD_FORMAT, TRACKING_STATE as c_TRACKING_STATE, AREA_EXPORT_STATE as c_AREA_EXPORT_STATE, REFERENCE_FRAME as c_REFERENCE_FRAME, SPATIAL_MAPPING_STATE as c_SPATIAL_MAPPING_STATE, SVO_COMPRESSION_MODE as c_SVO_COMPRESSION_MODE, RecordingState, cameraResolution, resolution2str, statusCode2str, str2mode, depthMode2str, sensingMode2str, unit2str, str2unit, trackingState2str, spatialMappingState2str, getCurrentTimeStamp, Resolution as c_Resolution, CameraParameters as c_CameraParameters, CalibrationParameters as c_CalibrationParameters, CameraInformation as c_CameraInformation, MEM as c_MEM, COPY_TYPE as c_COPY_TYPE, MAT_TYPE as c_MAT_TYPE, Mat as c_Mat, Rotation as c_Rotation, Translation as c_Translation, Orientation as c_Orientation, Transform as c_Transform, uchar1, uchar2, uchar3, uchar4, float1, float2, float3, float4, matResolution, setToUchar1, setToUchar2, setToUchar3, setToUchar4, setToFloat1, setToFloat2, setToFloat3, setToFloat4, setValueUchar1, setValueUchar2, setValueUchar3, setValueUchar4, setValueFloat1, setValueFloat2, setValueFloat3, setValueFloat4, getValueUchar1, getValueUchar2, getValueUchar3, getValueUchar4, getValueFloat1, getValueFloat2, getValueFloat3, getValueFloat4, getPointerUchar1, getPointerUchar2, getPointerUchar3, getPointerUchar4, getPointerFloat1, getPointerFloat2, getPointerFloat3, getPointerFloat4, uint, MESH_FILE_FORMAT as c_MESH_FILE_FORMAT, MESH_TEXTURE_FORMAT as c_MESH_TEXTURE_FORMAT, MESH_FILTER as c_MESH_FILTER, PLANE_TYPE as c_PLANE_TYPE, MeshFilterParameters as c_MeshFilterParameters, Texture as c_Texture, Chunk as c_Chunk, PointCloudChunk as c_PointCloudChunk, FusedPointCloud as c_FusedPointCloud, Mesh as c_Mesh, Plane as c_Plane, CUctx_st, CUcontext, MAPPING_RESOLUTION as c_MAPPING_RESOLUTION, MAPPING_RANGE as c_MAPPING_RANGE, SPATIAL_MAP_TYPE as c_SPATIAL_MAP_TYPE, InputType as c_InputType, InitParameters as c_InitParameters, RuntimeParameters as c_RuntimeParameters, TrackingParameters as c_TrackingParameters, SpatialMappingParameters as c_SpatialMappingParameters, Pose as c_Pose, IMUData as c_IMUData, Camera as c_Camera, StreamingParameters as c_StreamingParameters, STREAMING_CODEC as c_STREAMING_CODEC, StreamingProperties as c_StreamingProperties, FusedPointCloud as c_FusedPointCloud, SPATIAL_MAP_TYPE as c_SPATIAL_MAP_TYPE, PointCloudChunk as c_PointCloudChunk, saveDepthAs, savePointCloudAs, saveMatDepthAs, saveMatPointCloudAs
 from cython.operator cimport dereference as deref
 from libc.string cimport memcpy
 from cpython cimport bool
@@ -728,6 +727,7 @@ class CAMERA_SETTINGS(enum.Enum):
     CAMERA_SETTINGS_EXPOSURE = c_CAMERA_SETTINGS.CAMERA_SETTINGS_EXPOSURE
     CAMERA_SETTINGS_WHITEBALANCE = c_CAMERA_SETTINGS.CAMERA_SETTINGS_WHITEBALANCE
     CAMERA_SETTINGS_AUTO_WHITEBALANCE = c_CAMERA_SETTINGS.CAMERA_SETTINGS_AUTO_WHITEBALANCE
+    CAMERA_SETTINGS_LED_STATUS = c_CAMERA_SETTINGS.CAMERA_SETTINGS_LED_STATUS
     CAMERA_SETTINGS_LAST = c_CAMERA_SETTINGS.CAMERA_SETTINGS_LAST
 
 
@@ -2985,6 +2985,43 @@ cdef class Texture:
         """
         self.texture.clear()
 
+cdef class PointCloudChunk :
+    cdef c_PointCloudChunk chunk
+
+    @property
+    def vertices(self):
+        cdef np.ndarray arr = np.zeros((self.chunk.vertices.size(), 3))
+        for i in range(self.chunk.vertices.size()):
+            for j in range(3):
+                arr[i,j] = self.chunk.vertices[i].ptr()[j]
+        return arr
+
+    @property
+    def normals(self):
+        cdef np.ndarray arr = np.zeros((self.chunk.normals.size(), 3))
+        for i in range(self.chunk.normals.size()):
+            for j in range(3):
+                arr[i,j] = self.chunk.normals[i].ptr()[j]
+        return arr
+
+    @property
+    def timestamp(self):
+        return self.chunk.timestamp
+
+    @property
+    def barycenter(self):
+        cdef np.ndarray arr = np.zeros(3)
+        for i in range(3):
+            arr[i] = self.chunk.barycenter[i]
+        return arr
+
+    @property
+    def has_been_updated(self):
+        return self.chunk.has_been_updated
+
+    def clear(self):
+        self.chunk.clear()
+
 
 cdef class Chunk:
     """
@@ -3078,6 +3115,64 @@ cdef class Chunk:
         Clears all chunk data.
         """
         self.chunk.clear()
+
+cdef class FusedPointCloud :
+    cdef c_FusedPointCloud* fpc
+    def __cinit__(self):
+        self.fpc = new c_FusedPointCloud()
+
+    def __dealloc__(self):
+        del self.fpc
+
+    @property
+    def chunks(self):
+        list = []
+        for i in range(self.mesh.chunks.size()):
+            py_chunk = PointCloudChunk()
+            py_chunk.chunk = self.fpc.chunks[i]
+            list.append(py_chunk)
+        return list
+
+    def __getitem__(self, x):
+        return self.chunks[x]
+
+    @property
+    def vertices(self):
+        cdef np.ndarray arr = np.zeros((self.fpc.vertices.size(), 3))
+        for i in range(self.fpc.vertices.size()):
+            for j in range(3):
+                arr[i,j] = self.fpc.vertices[i].ptr()[j]
+        return arr
+
+    @property
+    def normals(self):
+        cdef np.ndarray arr = np.zeros((self.fpc.normals.size(), 3))
+        for i in range(self.fpc.normals.size()):
+            for j in range(3):
+                arr[i,j] = self.fpc.normals[i].ptr()[j]
+        return arr
+
+    def save(self, str filename, typeMesh=MESH_FILE_FORMAT.MESH_FILE_OBJ, id=[]):
+        if isinstance(typeMesh, MESH_FILE_FORMAT):
+            return self.fpc.save(String(filename.encode()), typeMesh.value, id)
+        else:
+            raise TypeError("Argument is not of MESH_FILE_FORMAT type.")
+
+    def load(self, str filename, update_mesh=True):
+        if isinstance(update_mesh, bool):
+            return self.fpc.load(String(filename.encode()), update_mesh)
+        else:
+            raise TypeError("Argument is not of boolean type.")
+
+    def clear(self):
+        self.fpc.clear()
+
+    def update_from_chunklist(self, id=[]):
+        self.fpc.updateFromChunkList(id)
+
+    def get_number_of_points(self):
+        return self.fpc.getNumberOfPoints()
+
 
 cdef class Mesh:
     """
@@ -3510,6 +3605,10 @@ class MAPPING_RANGE(enum.Enum):
     MAPPING_RANGE_MEDIUM = c_MAPPING_RANGE.MAPPING_RANGE_MEDIUM
     MAPPING_RANGE_FAR = c_MAPPING_RANGE.MAPPING_RANGE_FAR
 
+class SPATIAL_MAP_TYPE(enum.Enum):
+    SPATIAL_MAP_TYPE_MESH = c_SPATIAL_MAP_TYPE.SPATIAL_MAP_TYPE_MESH
+    SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD = c_SPATIAL_MAP_TYPE.SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD
+
 cdef class InputType:
     """
     Defines the input type used in the ZED SDK. Can be used to select a specific camera with ID or serial number, or a svo file.
@@ -3545,6 +3644,10 @@ cdef class InputType:
         """
         filename = svo_input_filename.encode()
         self.input.setFromSVOFile(String(<char*> filename))
+
+    def set_from_stream(self, str sender_ip, port=30000):
+        sender_ip_ = sender_ip.encode()
+        self.input.setFromStream(String(<char*>sender_ip_), port)
  
 
 cdef class InitParameters:
@@ -4059,6 +4162,9 @@ cdef class InitParameters:
         filename = svo_input_filename.encode()
         self.init.input.setFromSVOFile(String(<char*> filename))
 
+    def set_from_stream(self, str sender_ip, port=30000):
+        sender_ip_ = sender_ip.encode()
+        self.init.input.setFromStream(String(<char*>sender_ip_), port)
 
 cdef class RuntimeParameters:
     """
@@ -4320,10 +4426,135 @@ cdef class TrackingParameters:
         value_area = value.encode()
         self.tracking.area_file_path.set(<char*>value_area)
 
+class STREAMING_CODEC(enum.Enum):
+    """
+    List of possible camera state.
+    """
+    STREAMING_CODEC_AVCHD = c_STREAMING_CODEC.STREAMING_CODEC_AVCHD
+    STREAMING_CODEC_HEVC = c_STREAMING_CODEC.STREAMING_CODEC_HEVC
+    STREAMING_CODEC_LAST = c_STREAMING_CODEC.STREAMING_CODEC_LAST
+
+cdef class StreamingProperties:
+    """
+    Properties of all streaming devices
+    """
+    cdef c_StreamingProperties c_streaming_properties
+
+    @property
+    def ip(self):
+        return to_str(self.c_streaming_properties.ip).decode()
+
+    @ip.setter
+    def ip(self, str ip_):
+        self.c_streaming_properties.ip = String(ip_.encode())
+
+    @property
+    def port(self):
+        return self.c_streaming_properties.port
+
+    @port.setter
+    def port(self, port_):
+         self.c_streaming_properties.port = port_
+
+
+cdef class StreamingParameters:
+    """
+    Sets the streaming parameters.
+
+    The default constructor sets all parameters to their default settings.
+
+    .. note::
+        Parameters can be user adjusted.
+    """
+    cdef c_StreamingParameters* streaming
+    def __cinit__(self, codec=STREAMING_CODEC.STREAMING_CODEC_HEVC, port=30000, bitrate=2000, gop_size=-1, adaptative_bitrate=False):
+            self.streaming = new c_StreamingParameters(codec.value, port, bitrate, gop_size, adaptative_bitrate)
+
+    def __dealloc__(self):
+        del self.streaming
+
+    @property
+    def codec(self):
+        """
+        Defines the codec used for streaming.
+
+        .. warning::
+            If HEVC is used, make sure the receiving host is compatible with HEVC decoding (basically a pascal NVIDIA card). If not, prefer to use AVCHD since every compatible NVIDIA card supports AVCHD decoding
+        """
+        return STREAMING_CODEC(self.streaming.codec)
+
+    @codec.setter
+    def codec(self, codec):
+        self.streaming.codec = codec.value
+
+    @property
+    def port(self):
+        """
+        Defines the port the data will be streamed on.
+        .. warning::
+            port must be an even number. Any odd number will be rejected.
+        """
+        return self.streaming.port
+
+    @port.setter
+    def port(self, unsigned short value):
+        self.streaming.port = value
+
+    @property
+    def bitrate(self):
+        """
+        Defines the port the data will be streamed on.
+        """
+        return self.streaming.bitrate
+
+    @bitrate.setter
+    def bitrate(self, unsigned int value):
+        self.streaming.bitrate = value
+
+    @property
+    def adaptative_bitrate(self):
+        """
+        Enable/Disable adaptive bitrate
+
+        .. note::
+            Bitrate will be adjusted regarding the number of packet loss during streaming.
+
+        .. note::
+            if activated, bitrate can vary between [bitrate/4, bitrate]
+
+        .. warning::
+            Bitrate will be adjusted regarding the number of packet loss during streaming. 
+        """
+        return self.streaming.adaptative_bitrate
+
+    @adaptative_bitrate.setter
+    def adaptative_bitrate(self, bool value):
+        self.streaming.adaptative_bitrate = value
+
+    @property
+    def gop_size(self):
+        """
+        Defines the gop size in frame unit.
+
+        .. note::
+            if value is set to -1, the gop size will match 2 seconds, depending on camera fps.
+
+        .. note::
+            The gop size determines the maximum distance between IDR/I-frames. Very high GOP size will result in slightly more efficient compression, especially on static scene. But it can result in more latency if IDR/I-frame packet are lost during streaming.
+
+        .. note::
+            Default value is -1. Maximum allowed value is 256 (frames).
+        """ 
+
+        return self.streaming.gop_size
+
+    @gop_size.setter
+    def gop_size(self, int value):
+        self.streaming.gop_size = value
+
 
 cdef class SpatialMappingParameters:
     """
-    Sets the spatial mapping parameters.
 
     A default constructor is enabled and set to its default parameters.
 
@@ -4331,15 +4562,16 @@ cdef class SpatialMappingParameters:
 
     .. note::
         Parameters can be user adjusted.
+
     """
     cdef c_SpatialMappingParameters* spatial
     def __cinit__(self, resolution=MAPPING_RESOLUTION.MAPPING_RESOLUTION_HIGH, mapping_range=MAPPING_RANGE.MAPPING_RANGE_MEDIUM,
                   max_memory_usage=2048, save_texture=True, use_chunk_only=True,
-                  reverse_vertex_order=False):
+                  reverse_vertex_order=False, map_type=SPATIAL_MAP_TYPE.SPATIAL_MAP_TYPE_MESH):
         if (isinstance(resolution, MAPPING_RESOLUTION) and isinstance(mapping_range, MAPPING_RANGE) and
-            isinstance(use_chunk_only, bool) and isinstance(reverse_vertex_order, bool)):
+            isinstance(use_chunk_only, bool) and isinstance(reverse_vertex_order, bool) and isinstance(map_type, SPATIAL_MAP_TYPE)):
             self.spatial = new c_SpatialMappingParameters(resolution.value, mapping_range.value, max_memory_usage, save_texture,
-                                                        use_chunk_only, reverse_vertex_order)
+                                                        use_chunk_only, reverse_vertex_order, map_type.value)
         else:
             raise TypeError()
 
@@ -4417,6 +4649,14 @@ cdef class SpatialMappingParameters:
             return self.spatial.getRecommendedRange(<float> resolution, py_cam.camera)
         else:
             raise TypeError("Argument is not of MAPPING_RESOLUTION or float type.")
+
+    @property
+    def map_type(self):
+        return self.spatial.map_type
+
+    @map_type.setter
+    def map_type(self, value):
+        self.spatial.map_type = <c_SPATIAL_MAP_TYPE> value.value
 
     @property
     def max_memory_usage(self):
@@ -6107,6 +6347,29 @@ cdef class Camera:
         """
         return ERROR_CODE(self.camera.retrieveMeshAsync(deref(py_mesh.mesh)))
 
+    def request_spatial_map_async(self):
+        self.camera.requestSpatialMapAsync()
+
+    def get_spatial_map_request_status_async(self):
+        return ERROR_CODE(self.camera.getSpatialMapRequestStatusAsync())
+
+    def retrieve_spatial_map_async(self, py_mesh):
+        if isinstance(py_mesh, Mesh) :
+            return ERROR_CODE(self.camera.retrieveSpatialMapAsync(deref((<Mesh>py_mesh).mesh)))
+        elif isinstance(py_mesh, FusedPointCloud) :
+            py_mesh = <FusedPointCloud> py_mesh
+            return ERROR_CODE(self.camera.retrieveSpatialMapAsync(deref((<FusedPointCloud>py_mesh).fpc)))
+        else :
+           raise TypeError("Argument is not of Mesh or FusedPointCloud type.") 
+
+    def extract_whole_spatial_map(self, py_mesh):
+        if isinstance(py_mesh, Mesh) :
+            return ERROR_CODE(self.camera.extractWholeSpatialMap(deref((<Mesh>py_mesh).mesh)))
+        elif isinstance(py_mesh, FusedPointCloud) :
+            return ERROR_CODE(self.camera.extractWholeSpatialMap(deref((<FusedPointCloud>py_mesh).fpc)))
+        else :
+           raise TypeError("Argument is not of Mesh or FusedPointCloud type.") 
+
     def find_plane_at_hit(self, coord, Plane py_plane):
         """
         Checks the plane at the given left image coordinates. 
@@ -6163,6 +6426,32 @@ cdef class Camera:
             This function frees the memory allocated for th spatial mapping, consequently, mesh cannot be retrieved after this call. 
         """
         self.camera.disableSpatialMapping()
+
+
+    def enable_streaming(self, StreamingParameters streaming_parameters = StreamingParameters()) :
+        """
+        Creates an streaming pipeline for images.
+
+        **Parameters**
+            - **streaming_parameters** : the structure containing all the specific parameters for the streaming.
+        """
+        return ERROR_CODE(self.camera.enableStreaming(deref(streaming_parameters.streaming)))
+
+    def disable_streaming(self):
+        """
+        Disables the streaming initiated by :meth:`~pyzed.sl.Camera.enable_streaming()`
+
+        .. note::
+            This function will automatically be called by :meth:`~pyzed.sl.Camera.close()` if :meth:`~pyzed.sl.Camera.enable_streaming()` was called.
+        """
+        self.camera.disableStreaming()
+
+    def is_streaming_enabled(self):
+        """
+        Tells if the streaming is actually sending data (true) or still in configuration (false)
+        """
+        return self.camera.isStreamingEnabled()
+
 
     def enable_recording(self, str video_filename,
                           compression_mode=SVO_COMPRESSION_MODE.SVO_COMPRESSION_MODE_LOSSLESS):
@@ -6316,6 +6605,34 @@ cdef class Camera:
             prop.serial_number = vect_[i].serial_number
             vect_python.append(prop)
         return vect_python
+
+    def get_streaming_device_list(cls):
+        """
+        List all the streaming devices with their associated information.
+
+        **Returns**
+            - The streaming properties for each connected camera
+
+        .. warning::
+            As this function returns an std::vector, it is only safe to use in Release mode (not Debug).
+
+            This is due to a known compatibility issue between release (the SDK) and debug (your app) implementations of std::vector.
+
+        .. warning::
+            This function takes around 2seconds to make sure all network informations has been captured. Make sure to run this function in a thread.
+        """
+        vect_ = cls.camera.getStreamingDeviceList()
+        vect_python = []
+        for i in range(vect_.size()):
+            prop = StreamingProperties()
+            prop.ip = to_str(vect_[i].ip)
+            prop.port = vect_[i].port
+            prop.serial_number = vect_[i].serial_number
+            prop.current_bitrate = vect_[i].current_bitrate
+            prop.codec = vect_[i].codec
+            vect_python.append(prop)
+        return vect_python
+
 
 def save_camera_depth_as(Camera zed, format, str name, factor=1):
     """
