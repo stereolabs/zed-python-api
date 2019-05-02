@@ -14,6 +14,7 @@
 #
 import os
 import sys
+import re
 sys.path.insert(0, os.path.abspath('..'))
 
 
@@ -23,8 +24,16 @@ project = 'ZED Python API'
 copyright = '2018, Stereolabs'
 author = 'Stereolabs'
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+with open(dir_path + "/../../setup.py", "r") as myfile:
+    data = myfile.read()
+
+major = re.search(r'ZED_SDK_MAJOR = "\s*([\d.]+)"', data).group(1)
+minor = re.search(r'ZED_SDK_MINOR = "\s*([\d.]+)"', data).group(1)
+print("ZED SDK detected: " + major + "." + minor)
+
 # The short X.Y version
-version = '2.7'
+version = major + "." + minor
 # The full version, including alpha/beta/rc tags
 release = version
 
