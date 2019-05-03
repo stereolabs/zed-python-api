@@ -39,7 +39,6 @@ install:
   - set PATH=%ZED_SDK_ROOT_DIR%\bin;%PATH%
   
   # Install CUDA 
-  #- curl -L https://developer.nvidia.com/compute/cuda/10.0/Prod/local_installers/cuda_10.0.130_411.31_win10 -o cuda_setup.exe
   - curl -L https://download.stereolabs.com/cuda%CUDA_MAJOR%/win10 -o cuda_setup.exe
   - .\cuda_setup.exe -s nvcc_%CUDA_MAJOR%.%CUDA_MINOR%
   - set CUDA_PATH=%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v%CUDA_MAJOR%.%CUDA_MINOR%
