@@ -30,6 +30,7 @@ import numpy
 
 from distutils.core import setup, Extension
 from Cython.Build import cythonize
+from pathlib import Path
 
 incDirs = ""
 libDirs = ""
@@ -42,7 +43,7 @@ ZED_SDK_MINOR = "8"
 cuda_path = "/usr/local/cuda"
 
 def check_zed_sdk_version_private(file_path):
-    with open(file_path, "r") as myfile:
+    with open(str(file_path), "r") as myfile:
         data = myfile.read()
 
     p = re.compile("ZED_SDK_MAJOR_VERSION (.*)")
@@ -63,24 +64,16 @@ def check_zed_sdk_version_private(file_path):
         sys.exit(0)
 
 def check_zed_sdk_version(file_path):
-    file_path_prior_23 = file_path+"/sl/defines.hpp"
-    file_path_ = file_path+"/sl_zed/defines.hpp"
+    file_path_prior_23 = Path(file_path) / "sl" / "defines.hpp"
+    file_path_ = Path(file_path) / "sl_zed" / "defines.hpp"
     try:
         check_zed_sdk_version_private(file_path_prior_23)
     except AttributeError:
         check_zed_sdk_version_private(file_path_)
    
 def clean_cpp():
-    if os.path.isfile("pyzed/camera.cpp"):
-        os.remove("pyzed/camera.cpp")
-    if os.path.isfile("pyzed/core.cpp"):
-        os.remove("pyzed/core.cpp")
-    if os.path.isfile("pyzed/defines.cpp"):
-        os.remove("pyzed/defines.cpp")
-    if os.path.isfile("pyzed/mesh.cpp"):
-        os.remove("pyzed/mesh.cpp")
-    if os.path.isfile("pyzed/types.cpp"):
-        os.remove("pyzed/types.cpp")
+    if os.path.isfile("pyzed/sl.cpp"):
+        os.remove("pyzed/sl.cpp")
 
 if "clean" in "".join(sys.argv[1:]):
     target = "clean"
