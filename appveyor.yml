@@ -13,12 +13,14 @@ environment:
       CUDA_MAJOR: "10"
       CUDA_MINOR: "0"
       ZED_URL_SUFFIX: "win"
-      
-    - ZED_MAJOR: "2"
-      ZED_MINOR: "8"
-      CUDA_MAJOR: "9"
-      CUDA_MINOR: "0"
-      ZED_URL_SUFFIX: "win_cuda9"
+      CUDA_URL: https://download.stereolabs.com/cuda%CUDA_MAJOR%/win10
+
+    #- ZED_MAJOR: "2"
+    #  ZED_MINOR: "8"
+    #  CUDA_MAJOR: "9"
+    #  CUDA_MINOR: "0"
+    #  ZED_URL_SUFFIX: "win_cuda9"
+    #  CUDA_URL: https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda_9.0.176_win10-exe
 
 install:  
   - cd %WORKSPACE%\
@@ -38,8 +40,8 @@ install:
   - set SL_ZED_SDK_INSTALL=C:\Program Files (x86)\ZED SDK
   - set PATH=%ZED_SDK_ROOT_DIR%\bin;%PATH%
   
-  # Install CUDA 
-  - curl -L https://download.stereolabs.com/cuda%CUDA_MAJOR%/win10 -o cuda_setup.exe
+  # Install CUDA
+  - curl -L %CUDA_URL% -o cuda_setup.exe
   - .\cuda_setup.exe -s nvcc_%CUDA_MAJOR%.%CUDA_MINOR%
   - set CUDA_PATH=%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v%CUDA_MAJOR%.%CUDA_MINOR%
   - set CUDA_PATH_V%CUDA_MAJOR%_%CUDA_MINOR%=%CUDA_PATH%
@@ -77,6 +79,9 @@ build_script:
 
 artifacts:
   - path: '*.whl'
+
+#on_finish:
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 #on_success:
 #  - TODO: upload the content of dist/*.whl to a public wheelhouse
