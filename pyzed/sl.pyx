@@ -3697,7 +3697,7 @@ cdef class InitParameters:
                   sdk_verbose=False, sdk_gpu_id=-1, depth_minimum_distance=-1.0, camera_disable_self_calib=False,
                   camera_image_flip=False, enable_right_side_measure=False, camera_buffer_count_linux=4,
                   sdk_verbose_log_file="", depth_stabilization=True, InputType input_t=InputType(),
-                  optional_settings_path=""):
+                  optional_settings_path="", camera_disable_imu=False):
         if (isinstance(camera_resolution, RESOLUTION) and isinstance(camera_fps, int) and
             isinstance(camera_linux_id, int) and isinstance(svo_input_filename, str) and
             isinstance(svo_real_time_mode, bool) and isinstance(depth_mode, DEPTH_MODE) and
@@ -3707,7 +3707,7 @@ cdef class InitParameters:
             isinstance(camera_disable_self_calib, bool) and isinstance(camera_image_flip, bool) and
             isinstance(enable_right_side_measure, bool) and isinstance(camera_buffer_count_linux, int) and
             isinstance(sdk_verbose_log_file, str) and isinstance(depth_stabilization, bool) and
-            isinstance(input_t, InputType) and isinstance(optional_settings_path, str)) :
+            isinstance(input_t, InputType) and isinstance(optional_settings_path, str) and isinstance(camera_disable_imu, bool)) :
 
             filename = svo_input_filename.encode()
             filelog = sdk_verbose_log_file.encode()
@@ -3718,7 +3718,7 @@ cdef class InitParameters:
                                             depth_minimum_distance, camera_disable_self_calib, camera_image_flip,
                                             enable_right_side_measure, camera_buffer_count_linux,
                                             String(<char*> filelog), depth_stabilization,
-                                            <CUcontext> 0, input_t.input, String(<char*> fileoption))
+                                            <CUcontext> 0, input_t.input, String(<char*> fileoption), camera_disable_imu)
         else:
             raise TypeError("Argument is not of right type.")
 
@@ -3975,6 +3975,14 @@ cdef class InitParameters:
     @camera_disable_self_calib.setter
     def camera_disable_self_calib(self, bool value):
         self.init.camera_disable_self_calib = value
+
+    @property
+    def camera_disable_imu(self):
+        return self.init.camera_disable_imu
+
+    @camera_disable_imu.setter
+    def camera_disable_imu(self, bool value):
+        self.init.camera_disable_imu = value
 
     @property
     def camera_image_flip(self):
