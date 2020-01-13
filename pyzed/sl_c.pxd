@@ -841,6 +841,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         InputType input
         String optional_settings_path
 
+        bool camera_disable_imu
+
         InitParameters(RESOLUTION camera_resolution,
                        int camera_fps,
                        int camera_linux_id,
@@ -860,7 +862,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        bool depth_stabilization,
                        CUcontext sdk_cuda_ctx,
                        InputType input,
-                       String optional_settings_path)
+                       String optional_settings_path,
+                       camera_disable_imu)
 
         bool save(String filename)
         bool load(String filename)
