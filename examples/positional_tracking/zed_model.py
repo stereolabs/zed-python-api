@@ -1,7 +1,7 @@
 from OpenGL.GL import *
 import numpy as np
 import pyzed.sl as sl
-import positional_tracking.utils as ut
+import utils as ut
 
 
 class Color:

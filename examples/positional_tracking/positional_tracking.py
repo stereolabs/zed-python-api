@@ -1,6 +1,6 @@
 ########################################################################
 #
-# Copyright (c) 2017, STEREOLABS.
+# Copyright (c) 2020, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -22,7 +22,7 @@
     Position sample shows the position of the ZED camera in a OpenGL window.
 """
 from OpenGL.GLUT import *
-import positional_tracking.tracking_viewer as tv
+import tracking_viewer as tv
 import pyzed.sl as sl
 import threading
 

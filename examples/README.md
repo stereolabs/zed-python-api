@@ -1,50 +1,70 @@
-## Run the examples
+# Run the examples
 
 Some Python samples require OpenCV and OpenGL, you can install them via pip with **opencv-python** and **PyOpenGL** packages.
 
-### Live camera
+## Camera control
 
 Live camera sample showing the camera information and video in real time and allows to control the different settings.
-    
-```
-python examples/live_camera.py
-```
-
-### Read SVO
-
-Read SVO sample to read the video and the information of the camera. It can pick a frame of the svo and save it as a JPEG or PNG file. Depth map and Point Cloud can also be saved into files.
 
 ```
-python examples/read_svo.py svo_file.svo
+python examples/camera_control/camera_control.py
 ```
 
-### Position   
+## Positional tracking
  
-Position sample shows that the position of the camera can be get and used with OpenGL.
+Position sample shows how to get the position of the camera and uses OpenGL.
 
 ```
-python examples/position_example.py
+python examples/positional_tracking/positional_tracking.py
 ```
 
-### Mesh
+## Spatial mapping
 
 Mesh sample shows mesh information after filtering and applying texture on frames. The mesh and its filter parameters can be saved.
 
 ```
-python examples/mesh_example.py svo_file.svo
+python examples/spatial_mapping/spatial_mapping.py svo_file.svo
 ```
 
-### Plane
+## Plane detection
 
 Plane sample is searching for the floor in a video and extracts it into a mesh if it found it.
 
 ```
-python examples/plane_example.py svo_file.svo
+python examples/plane_detection/plane_detection.py svo_file.svo
 ```
 
-### Streaming
+## SVO examples
 
-These 2 samples show the local network streaming capabilities of the SDK. The sender is opening the camera and transmitting the images. 
+### SVO recording
+
+This sample shows how to record video in Stereolabs SVO format. SVO video files can be played with the ZED API and used with its different modules.
+
+```
+python examples/svo_recording/svo_recording.py svo_file.svo
+```
+
+### SVO playback
+
+This sample demonstrates how to read a SVO video file.
+
+```
+python examples/svo_recording/svo_playback.py svo_file.svo
+```
+
+### SVO export
+
+This sample demonstrates how to read a SVO file and convert it into an AVI file (LEFT + RIGHT) or (LEFT + DEPTH_VIEW).
+
+It can also convert a SVO in the following png image sequences: LEFT+RIGHT, LEFT+DEPTH_VIEW, and LEFT+DEPTH_16Bit.
+
+```
+python examples/svo_recording/svo_export.py svo_file.svo
+```
+
+## Streaming
+
+These 2 samples show the local network streaming capabilities of the SDK. The sender is opening the camera and transmitting the images.
 The receiver opens the network image stream and display the images.
 
 ```
