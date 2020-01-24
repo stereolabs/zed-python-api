@@ -4807,7 +4807,8 @@ cdef class MagnetometerData:
     # (3x1) Vector for magnetometer raw values (uncalibrated) In other words, the current magnetic field (uT), along with the x, y, and z axes.
     # \param magnetic_field : an array
     # \return the magnetic field array
-    def get_magnetic_field_uncalibrated(self, magnetic_field):
+    def get_magnetic_field_uncalibrated(self):
+        cdef np.ndarray magnetic_field = np.zeros(3)
         for i in range(3):
             magnetic_field[i] = self.magnetometerData.magnetic_field_uncalibrated[i]
         return magnetic_field
@@ -4816,7 +4817,8 @@ cdef class MagnetometerData:
     # (3x1) Vector for magnetometer values (using factory calibration). In other words, the current magnetic field (uT), along with the x, y, and z axes.
     # \param magnetic_field : an array
     # \return the magnetic field array
-    def get_magnetic_field_uncalibrated(self, magnetic_field):
+    def get_magnetic_field_calibrated(self):
+        cdef np.ndarray magnetic_field = np.zeros(3)
         for i in range(3):
             magnetic_field[i] = self.magnetometerData.magnetic_field_calibrated[i]
         return magnetic_field
