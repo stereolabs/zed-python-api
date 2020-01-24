@@ -972,7 +972,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
     cdef cppclass ObjectDetectionParameters:
         bool image_sync
         bool enable_tracking
-        ObjectDetectionParameters(bool image_sync, bool enable_tracking)
+        bool enable_mask_output
+        ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output)
 
     cdef cppclass ObjectDetectionRuntimeParameters:
         float detection_confidence_threshold

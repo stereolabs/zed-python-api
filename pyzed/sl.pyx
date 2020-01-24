@@ -1287,6 +1287,18 @@ cdef class ObjectData:
     def mask(self, Mat mat):
         self.object_data.mask = mat.mat
 
+    @property
+    def dimensions(self):
+        cdef np.ndarray dimensions = np.zeros(3)
+        for i in range(3):
+            dimensions[i] = self.object_data.dimensions[i]
+        return dimensions
+
+    @dimensions.setter
+    def dimensions(self, np.ndarray dimensions):
+        for i in range(3):
+            self.object_data.dimensions[i] = dimensions[i]
+
 
 ##
 # Contains the result of the object detection module.
@@ -1358,8 +1370,8 @@ cdef class Objects:
 # \note Parameters can be user adjusted.
 cdef class ObjectDetectionParameters:
     cdef c_ObjectDetectionParameters* object_detection
-    def __cinit__(self, image_sync=True, enable_tracking=True):
-            self.object_detection = new c_ObjectDetectionParameters(image_sync, enable_tracking)
+    def __cinit__(self, image_sync=True, enable_tracking=True, enable_mask_output=True):
+            self.object_detection = new c_ObjectDetectionParameters(image_sync, enable_tracking, enable_mask_output)
 
     def __dealloc__(self):
         del self.object_detection
@@ -1383,6 +1395,14 @@ cdef class ObjectDetectionParameters:
     @enable_tracking.setter
     def enable_tracking(self, bool enable_tracking):
         self.object_detection.enable_tracking = enable_tracking
+
+    @property
+    def enable_mask_output(self):
+        return self.object_detection.enable_mask_output
+
+    @enable_mask_output.setter
+    def enable_mask_output(self, bool enable_mask_output):
+        self.object_detection.enable_mask_output = enable_mask_output
 
 ##
 # Sets the object detection runtime parameters.
@@ -3556,6 +3576,7 @@ cdef class InitParameters:
     # This can be used for example when using a USB3.0 only extension cable (some fiber extension for example).
     # This parameter only impacts the LIVE mode.
     # If set to true, the camera will fail to open if the sensors cannot be opened. This parameter should use when the IMU data must be available, such as Object Detection module or when the gravity is needed.
+    @property
     def sensors_required(self):
         return self.init.sensors_required
 
