@@ -25,63 +25,80 @@ from libcpp cimport bool
 from libcpp.pair cimport pair
 from libcpp.vector cimport vector
 from libc.string cimport const_char
+from libcpp.map cimport map
 
 cdef extern from "Utils.cpp" namespace "sl":
     string to_str(String sl_str)
 
-cdef extern from "sl/types.hpp" namespace "sl":
+cdef extern from "sl/Camera.hpp" namespace "sl":
 
-    ctypedef unsigned long long timeStamp
+    cdef cppclass Timestamp 'sl::Timestamp':
+        unsigned long long data_ns
 
-    ctypedef enum ERROR_CODE:
-        SUCCESS,
-        ERROR_CODE_FAILURE,
-        ERROR_CODE_NO_GPU_COMPATIBLE,
-        ERROR_CODE_NOT_ENOUGH_GPUMEM,
-        ERROR_CODE_CAMERA_NOT_DETECTED,
-        ERROR_CODE_SENSOR_NOT_DETECTED,
-        ERROR_CODE_INVALID_RESOLUTION,
-        ERROR_CODE_LOW_USB_BANDWIDTH,
-        ERROR_CODE_CALIBRATION_FILE_NOT_AVAILABLE,
-        ERROR_CODE_INVALID_CALIBRATION_FILE,
-        ERROR_CODE_INVALID_SVO_FILE,
-        ERROR_CODE_SVO_RECORDING_ERROR,
-        ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION,
-        ERROR_CODE_INVALID_COORDINATE_SYSTEM,
-        ERROR_CODE_INVALID_FIRMWARE,
-        ERROR_CODE_INVALID_FUNCTION_PARAMETERS,
-        ERROR_CODE_NOT_A_NEW_FRAME,
-        ERROR_CODE_CUDA_ERROR,
-        ERROR_CODE_CAMERA_NOT_INITIALIZED,
-        ERROR_CODE_NVIDIA_DRIVER_OUT_OF_DATE,
-        ERROR_CODE_INVALID_FUNCTION_CALL,
-        ERROR_CODE_CORRUPTED_SDK_INSTALLATION,
-        ERROR_CODE_INCOMPATIBLE_SDK_VERSION,
-        ERROR_CODE_INVALID_AREA_FILE,
-        ERROR_CODE_INCOMPATIBLE_AREA_FILE,
-        ERROR_CODE_CAMERA_FAILED_TO_SETUP,
-        ERROR_CODE_CAMERA_DETECTION_ISSUE,
-        ERROR_CODE_CAMERA_ALREADY_IN_USE,
-        ERROR_CODE_NO_GPU_DETECTED,
-        ERROR_CODE_PLANE_NOT_FOUND,
-        ERROR_CODE_LAST
+        Timestamp()
+        Timestamp(unsigned long long _data_ns)
+        unsigned long long getNanoseconds()
+        unsigned long long getMicroseconds()
+        unsigned long long getMilliseconds()
+        unsigned long long getSeconds()
+
+        void setNanoseconds(unsigned long long t_ns)
+        void setMicroseconds(unsigned long long t_us)
+        void setMilliseconds(unsigned long long t_ms)
+        void setSeconds(unsigned long long t_s)
+
+
+    ctypedef enum ERROR_CODE "sl::ERROR_CODE" :
+        SUCCESS 'sl::ERROR_CODE::SUCCESS',
+        FAILURE 'sl::ERROR_CODE::FAILURE',
+        NO_GPU_COMPATIBLE 'sl::ERROR_CODE::NO_GPU_COMPATIBLE',
+        NOT_ENOUGH_GPU_MEMORY 'sl::ERROR_CODE::NOT_ENOUGH_GPU_MEMORY',
+        CAMERA_NOT_DETECTED 'sl::ERROR_CODE::CAMERA_NOT_DETECTED',
+        SENSORS_NOT_AVAILABLE 'sl::ERROR_CODE::SENSORS_NOT_AVAILABLE',
+        INVALID_RESOLUTION 'sl::ERROR_CODE::INVALID_RESOLUTION',
+        LOW_USB_BANDWIDTH 'sl::ERROR_CODE::LOW_USB_BANDWIDTH',
+        CALIBRATION_FILE_NOT_AVAILABLE 'sl::ERROR_CODE::CALIBRATION_FILE_NOT_AVAILABLE',
+        INVALID_CALIBRATION_FILE 'sl::ERROR_CODE::INVALID_CALIBRATION_FILE',
+        INVALID_SVO_FILE 'sl::ERROR_CODE::INVALID_SVO_FILE',
+        SVO_RECORDING_ERROR 'sl::ERROR_CODE::SVO_RECORDING_ERROR',
+        SVO_UNSUPPORTED_COMPRESSION 'sl::ERROR_CODE::SVO_UNSUPPORTED_COMPRESSION',
+        END_OF_SVOFILE_REACHED 'sl::ERROR_CODE::END_OF_SVOFILE_REACHED',
+        INVALID_COORDINATE_SYSTEM 'sl::ERROR_CODE::INVALID_COORDINATE_SYSTEM',
+        INVALID_FIRMWARE 'sl::ERROR_CODE::INVALID_FIRMWARE',
+        INVALID_FUNCTION_PARAMETERS 'sl::ERROR_CODE::INVALID_FUNCTION_PARAMETERS',
+        CUDA_ERROR 'sl::ERROR_CODE::CUDA_ERROR',
+        CAMERA_NOT_INITIALIZED 'sl::ERROR_CODE::CAMERA_NOT_INITIALIZED',
+        NVIDIA_DRIVER_OUT_OF_DATE 'sl::ERROR_CODE::NVIDIA_DRIVER_OUT_OF_DATE',
+        INVALID_FUNCTION_CALL 'sl::ERROR_CODE::INVALID_FUNCTION_CALL',
+        CORRUPTED_SDK_INSTALLATION 'sl::ERROR_CODE::CORRUPTED_SDK_INSTALLATION',
+        INCOMPATIBLE_SDK_VERSION 'sl::ERROR_CODE::INCOMPATIBLE_SDK_VERSION',
+        INVALID_AREA_FILE 'sl::ERROR_CODE::INVALID_AREA_FILE',
+        INCOMPATIBLE_AREA_FILE 'sl::ERROR_CODE::INCOMPATIBLE_AREA_FILE',
+        CAMERA_FAILED_TO_SETUP 'sl::ERROR_CODE::CAMERA_FAILED_TO_SETUP',
+        CAMERA_DETECTION_ISSUE 'sl::ERROR_CODE::CAMERA_DETECTION_ISSUE',
+        CANNOT_START_CAMERA_STREAM 'sl::ERROR_CODE::CANNOT_START_CAMERA_STREAM',
+        NO_GPU_DETECTED 'sl::ERROR_CODE::NO_GPU_DETECTED',
+        PLANE_NOT_FOUND 'sl::ERROR_CODE::PLANE_NOT_FOUND',
+        MODULE_NOT_COMPATIBLE_WITH_CAMERA 'sl::ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CAMERA',
+        MOTION_SENSORS_REQUIRED 'sl::ERROR_CODE::MOTION_SENSORS_REQUIRED',
+        LAST 'sl::ERROR_CODE::LAST'
 
     String toString(ERROR_CODE o)
 
     void sleep_ms(int time)
 
-    ctypedef enum MODEL:
-        MODEL_ZED,
-        MODEL_ZED_M,
-        MODEL_LAST
+    ctypedef enum MODEL "sl::MODEL":
+        ZED 'sl::MODEL::ZED',
+        ZED_M 'sl::MODEL::ZED_M',
+        ZED2 'sl::MODEL::ZED2',
+        MODEL_LAST 'sl::MODEL::LAST'
 
-    String model2str(MODEL model)
     String toString(MODEL o)
 
     ctypedef enum CAMERA_STATE:
-        CAMERA_STATE_AVAILABLE,
-        CAMERA_STATE_NOT_AVAILABLE,
-        CAMERA_STATE_LAST
+        AVAILABLE 'sl::CAMERA_STATE::AVAILABLE',
+        NOT_AVAILABLE 'sl::CAMERA_STATE::NOT_AVAILABLE',
+        CAMERA_STATE_LAST 'sl::CAMERA_STATE::LAST'
 
     String toString(CAMERA_STATE o)
 
@@ -225,192 +242,164 @@ cdef extern from "sl/types.hpp" namespace "sl":
         String getInfos()
         String matrix_name
 
-    ctypedef enum UNIT:
-        UNIT_MILLIMETER
-        UNIT_CENTIMETER
-        UNIT_METER
-        UNIT_INCH
-        UNIT_FOOT
-        UNIT_LAST
+    ctypedef enum UNIT 'sl::UNIT':
+        MILLIMETER 'sl::UNIT::MILLIMETER'
+        CENTIMETER 'sl::UNIT::CENTIMETER'
+        METER 'sl::UNIT::METER'
+        INCH 'sl::UNIT::INCH'
+        FOOT 'sl::UNIT::FOOT'
+        UNIT_LAST 'sl::UNIT::LAST'
 
     String toString(UNIT o)
 
-    ctypedef enum COORDINATE_SYSTEM:
-        COORDINATE_SYSTEM_IMAGE
-        COORDINATE_SYSTEM_LEFT_HANDED_Y_UP
-        COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP
-        COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
-        COORDINATE_SYSTEM_LEFT_HANDED_Z_UP
-        COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
-        COORDINATE_SYSTEM_LAST
+    ctypedef enum COORDINATE_SYSTEM 'sl::COORDINATE_SYSTEM':
+        IMAGE 'sl::COORDINATE_SYSTEM::IMAGE'
+        LEFT_HANDED_Y_UP 'sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP'
+        RIGHT_HANDED_Y_UP 'sl::COORDINATE_SYSTEM::RIGHT_HANDED_Y_UP'
+        RIGHT_HANDED_Z_UP 'sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP'
+        LEFT_HANDED_Z_UP 'sl::COORDINATE_SYSTEM::LEFT_HANDED_Z_UP'
+        RIGHT_HANDED_Z_UP_X_FWD 'sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD'
+        COORDINATE_SYSTEM_LAST 'sl::COORDINATE_SYSTEM::LAST'
 
     String toString(COORDINATE_SYSTEM o)
 
-
-cdef extern from "sl/defines.hpp" namespace "sl":
-
-    ctypedef enum RESOLUTION:
-        RESOLUTION_HD2K
-        RESOLUTION_HD1080
-        RESOLUTION_HD720
-        RESOLUTION_VGA
-        RESOLUTION_LAST
+    ctypedef enum RESOLUTION 'sl::RESOLUTION':
+        HD2K 'sl::RESOLUTION::HD2K'
+        HD1080 'sl::RESOLUTION::HD1080'
+        HD720 'sl::RESOLUTION::HD720'
+        VGA 'sl::RESOLUTION::VGA'
+        RESOLUTION_LAST 'sl::RESOLUTION::LAST'
 
     String toString(RESOLUTION o)
 
-    ctypedef enum CAMERA_SETTINGS:
-        CAMERA_SETTINGS_BRIGHTNESS
-        CAMERA_SETTINGS_CONTRAST
-        CAMERA_SETTINGS_HUE
-        CAMERA_SETTINGS_SATURATION
-        CAMERA_SETTINGS_GAIN
-        CAMERA_SETTINGS_EXPOSURE
-        CAMERA_SETTINGS_WHITEBALANCE
-        CAMERA_SETTINGS_AUTO_WHITEBALANCE
-        CAMERA_SETTINGS_LED_STATUS
-        CAMERA_SETTINGS_LAST
+    ctypedef enum VIDEO_SETTINGS 'sl::VIDEO_SETTINGS':
+        BRIGHTNESS 'sl::VIDEO_SETTINGS::BRIGHTNESS'
+        CONTRAST 'sl::VIDEO_SETTINGS::CONTRAST'
+        HUE 'sl::VIDEO_SETTINGS::HUE'
+        SATURATION 'sl::VIDEO_SETTINGS::SATURATION'
+        SHARPNESS 'sl::VIDEO_SETTINGS::SHARPNESS'
+        GAIN 'sl::VIDEO_SETTINGS::GAIN'
+        EXPOSURE 'sl::VIDEO_SETTINGS::EXPOSURE'
+        AEC_AGC 'sl::VIDEO_SETTINGS::AEC_AGC'
+        WHITEBALANCE_TEMPERATURE 'sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE'
+        WHITEBALANCE_AUTO 'sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO'
+        LED_STATUS 'sl::VIDEO_SETTINGS::LED_STATUS'
+        VIDEO_SETTINGS_LAST 'sl::VIDEO_SETTINGS::LAST'
 
-    String toString(CAMERA_SETTINGS o)
+    String toString(VIDEO_SETTINGS o)
 
-    ctypedef enum SELF_CALIBRATION_STATE:
-        SELF_CALIBRATION_STATE_NOT_STARTED
-        SELF_CALIBRATION_STATE_RUNNING
-        SELF_CALIBRATION_STATE_FAILED
-        SELF_CALIBRATION_STATE_SUCCESS
-        SELF_CALIBRATION_STATE_LAST
-
-    String toString(SELF_CALIBRATION_STATE o)
-
-    ctypedef enum DEPTH_MODE:
-        DEPTH_MODE_NONE
-        DEPTH_MODE_PERFORMANCE
-        DEPTH_MODE_MEDIUM
-        DEPTH_MODE_QUALITY
-        DEPTH_MODE_ULTRA
-        DEPTH_MODE_LAST
+    ctypedef enum DEPTH_MODE 'sl::DEPTH_MODE':
+        NONE 'sl::DEPTH_MODE::NONE'
+        PERFORMANCE 'sl::DEPTH_MODE::PERFORMANCE'
+        QUALITY 'sl::DEPTH_MODE::QUALITY'
+        ULTRA 'sl::DEPTH_MODE::ULTRA'
+        DEPTH_MODE_LAST 'sl::DEPTH_MODE::LAST'
 
     String toString(DEPTH_MODE o)
 
-    ctypedef enum SENSING_MODE:
-        SENSING_MODE_STANDARD
-        SENSING_MODE_FILL
-        SENSING_MODE_LAST
+    ctypedef enum SENSING_MODE 'sl::SENSING_MODE':
+        STANDARD 'sl::SENSING_MODE::STANDARD'
+        FILL 'sl::SENSING_MODE::FILL'
+        SENSING_MODE_LAST 'sl::SENSING_MODE::LAST'
 
     String toString(SENSING_MODE o)
 
-    ctypedef enum MEASURE:
-        MEASURE_DISPARITY
-        MEASURE_DEPTH
-        MEASURE_CONFIDENCE
-        MEASURE_XYZ
-        MEASURE_XYZRGBA
-        MEASURE_XYZBGRA
-        MEASURE_XYZARGB
-        MEASURE_XYZABGR
-        MEASURE_NORMALS
-        MEASURE_DISPARITY_RIGHT
-        MEASURE_DEPTH_RIGHT
-        MEASURE_XYZ_RIGHT
-        MEASURE_XYZRGBA_RIGHT
-        MEASURE_XYZBGRA_RIGHT
-        MEASURE_XYZARGB_RIGHT
-        MEASURE_XYZABGR_RIGHT
-        MEASURE_NORMALS_RIGHT
-        MEASURE_LAST
+    ctypedef enum MEASURE 'sl::MEASURE':
+        DISPARITY 'sl::MEASURE::DISPARITY'
+        DEPTH 'sl::MEASURE::DEPTH'
+        CONFIDENCE 'sl::MEASURE::CONFIDENCE'
+        XYZ 'sl::MEASURE::XYZ'
+        XYZRGBA 'sl::MEASURE::XYZRGBA'
+        XYZBGRA 'sl::MEASURE::XYZBGRA'
+        XYZARGB 'sl::MEASURE::XYZARGB'
+        XYZABGR 'sl::MEASURE::XYZABGR'
+        NORMALS 'sl::MEASURE::NORMALS'
+        DISPARITY_RIGHT 'sl::MEASURE::DISPARITY_RIGHT'
+        DEPTH_RIGHT 'sl::MEASURE::DEPTH_RIGHT'
+        XYZ_RIGHT 'sl::MEASURE::XYZ_RIGHT'
+        XYZRGBA_RIGHT 'sl::MEASURE::XYZRGBA_RIGHT'
+        XYZBGRA_RIGHT 'sl::MEASURE::XYZBGRA_RIGHT'
+        XYZARGB_RIGHT 'sl::MEASURE::XYZARGB_RIGHT'
+        XYZABGR_RIGHT 'sl::MEASURE::XYZABGR_RIGHT'
+        NORMALS_RIGHT 'sl::MEASURE::NORMALS_RIGHT'
+        MEASURE_LAST 'sl::MEASURE::LAST'
 
     String toString(MEASURE o)
 
-    ctypedef enum VIEW:
-        VIEW_LEFT
-        VIEW_RIGHT
-        VIEW_LEFT_GRAY
-        VIEW_RIGHT_GRAY
-        VIEW_LEFT_UNRECTIFIED
-        VIEW_RIGHT_UNRECTIFIED
-        VIEW_LEFT_UNRECTIFIED_GRAY
-        VIEW_RIGHT_UNRECTIFIED_GRAY
-        VIEW_SIDE_BY_SIDE
-        VIEW_DEPTH
-        VIEW_CONFIDENCE
-        VIEW_NORMALS
-        VIEW_DEPTH_RIGHT
-        VIEW_NORMALS_RIGHT
-        VIEW_LAST
+    ctypedef enum VIEW 'sl::VIEW':
+        LEFT 'sl::VIEW::LEFT'
+        RIGHT 'sl::VIEW::RIGHT'
+        LEFT_GRAY 'sl::VIEW::LEFT_GRAY'
+        RIGHT_GRAY 'sl::VIEW::RIGHT_GRAY'
+        LEFT_UNRECTIFIED 'sl::VIEW::LEFT_UNRECTIFIED'
+        RIGHT_UNRECTIFIED 'sl::VIEW::RIGHT_UNRECTIFIED'
+        LEFT_UNRECTIFIED_GRAY 'sl::VIEW::LEFT_UNRECTIFIED_GRAY'
+        RIGHT_UNRECTIFIED_GRAY 'sl::VIEW::RIGHT_UNRECTIFIED_GRAY'
+        SIDE_BY_SIDE 'sl::VIEW::SIDE_BY_SIDE'
+        VIEW_DEPTH 'sl::VIEW::DEPTH'
+        VIEW_CONFIDENCE 'sl::VIEW::CONFIDENCE'
+        VIEW_NORMALS 'sl::VIEW::NORMALS'
+        VIEW_DEPTH_RIGHT 'sl::VIEW::DEPTH_RIGHT'
+        VIEW_NORMALS_RIGHT 'sl::VIEW::NORMALS_RIGHT'
+        VIEW_LAST 'sl::VIEW::LAST'
 
     String toString(VIEW o)
 
-    ctypedef enum TIME_REFERENCE:
-        TIME_REFERENCE_IMAGE
-        TIME_REFERENCE_CURRENT
-        TIME_REFERENCE_LAST
+    ctypedef enum TIME_REFERENCE 'sl::TIME_REFERENCE':
+        TIME_REFERENCE_IMAGE 'sl::TIME_REFERENCE::IMAGE'
+        CURRENT 'sl::TIME_REFERENCE::CURRENT'
+        TIME_REFERENCE_LAST 'sl::TIME_REFERENCE::LAST'
 
     String toString(TIME_REFERENCE o)
 
-    ctypedef enum DEPTH_FORMAT:
-        DEPTH_FORMAT_PNG
-        DEPTH_FORMAT_PFM
-        DEPTH_FORMAT_PGM
-        DEPTH_FORMAT_LAST
+    ctypedef enum POSITIONAL_TRACKING_STATE 'sl::POSITIONAL_TRACKING_STATE':
+        SEARCHING 'sl::POSITIONAL_TRACKING_STATE::SEARCHING'
+        OK 'sl::POSITIONAL_TRACKING_STATE::OK'
+        OFF 'sl::POSITIONAL_TRACKING_STATE::OFF'
+        FPS_TOO_LOW 'sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW'
+        POSITIONAL_TRACKING_STATE_LAST 'sl::POSITIONAL_TRACKING_STATE::LAST'
 
-    String toString(DEPTH_FORMAT o)
+    String toString(POSITIONAL_TRACKING_STATE o)
 
-    ctypedef enum POINT_CLOUD_FORMAT:
-        POINT_CLOUD_FORMAT_XYZ_ASCII
-        POINT_CLOUD_FORMAT_PCD_ASCII
-        POINT_CLOUD_FORMAT_PLY_ASCII
-        POINT_CLOUD_FORMAT_VTK_ASCII
-        POINT_CLOUD_FORMAT_LAST
+    ctypedef enum AREA_EXPORTING_STATE 'sl::AREA_EXPORTING_STATE':
+        AREA_EXPORTING_STATE_SUCCESS 'sl::AREA_EXPORTING_STATE::SUCCESS'
+        RUNNING 'sl::AREA_EXPORTING_STATE::RUNNING'
+        NOT_STARTED 'sl::AREA_EXPORTING_STATE::NOT_STARTED'
+        FILE_EMPTY 'sl::AREA_EXPORTING_STATE::FILE_EMPTY'
+        FILE_ERROR 'sl::AREA_EXPORTING_STATE::FILE_ERROR'
+        SPATIAL_MEMORY_DISABLED 'sl::AREA_EXPORTING_STATE::SPATIAL_MEMORY_DISABLED'
+        AREA_EXPORTING_STATE_LAST 'sl::AREA_EXPORTING_STATE::LAST'
 
-    String toString(POINT_CLOUD_FORMAT o)
+    String toString(AREA_EXPORTING_STATE o)
 
-    ctypedef enum TRACKING_STATE:
-        TRACKING_STATE_SEARCHING
-        TRACKING_STATE_OK
-        TRACKING_STATE_OFF
-        TRACKING_STATE_FPS_TOO_LOW
-        TRACKING_STATE_LAST
-
-    String toString(TRACKING_STATE o)
-
-    ctypedef enum AREA_EXPORT_STATE:
-        AREA_EXPORT_STATE_SUCCESS
-        AREA_EXPORT_STATE_RUNNING
-        AREA_EXPORT_STATE_NOT_STARTED
-        AREA_EXPORT_STATE_FILE_EMPTY
-        AREA_EXPORT_STATE_FILE_ERROR
-        AREA_EXPORT_STATE_SPATIAL_MEMORY_DISABLED
-        AREA_EXPORT_STATE_LAST
-
-    String toString(AREA_EXPORT_STATE o)
-
-    ctypedef enum REFERENCE_FRAME:
-        REFERENCE_FRAME_WORLD
-        REFERENCE_FRAME_CAMERA
-        REFERENCE_FRAME_LAST
+    ctypedef enum REFERENCE_FRAME 'sl::REFERENCE_FRAME':
+        WORLD 'sl::REFERENCE_FRAME::WORLD'
+        CAMERA 'sl::REFERENCE_FRAME::CAMERA'
+        REFERENCE_FRAME_LAST 'sl::REFERENCE_FRAME::LAST'
 
     String toString(REFERENCE_FRAME o)
 
-    ctypedef enum SPATIAL_MAPPING_STATE:
-        SPATIAL_MAPPING_STATE_INITIALIZING
-        SPATIAL_MAPPING_STATE_OK
-        SPATIAL_MAPPING_STATE_NOT_ENOUGH_MEMORY
-        SPATIAL_MAPPING_STATE_NOT_ENABLED
-        SPATIAL_MAPPING_STATE_FPS_TOO_LOW
-        SPATIAL_MAPPING_STATE_LAST
+    ctypedef enum SPATIAL_MAPPING_STATE 'sl::SPATIAL_MAPPING_STATE':
+        INITIALIZING 'sl::SPATIAL_MAPPING_STATE::INITIALIZING'
+        SPATIAL_MAPPING_STATE_OK 'sl::SPATIAL_MAPPING_STATE::OK'
+        NOT_ENOUGH_MEMORY 'sl::SPATIAL_MAPPING_STATE::NOT_ENOUGH_MEMORY'
+        NOT_ENABLED 'sl::SPATIAL_MAPPING_STATE::NOT_ENABLED'
+        SPATIAL_MAPPING_STATE_FPS_TOO_LOW 'sl::SPATIAL_MAPPING_STATE::FPS_TOO_LOW'
+        SPATIAL_MAPPING_STATE_LAST 'sl::SPATIAL_MAPPING_STATE::LAST'
 
     String toString(SPATIAL_MAPPING_STATE o)
 
-    ctypedef enum SVO_COMPRESSION_MODE:
-        SVO_COMPRESSION_MODE_RAW
-        SVO_COMPRESSION_MODE_LOSSLESS
-        SVO_COMPRESSION_MODE_LOSSY
-        SVO_COMPRESSION_MODE_AVCHD
-        SVO_COMPRESSION_MODE_HEVC
-        SVO_COMPRESSION_MODE_LAST
+    ctypedef enum SVO_COMPRESSION_MODE 'sl::SVO_COMPRESSION_MODE':
+        LOSSLESS 'sl::SVO_COMPRESSION_MODE::LOSSLESS'
+        H264 'sl::SVO_COMPRESSION_MODE::H264'
+        H265 'sl::SVO_COMPRESSION_MODE::H265'
+        SVO_COMPRESSION_MODE_LAST 'sl::SVO_COMPRESSION_MODE::LAST'
 
     String toString(SVO_COMPRESSION_MODE o)
 
-    cdef struct RecordingState:
+    cdef struct RecordingStatus:
+        bool is_recording
+        bool is_paused
         bool status
         double current_compression_time
         double current_compression_ratio
@@ -418,39 +407,7 @@ cdef extern from "sl/defines.hpp" namespace "sl":
         double average_compression_ratio
 
 
-    @staticmethod
-    cdef vector[pair[int, int]] cameraResolution
-
-    @staticmethod
-    cdef const_char* resolution2str(RESOLUTION res)
-
-    @staticmethod
-    cdef const_char* statusCode2str(SELF_CALIBRATION_STATE state)
-    @staticmethod
-    cdef DEPTH_MODE str2mode(const_char* mode)
-
-    @staticmethod
-    cdef const_char* depthMode2str(DEPTH_MODE mode)
-
-    @staticmethod
-    cdef const_char* sensingMode2str(SENSING_MODE mode)
-
-    @staticmethod
-    cdef const_char* unit2str(UNIT unit)
-
-    @staticmethod
-    cdef UNIT str2unit(const_char* unit)
-
-    @staticmethod
-    cdef const_char* trackingState2str(TRACKING_STATE state)
-
-    @staticmethod
-    cdef const_char* spatialMappingState2str(SPATIAL_MAPPING_STATE state)
-
-
-cdef extern from "sl/Core.hpp" namespace "sl":
-
-    timeStamp getCurrentTimeStamp()
+    Timestamp getCurrentTimeStamp()
 
     cdef struct Resolution:
         size_t width
@@ -483,33 +440,79 @@ cdef extern from "sl/Core.hpp" namespace "sl":
         CalibrationParameters calibration_parameters_raw
         Transform camera_imu_transform
         unsigned int serial_number
-        unsigned int firmware_version
+        unsigned int camera_firmware_version
+        unsigned int sensors_firmware_version
         MODEL camera_model
+        InputType input_type
+        Resolution camera_resolution
+        float camera_fps
 
-    cdef enum MEM:
-        MEM_CPU
-        MEM_GPU
+    cdef enum MEM 'sl::MEM':
+        CPU 'sl::MEM::CPU'
+        GPU 'sl::MEM::GPU'
 
     MEM operator|(MEM a, MEM b)
 
 
-    cdef enum COPY_TYPE:
-        COPY_TYPE_CPU_CPU
-        COPY_TYPE_CPU_GPU
-        COPY_TYPE_GPU_GPU
-        COPY_TYPE_GPU_CPU
+    cdef enum COPY_TYPE 'sl::COPY_TYPE':
+        CPU_CPU 'sl::COPY_TYPE::CPU_CPU'
+        CPU_GPU 'sl::COPY_TYPE::CPU_GPU'
+        GPU_GPU 'sl::COPY_TYPE::GPU_GPU'
+        GPU_CPU 'sl::COPY_TYPE::GPU_CPU'
 
 
-    cdef enum MAT_TYPE:
-        MAT_TYPE_32F_C1
-        MAT_TYPE_32F_C2
-        MAT_TYPE_32F_C3
-        MAT_TYPE_32F_C4
-        MAT_TYPE_8U_C1
-        MAT_TYPE_8U_C2
-        MAT_TYPE_8U_C3
-        MAT_TYPE_8U_C4
+    cdef enum MAT_TYPE 'sl::MAT_TYPE':
+        F32_C1 'sl::MAT_TYPE::F32_C1'
+        F32_C2 'sl::MAT_TYPE::F32_C2'
+        F32_C3 'sl::MAT_TYPE::F32_C3'
+        F32_C4 'sl::MAT_TYPE::F32_C4'
+        U8_C1 'sl::MAT_TYPE::U8_C1'
+        U8_C2 'sl::MAT_TYPE::U8_C2'
+        U8_C3 'sl::MAT_TYPE::U8_C3'
+        U8_C4 'sl::MAT_TYPE::U8_C4'
 
+    cdef enum OBJECT_CLASS 'sl::OBJECT_CLASS':
+        PERSON 'sl::OBJECT_CLASS::PERSON' = 0
+        VEHICLE 'sl::OBJECT_CLASS::VEHICLE' = 1
+        OBJECT_CLASS_LAST 'sl::OBJECT_CLASS::LAST' = 2
+
+    String toString(OBJECT_CLASS o)
+
+    cdef enum OBJECT_TRACKING_STATE 'sl::OBJECT_TRACKING_STATE':
+        OBJECT_TRACKING_STATE_OFF 'sl::OBJECT_TRACKING_STATE::OFF'
+        OBJECT_TRACKING_STATE_OK 'sl::OBJECT_TRACKING_STATE::OK'
+        OBJECT_TRACKING_STATE_SEARCHING 'sl::OBJECT_TRACKING_STATE::SEARCHING'
+        TERMINATE 'sl::OBJECT_TRACKING_STATE::TERMINATE'
+        OBJECT_TRACKING_STATE_LAST 'sl::OBJECT_TRACKING_STATE::LAST'
+
+    String toString(OBJECT_TRACKING_STATE o)
+
+    cdef enum OBJECT_ACTION_STATE 'sl::OBJECT_ACTION_STATE':
+        IDLE 'sl::OBJECT_ACTION_STATE::IDLE'
+        OBJECT_ACTION_STATE_MOVING 'sl::OBJECT_ACTION_STATE::MOVING'
+        OBJECT_ACTION_STATE_LAST 'sl::OBJECT_ACTION_STATE::LAST'
+
+    String toString(OBJECT_ACTION_STATE o)
+
+    cdef cppclass ObjectData 'sl::ObjectData':
+        unsigned int id
+        OBJECT_CLASS label
+        OBJECT_TRACKING_STATE tracking_state
+        OBJECT_ACTION_STATE action_state
+        Mat mask
+        Vector3[float] position
+        Vector3[float] velocity
+        Vector3[float] dimensions
+        vector[Vector3[float]] bounding_box
+        vector[Vector2[uint]] bounding_box_2d
+        float confidence
+
+    cdef cppclass Objects 'sl::Objects':
+        Timestamp timestamp
+        vector[ObjectData] object_list
+        bool is_new
+        bool is_tracked
+        bool getObjectDataFromId(ObjectData &objectData, int objectDataId)
 
     cdef cppclass Mat 'sl::Mat':
         String name
@@ -676,44 +679,37 @@ cdef extern from "Utils.cpp" namespace "sl":
 
 ctypedef unsigned int uint
 
-cdef extern from "sl/Mesh.hpp" namespace "sl":
+cdef extern from "sl/Camera.hpp" namespace "sl":
 
-    ctypedef enum MESH_FILE_FORMAT:
-        MESH_FILE_PLY
-        MESH_FILE_PLY_BIN
-        MESH_FILE_OBJ
-        MESH_FILE_LAST
+    ctypedef enum MESH_FILE_FORMAT 'sl::MESH_FILE_FORMAT':
+        PLY 'sl::MESH_FILE_FORMAT::PLY'
+        PLY_BIN 'sl::MESH_FILE_FORMAT::PLY_BIN'
+        OBJ 'sl::MESH_FILE_FORMAT::OBJ'
+        MESH_FILE_FORMAT_LAST 'sl::MESH_FILE_FORMAT::LAST'
 
 
-    ctypedef enum MESH_TEXTURE_FORMAT:
-        MESH_TEXTURE_RGB
-        MESH_TEXTURE_RGBA
-        MESH_TEXTURE_LAST
+    ctypedef enum MESH_TEXTURE_FORMAT 'sl::MESH_TEXTURE_FORMAT':
+        RGB 'sl::MESH_TEXTURE_FORMAT::RGB'
+        RGBA 'sl::MESH_TEXTURE_FORMAT::RGBA'
+        MESH_TEXTURE_FORMAT_LAST 'sl::MESH_TEXTURE_FORMAT::LAST'
 
 
     ctypedef enum MESH_FILTER 'sl::MeshFilterParameters::MESH_FILTER':
-        MESH_FILTER_LOW 'sl::MeshFilterParameters::MESH_FILTER::MESH_FILTER_LOW'
-        MESH_FILTER_MEDIUM 'sl::MeshFilterParameters::MESH_FILTER::MESH_FILTER_MEDIUM'
-        MESH_FILTER_HIGH 'sl::MeshFilterParameters::MESH_FILTER::MESH_FILTER_HIGH'
+        LOW 'sl::MeshFilterParameters::MESH_FILTER::LOW'
+        MESH_FILTER_MEDIUM 'sl::MeshFilterParameters::MESH_FILTER::MEDIUM'
+        HIGH 'sl::MeshFilterParameters::MESH_FILTER::HIGH'
 
-    ctypedef enum PLANE_TYPE:
-        PLANE_TYPE_HORIZONTAL
-        PLANE_TYPE_VERTICAL
-        PLANE_TYPE_UNKNOWN
-        PLANE_TYPE_LAST
+    ctypedef enum PLANE_TYPE 'sl::PLANE_TYPE':
+        HORIZONTAL 'sl::PLANE_TYPE::HORIZONTAL'
+        VERTICAL 'sl::PLANE_TYPE::VERTICAL'
+        UNKNOWN 'sl::PLANE_TYPE::UNKNOWN'
+        PLANE_TYPE_LAST 'sl::PLANE_TYPE::LAST'
 
     cdef cppclass MeshFilterParameters 'sl::MeshFilterParameters':
         MeshFilterParameters(MESH_FILTER filtering_)
         void set(MESH_FILTER filtering_)
         bool save(String filename)
         bool load(String filename)
-
-    cdef cppclass Texture 'sl::Texture':
-        Texture()
-        String name
-        Mat data
-        unsigned int indice_gl
-        void clear()
 
     cdef cppclass Chunk 'sl::Chunk':
         Chunk()
@@ -744,7 +740,7 @@ cdef extern from "sl/Mesh.hpp" namespace "sl":
         vector[Vector3[uint]] triangles
         vector[Vector3[float]] normals
         vector[Vector2[float]] uv
-        Texture texture
+        Mat texture
         size_t getNumberOfTriangles()
         void mergeChunks(int faces_per_chunk)
         Vector3[float] getGravityEstimate()
@@ -794,19 +790,20 @@ cdef extern from 'cuda.h' :
 cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
     ctypedef enum SPATIAL_MAP_TYPE 'sl::SpatialMappingParameters::SPATIAL_MAP_TYPE':
-        SPATIAL_MAP_TYPE_MESH 'sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::SPATIAL_MAP_TYPE_MESH'
-        SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD 'sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD'
+        MESH 'sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH'
+        FUSED_POINT_CLOUD 'sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::FUSED_POINT_CLOUD'
 
     ctypedef enum MAPPING_RESOLUTION 'sl::SpatialMappingParameters::MAPPING_RESOLUTION':
-        MAPPING_RESOLUTION_HIGH 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::MAPPING_RESOLUTION_HIGH'
-        MAPPING_RESOLUTION_MEDIUM 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::MAPPING_RESOLUTION_MEDIUM'
-        MAPPING_RESOLUTION_LOW 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::MAPPING_RESOLUTION_LOW'
+        MAPPING_RESOLUTION_HIGH 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::HIGH'
+        MAPPING_RESOLUTION_MEDIUM 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::MEDIUM'
+        MAPPING_RESOLUTION_LOW 'sl::SpatialMappingParameters::MAPPING_RESOLUTION::LOW'
 
 
     ctypedef enum MAPPING_RANGE 'sl::SpatialMappingParameters::MAPPING_RANGE':
-        MAPPING_RANGE_NEAR 'sl::SpatialMappingParameters::MAPPING_RANGE::MAPPING_RANGE_NEAR'
-        MAPPING_RANGE_MEDIUM 'sl::SpatialMappingParameters::MAPPING_RANGE::MAPPING_RANGE_MEDIUM'
-        MAPPING_RANGE_FAR 'sl::SpatialMappingParameters::MAPPING_RANGE::MAPPING_RANGE_FAR'
+        SHORT 'sl::SpatialMappingParameters::MAPPING_RANGE::SHORT'
+        MAPPING_RANGE_MEDIUM 'sl::SpatialMappingParameters::MAPPING_RANGE::MEDIUM'
+        LONG 'sl::SpatialMappingParameters::MAPPING_RANGE::LONG'
+        AUTO 'sl::SpatialMappingParameters::MAPPING_RANGE::AUTO'
 
     cdef cppclass InputType 'sl::InputType':
         InputType()
@@ -820,33 +817,29 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
     cdef cppclass InitParameters 'sl::InitParameters':
         RESOLUTION camera_resolution
         int camera_fps
-        int camera_linux_id
-        String svo_input_filename
+        int camera_image_flip
+        bool camera_disable_self_calib
+        bool enable_right_side_measure
         bool svo_real_time_mode
+        DEPTH_MODE depth_mode
+        int depth_stabilization
+        float depth_minimum_distance
+        float depth_maximum_distance
         UNIT coordinate_units
         COORDINATE_SYSTEM coordinate_system
-        DEPTH_MODE depth_mode
-        float depth_minimum_distance
-        int camera_image_flip
-        bool enable_right_side_measure
-        bool camera_disable_self_calib
-        int camera_buffer_count_linux
-        bool sdk_verbose
         int sdk_gpu_id
-        bool depth_stabilization
+        bool sdk_verbose
 
         String sdk_verbose_log_file
 
         CUcontext sdk_cuda_ctx
         InputType input
         String optional_settings_path
-
-        bool camera_disable_imu
+        bool sensors_required
+        bool enable_image_enhancement
 
         InitParameters(RESOLUTION camera_resolution,
                        int camera_fps,
-                       int camera_linux_id,
-                       String svo_input_filename,
                        bool svo_real_time_mode,
                        DEPTH_MODE depth_mode,
                        UNIT coordinate_units,
@@ -854,47 +847,60 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        bool sdk_verbose,
                        int sdk_gpu_id,
                        float depth_minimum_distance,
+                       float depth_maxium_distance,
                        bool camera_disable_self_calib,
                        bool camera_image_flip,
                        bool enable_right_side_measure,
-                       int camera_buffer_count_linux,
                        String sdk_verbose_log_file,
-                       bool depth_stabilization,
+                       int depth_stabilization,
                        CUcontext sdk_cuda_ctx,
                        InputType input,
                        String optional_settings_path,
-                       camera_disable_imu)
+                       bool sensors_required,
+                       bool enable_image_enhancement)
 
         bool save(String filename)
         bool load(String filename)
 
+    cdef cppclass RecordingParameters 'sl::RecordingParameters':
+        String video_filename
+        SVO_COMPRESSION_MODE compression_mode
+
+        RecordingParameters(String video_filename_, SVO_COMPRESSION_MODE compression_mode_)
 
     cdef cppclass RuntimeParameters 'sl::RuntimeParameters':
         SENSING_MODE sensing_mode
         bool enable_depth
-        bool enable_point_cloud
+        int confidence_threshold
+        int textureness_confidence_threshold
         REFERENCE_FRAME measure3D_reference_frame
 
         RuntimeParameters(SENSING_MODE sensing_mode,
                           bool enable_depth,
-                          bool enable_point_cloud,
+                          int confidence_threshold,
+                          int textureness_confidence_threshold,
                           REFERENCE_FRAME measure3D_reference_frame)
 
         bool save(String filename)
         bool load(String filename)
 
 
-    cdef cppclass TrackingParameters 'sl::TrackingParameters':
+    cdef cppclass PositionalTrackingParameters 'sl::PositionalTrackingParameters':
         Transform initial_world_transform
-        bool enable_spatial_memory
+        bool enable_area_memory
         bool enable_pose_smoothing
         bool set_floor_as_origin
         String area_file_path
         bool enable_imu_fusion
+        bool set_as_static
 
-        TrackingParameters(Transform init_pos,
+        PositionalTrackingParameters(Transform init_pos,
                            bool _enable_memory,
-                           String _area_path)
+                           bool _enable_pose_smoothing,
+                           String _area_path,
+                           bool _set_floor_as_origin,
+                           bool _enable_imu_fusion,
+                           bool _set_as_static)
 
         bool save(String filename)
         bool load(String filename)
@@ -942,10 +948,10 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool load(String filename)
 
 
-    cdef enum STREAMING_CODEC:
-        STREAMING_CODEC_AVCHD
-        STREAMING_CODEC_HEVC
-        STREAMING_CODEC_LAST
+    cdef enum STREAMING_CODEC 'sl::STREAMING_CODEC':
+        STREAMING_CODEC_H264 'sl::STREAMING_CODEC::H264'
+        STREAMING_CODEC_H265 'sl::STREAMING_CODEC::H265'
+        STREAMING_CODEC_LAST 'sl::STREAMING_CODEC::LAST'
 
     cdef struct StreamingProperties:
         String ip
@@ -960,7 +966,19 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         unsigned int bitrate
         int gop_size
         bool adaptative_bitrate
-        StreamingParameters(STREAMING_CODEC codec, unsigned short port_, unsigned int bitrate, int gop_size, bool adaptative_bitrate_)
+        unsigned short chunk_size
+        StreamingParameters(STREAMING_CODEC codec, unsigned short port_, unsigned int bitrate, int gop_size, bool adaptative_bitrate_, unsigned short chunk_size_)
+
+    cdef cppclass ObjectDetectionParameters:
+        bool image_sync
+        bool enable_tracking
+        ObjectDetectionParameters(bool image_sync, bool enable_tracking)
+
+    cdef cppclass ObjectDetectionRuntimeParameters:
+        float detection_confidence_threshold
+        vector[OBJECT_CLASS] object_class_filter
+
+        ObjectDetectionRuntimeParameters(float detection_confidence_threshold, vector[OBJECT_CLASS] object_class_filter)
 
     cdef cppclass Pose:
         Pose()
@@ -973,72 +991,118 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         Vector3[float] getEulerAngles(bool radian)
 
         bool valid
-        unsigned long long timestamp
+        Timestamp timestamp
 
         Transform pose_data
 
         int pose_confidence
         float pose_covariance[36]
 
-    cdef cppclass IMUData(Pose):
-        IMUData()
-        IMUData(const IMUData &pose)
-        IMUData(const Transform &pose_data, unsigned long long mtimestamp, int mconfidence)
+    cdef enum CAMERA_MOTION_STATE 'sl::SensorsData::CAMERA_MOTION_STATE':
+        STATIC 'sl::SensorsData::CAMERA_MOTION_STATE::STATIC'
+        MOVING 'sl::SensorsData::CAMERA_MOTION_STATE::MOVING'
+        FALLING 'sl::SensorsData::CAMERA_MOTION_STATE::FALLING'
+        CAMERA_MOTION_STATE_LAST 'sl::SensorsData::CAMERA_MOTION_STATE::LAST'
 
-        Matrix3f orientation_covariance
+    cdef cppclass BarometerData 'sl::SensorsData::BarometerData':
+        bool is_available
+        float pressure
+        float relative_altitude
+        Timestamp timestamp
+
+        BarometerData()
+
+    cdef enum SENSOR_LOCATION 'sl::SensorsData::TemperatureData::SENSOR_LOCATION':
+        IMU 'sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU'
+        BAROMETER 'sl::SensorsData::TemperatureData::SENSOR_LOCATION::BAROMETER'
+        ONBOARD_LEFT 'sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT'
+        ONBOARD_RIGHT 'sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT'
+        SENSOR_LOCATION_LAST 'sl::SensorsData::TemperatureData::SENSOR_LOCATION::LAST'
+
+    cdef cppclass TemperatureData 'sl::SensorsData::TemperatureData':
+        ERROR_CODE get(SENSOR_LOCATION location, float& temperature)
+        map[SENSOR_LOCATION,float] temperature_map
+        TemperatureData()
+
+    cdef cppclass MagnetometerData 'sl::SensorsData::MagnetometerData':
+        bool is_available
+        Timestamp timestamp
+
+        Vector3[float] magnetic_field_uncalibrated
+        Vector3[float] magnetic_field_calibrated
+        MagnetometerData()
+
+    cdef cppclass IMUData 'sl::SensorsData::IMUData':
+        bool is_available
+        Timestamp timestamp
+        Transform pose
+        Matrix3f pose_covariance
         Vector3[float] angular_velocity
         Vector3[float] linear_acceleration
-        Matrix3f angular_velocity_convariance
-        Matrix3f linear_acceleration_convariance
+        Vector3[float] linear_acceleration_uncalibrated
+        Matrix3f angular_velocity_covariance
+        Matrix3f linear_acceleration_covariance
+        IMUData()
+
+
+    cdef cppclass SensorsData 'sl::SensorsData':
+        SensorsData()
+        SensorsData(const SensorsData &data)
+
+        TemperatureData temperature
+        BarometerData barometer
+        MagnetometerData magnetometer
+        IMUData imu
+
+        CAMERA_MOTION_STATE camera_moving_state
+
+        int image_sync_trigger
 
 
     cdef cppclass Camera 'sl::Camera':
         Camera()
         void close()
         ERROR_CODE open(InitParameters init_parameters)
+
+        InitParameters getInitParameters()
+
         bool isOpened()
         ERROR_CODE grab(RuntimeParameters rt_parameters)
-        ERROR_CODE retrieveImage(Mat &mat, VIEW view, MEM type, int width, int height)
-        ERROR_CODE retrieveMeasure(Mat &mat, MEASURE measure, MEM type, int width, int height)
-        void setConfidenceThreshold(int conf_threshold_value)
-        int getConfidenceThreshold()
 
-        Resolution getResolution()
-        void setDepthMaxRangeValue(float depth_max_range)
-        float getDepthMaxRangeValue()
-        float getDepthMinRangeValue()
+        RuntimeParameters getRuntimeParameters()
+        
+
+        ERROR_CODE retrieveImage(Mat &mat, VIEW view, MEM type, Resolution resolution)
+        ERROR_CODE retrieveMeasure(Mat &mat, MEASURE measure, MEM type, Resolution resolution)
+
         void setSVOPosition(int frame_number)
         int getSVOPosition()
         int getSVONumberOfFrames()
-        void setCameraSettings(CAMERA_SETTINGS settings, int value, bool use_default)
-        int getCameraSettings(CAMERA_SETTINGS setting)
-        float getCameraFPS()
-        void setCameraFPS(int desired_fps)
+        void setCameraSettings(VIDEO_SETTINGS settings, int value)
+        int getCameraSettings(VIDEO_SETTINGS setting)
         float getCurrentFPS()
-        timeStamp getCameraTimestamp() # deprecated
-        timeStamp getCurrentTimestamp() # deprecated
-        timeStamp getTimestamp(TIME_REFERENCE reference_time)
+        Timestamp getTimestamp(TIME_REFERENCE reference_time)
         unsigned int getFrameDroppedCount()
         CameraInformation getCameraInformation(Resolution resizer);
-        SELF_CALIBRATION_STATE getSelfCalibrationState()
-        void resetSelfCalibration()
 
-        ERROR_CODE enableTracking(TrackingParameters tracking_params)
-        TRACKING_STATE getPosition(Pose &camera_pose, REFERENCE_FRAME reference_frame)
-        ERROR_CODE saveCurrentArea(String area_file_path);
-        AREA_EXPORT_STATE getAreaExportState()
-        void disableTracking(String area_file_path)
-        ERROR_CODE resetTracking(Transform &path)
-        ERROR_CODE getIMUData(IMUData &imu_data, TIME_REFERENCE reference_time)
+        ERROR_CODE enablePositionalTracking(PositionalTrackingParameters tracking_params)
+        POSITIONAL_TRACKING_STATE getPosition(Pose &camera_pose, REFERENCE_FRAME reference_frame)
+        ERROR_CODE saveAreaMap(String area_file_path);
+        AREA_EXPORTING_STATE getAreaExportState()
+
+        PositionalTrackingParameters getPositionalTrackingParameters()
+        bool isPositionalTrackingEnabled()
+        void disablePositionalTracking(String area_file_path)
+        ERROR_CODE resetPositionalTracking(Transform &path)
+        ERROR_CODE getSensorsData(SensorsData &imu_data, TIME_REFERENCE reference_time)
         ERROR_CODE setIMUPrior(Transform &transfom)
 
         ERROR_CODE enableSpatialMapping(SpatialMappingParameters spatial_mapping_parameters)
         void pauseSpatialMapping(bool status)
         SPATIAL_MAPPING_STATE getSpatialMappingState()
-        ERROR_CODE extractWholeMesh(Mesh &mesh)
-        void requestMeshAsync()
-        ERROR_CODE getMeshRequestStatusAsync()
-        ERROR_CODE retrieveMeshAsync(Mesh &mesh)
+
+        SpatialMappingParameters getSpatialMappingParameters()
+
         void disableSpatialMapping()
 
         void requestSpatialMapAsync()
@@ -1051,23 +1115,28 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE findPlaneAtHit(Vector2[uint] coord, Plane &plane)
         ERROR_CODE findFloorPlane(Plane &plane, Transform &resetTrackingFloorFrame, float floor_height_prior, Rotation world_orientation_prior, float floor_height_prior_tolerance)
 
-        ERROR_CODE enableRecording(String video_filename, SVO_COMPRESSION_MODE compression_mode)
-        RecordingState record()
+        ERROR_CODE enableRecording(RecordingParameters recording_params)
+
+        RecordingParameters getRecordingParameters()
+        StreamingParameters getStreamingParameters()
+
+        RecordingStatus getRecordingStatus()
+        void pauseRecording(bool status)
+
         void disableRecording()
 
         ERROR_CODE enableStreaming(StreamingParameters streaming_parameters)
         void disableStreaming()
         bool isStreamingEnabled()
 
+        ERROR_CODE enableObjectDetection(ObjectDetectionParameters object_detection_parameters)
+        void disableObjectDetection()
+        ERROR_CODE retrieveObjects(Objects &objects, ObjectDetectionRuntimeParameters parameters)
+        ObjectDetectionParameters getObjectDetectionParameters()
+        void pauseObjectDetection(bool status)
 
         @staticmethod
         String getSDKVersion()
-
-        @staticmethod
-        int isZEDconnected()
-
-        @staticmethod
-        ERROR_CODE sticktoCPUCore(int cpu_core)
 
         @staticmethod
         vector[DeviceProperties] getDeviceList()
@@ -1075,13 +1144,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         @staticmethod
         vector[StreamingProperties] getStreamingDeviceList()
 
-    bool saveDepthAs(Camera &zed, DEPTH_FORMAT format, String name, float factor)
-    bool savePointCloudAs(Camera &zed, POINT_CLOUD_FORMAT format, String name,
-                          bool with_color)
-
+        @staticmethod
+        ERROR_CODE reboot(int sn)
 
 cdef extern from "Utils.cpp" namespace "sl":
-    bool saveMatDepthAs(Mat &depth, DEPTH_FORMAT format, String name, float factor)
-    bool saveMatPointCloudAs(Mat &cloud, POINT_CLOUD_FORMAT format, String name,
-                          bool with_color)
-
+    ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector)

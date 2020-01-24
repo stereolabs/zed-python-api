@@ -30,20 +30,19 @@ import numpy
 
 from distutils.core import setup, Extension
 from Cython.Build import cythonize
-from pathlib import Path
 
 incDirs = ""
 libDirs = ""
 libs = ""
 cflags = ""
 
-ZED_SDK_MAJOR = "2"
-ZED_SDK_MINOR = "8"
+ZED_SDK_MAJOR = "3"
+ZED_SDK_MINOR = "0"
 
 cuda_path = "/usr/local/cuda"
 
 def check_zed_sdk_version_private(file_path):
-    with open(str(file_path), "r") as myfile:
+    with open(file_path, "r") as myfile:
         data = myfile.read()
 
     p = re.compile("ZED_SDK_MAJOR_VERSION (.*)")
@@ -64,16 +63,20 @@ def check_zed_sdk_version_private(file_path):
         sys.exit(0)
 
 def check_zed_sdk_version(file_path):
-    file_path_prior_23 = Path(file_path) / "sl" / "defines.hpp"
-    file_path_ = Path(file_path) / "sl_zed" / "defines.hpp"
-    try:
-        check_zed_sdk_version_private(file_path_prior_23)
-    except AttributeError:
-        check_zed_sdk_version_private(file_path_)
+    file_path = file_path+"/sl/Camera.hpp"
+    check_zed_sdk_version_private(file_path)
    
 def clean_cpp():
-    if os.path.isfile("pyzed/sl.cpp"):
-        os.remove("pyzed/sl.cpp")
+    if os.path.isfile("pyzed/camera.cpp"):
+        os.remove("pyzed/camera.cpp")
+    if os.path.isfile("pyzed/core.cpp"):
+        os.remove("pyzed/core.cpp")
+    if os.path.isfile("pyzed/defines.cpp"):
+        os.remove("pyzed/defines.cpp")
+    if os.path.isfile("pyzed/mesh.cpp"):
+        os.remove("pyzed/mesh.cpp")
+    if os.path.isfile("pyzed/types.cpp"):
+        os.remove("pyzed/types.cpp")
 
 if "clean" in "".join(sys.argv[1:]):
     target = "clean"
@@ -103,7 +106,7 @@ if sys.platform == "win32":
         libDirs = [numpy.get_include(), os.getenv("ZED_SDK_ROOT_DIR")+"/lib",
                    os.getenv("CUDA_PATH")+"/lib/x64"]
 
-        libs = ["sl_core64", "sl_zed64"]
+        libs = ["sl_zed64"]
 elif "linux" in sys.platform:
     zed_path = "/usr/local/zed"
     if not os.path.isdir(zed_path):
@@ -119,9 +122,9 @@ elif "linux" in sys.platform:
         libDirs = [numpy.get_include(), zed_path + "/lib",
                    cuda_path + "/lib64"]
 
-        libs = ["sl_core", "sl_zed"]
+        libs = ["sl_zed", "usb-1.0"]
 
-        cflags = ["-std=c++11", "-Wno-reorder", "-Wno-deprecated-declarations", "-Wno-cpp", "-O3"]
+        cflags = ["-std=c++14", "-Wno-reorder", "-Wno-deprecated-declarations", "-Wno-cpp", "-O3"]
 else:
     print ("Unknown system.platform: %s  Installation failed, see setup.py." % sys.platform)
     exit(1)    

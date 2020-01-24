@@ -2,7 +2,11 @@
 
 This package lets you use the ZED stereo camera in Python 3.
 
-[![Linux pipeline status](https://gitlab.com/bot-stereolabs/zed-python-api/badges/master/pipeline.svg)](https://gitlab.com/bot-stereolabs/zed-python-api/commits/master) [![Windows Build status](https://ci.appveyor.com/api/projects/status/qtnt36xkmfrooj7j/branch/master?svg=true)](https://ci.appveyor.com/project/adujardin/zed-python-api-l80k9/branch/master)
+## Stable API notice
+
+The ZED Python API is now stable but has some breaking changes from the previous (beta) version. The older beta version can be found in the [legacy branch](https://github.com/stereolabs/zed-python-api/tree/legacy).
+
+The changes were made to better reflect the C++ API and ease of use. Mainly all classes have a similar name to the C++ SDK (without the "Py" prefix), and all components were migrated to a unified `sl` namespace.
 
 ## Getting started
 
@@ -11,9 +15,9 @@ This package lets you use the ZED stereo camera in Python 3.
 
 ### Prerequisites
 
-- [ZED SDK 2.8](https://www.stereolabs.com/developers/) and its dependency 
+- [ZED SDK 3.0](https://www.stereolabs.com/developers/) and its dependency 
 [CUDA](https://developer.nvidia.com/cuda-downloads)
-- Python 3.5+ (x64).  ([Windows installer](https://www.python.org/ftp/python/3.7.3/python-3.7.3-amd64.exe))
+- Python 3.5+ (x64).  ([Windows installer](https://www.python.org/ftp/python/3.6.2/python-3.6.2-amd64.exe))
 -  C++ compiler (VS2015 recommended)
 - [Cython 0.26](http://cython.org/#download)
 - [Numpy 1.13.1](https://www.scipy.org/scipylib/download.html)
@@ -35,30 +39,8 @@ python -m pip install cython numpy
 python3 --version
 pip3 install -r requirements.txt
 ```
-
-### Installing the plugin using pip
-
-Currently the package is built for Desktop for the latest ZED SDK 2.8, depending on your configuration (Python, CUDA or OS version), choose the relevant command :
-
-**Ubuntu 16** using the default Python 3.5 and CUDA 9
-
-```bash
-pip3 install https://download.stereolabs.com/whl/cu90/pyzed-2.8-cp35-cp35m-linux_x86_64.whl
-```
-
-**Ubuntu 18** using the default Python 3.6 and CUDA 10
-
-```bash
-pip3 install https://download.stereolabs.com/whl/cu100/pyzed-2.8-cp36-cp36m-linux_x86_64.whl
-```
-
-**Windows** : Python 3.5, 3.6 and 3.7 are available. For instance Python 3.7, CUDA 10 :
-
-```batch
-python.exe -m pip install https://download.stereolabs.com/whl/cu100/pyzed-2.8-cp37-cp37m-win_amd64.whl
-```
-
-### Build the plugin from source
+  
+### Build the plugin
 
 ```
 python setup.py build
@@ -79,15 +61,7 @@ The packages *.pyd* for Windows or *.so* for Linux will be generated and install
 
 You can use `python setup.py cleanall` to remove every cpp files generated and build directory.
 
-> Make sure to be **out** of the plugin directory when using it. It will prevent Python from considering the `pyzed` folder of the plugin as the **pyzed** package.
-
-
-When using Anaconda, make sure the package binary can be found. In the project folder, after compiling the wrapper run :
-
-```bash
-conda develop build/lib.linux-x86_64-3.6 # or 3.5 depending on the python version used
-```
-
+> Make sure to be **out** of the plugin driectory when using it. It will prevent Python from considering the `pyzed` folder of the plugin as the **pyzed** package.
 
 ## Use the plugin
 
@@ -120,6 +94,7 @@ Sphinx is used to generates the html documentation.
 
 ```bash
     cd doc
+    sudo apt-get install python3-sphinx
     pip3 install -r requirements.txt
 ```
 
@@ -131,11 +106,6 @@ Sphinx is used to generates the html documentation.
 
 4. The documentation can be viewed in a browser by opening the generated [index.html file](doc/build/html/index.html) located in `doc/build/html/`
 
-## Stable API notice
-
-The ZED Python API is now stable but has some breaking changes from the previous (beta) version. The older beta version can be found in the [legacy branch](https://github.com/stereolabs/zed-python-api/tree/legacy).
-
-The changes were made to better reflect the C++ API and ease of use. Mainly all classes have a similar name to the C++ SDK (without the "Py" prefix), and all components were migrated to a unified `sl` namespace.
 
 ## Contributing
 

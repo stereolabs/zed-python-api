@@ -166,16 +166,23 @@ namespace sl {
         return mat.getPtr<float4>(memory_type);
     }
 
-    bool saveMatDepthAs(sl::Mat &depth, sl::DEPTH_FORMAT format, sl::String name, float factor = 1.) {
+/*    bool saveMatDepthAs(sl::Mat &depth, sl::DEPTH_FORMAT format, sl::String name, float factor = 1.) {
         return saveDepthAs(depth, format, name, factor);
     }
 
     bool saveMatPointCloudAs(sl::Mat &cloud, sl::POINT_CLOUD_FORMAT format, sl::String name, bool with_color = false) {
         return savePointCloudAs(cloud, format, name, with_color);
     }
-
+*/
     std::string to_str(sl::String sl_str) {
         return std::string(sl_str.c_str());
+    }
+
+    sl::ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, std::vector<int> object_vector) {
+        std::vector<sl::OBJECT_CLASS> object_vector_cpy;
+        for (unsigned int i = 0; i < object_vector.size(); i++)
+            object_vector_cpy.push_back(static_cast<sl::OBJECT_CLASS>(object_vector[i]));
+        return new ObjectDetectionRuntimeParameters(confidence_threshold, object_vector_cpy);
     }
 
 }
