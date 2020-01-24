@@ -83,30 +83,6 @@ The [tutorials](tutorials) provide simple projects to show how to use each modul
 
 Please refer to the [examples](examples) README for more informations.
 
-## Generate the API documentation
-
-The documentation is provided in the [doc](./doc) folder and has to be built first.
-
-Sphinx is used to generates the html documentation.
-
-1. The zed-python-api has to be compiled and installed
-2. Make sure `sphinx` and `sphinx_rtd_theme` are installed
-
-```bash
-    cd doc
-    sudo apt-get install python3-sphinx
-    pip3 install -r requirements.txt
-```
-
-3. Generate the documentation by running the provided [Makefile](doc/Makefile) (Linux) or [make.bat](doc/make.bat) (Windows)
-
-```bash
-    make html
-```
-
-4. The documentation can be viewed in a browser by opening the generated [index.html file](doc/build/html/index.html) located in `doc/build/html/`
-
-
 ## Contributing
 
 Feel free to open an issue if you find a bug, or a pull request for bug fixes, features or other improvements.
