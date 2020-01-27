@@ -4951,9 +4951,9 @@ cdef class IMUData:
         return angular_velocity_covariance
 
     ##
-    # Gets the (3x3) Covariance matrix for angular velocity (x,y,z axes)
-    # \param angular_velocity_covariance : \ref Matrix3f to be returned. It creates one by default.
-    # \return The (3x3) Covariance matrix for angular velocity
+    # Gets the (3x3) Covariance matrix for linear acceleration (x,y,z axes)
+    # \param linear_acceleration_covariance : \ref Matrix3f to be returned. It creates one by default.
+    # \return The (3x3) Covariance matrix for linear acceleration
     def get_linear_acceleration_covariance(self, Matrix3f linear_acceleration_covariance = Matrix3f()):
         linear_acceleration_covariance.mat = self.imuData.linear_acceleration_covariance
         return linear_acceleration_covariance
