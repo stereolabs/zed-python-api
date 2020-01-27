@@ -8,25 +8,25 @@ environment:
   PYTHON37: "C:\\Python37-x64"
 
   matrix:
-    - ZED_MAJOR: "2"
-      ZED_MINOR: "8"
+    - ZED_MAJOR: "3"
+      ZED_MINOR: "0"
       CUDA_MAJOR: "10"
       CUDA_MINOR: "0"
       ZED_URL_SUFFIX: "win"
       CUDA_URL: https://download.stereolabs.com/cuda%CUDA_MAJOR%/win10
 
-    #- ZED_MAJOR: "2"
-    #  ZED_MINOR: "8"
-    #  CUDA_MAJOR: "9"
-    #  CUDA_MINOR: "0"
-    #  ZED_URL_SUFFIX: "win_cuda9"
-    #  CUDA_URL: https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda_9.0.176_win10-exe
+    - ZED_MAJOR: "3"
+      ZED_MINOR: "0"
+      CUDA_MAJOR: "9"
+      CUDA_MINOR: "0"
+      ZED_URL_SUFFIX: "win"
+      CUDA_URL: https://download.stereolabs.com/cuda%CUDA_MAJOR%/win10
 
 install:  
   - cd %WORKSPACE%\
   
   # Install ZED SDK
-  - curl -L https://download.stereolabs.com/zedsdk/%ZED_MAJOR%.%ZED_MINOR%/%ZED_URL_SUFFIX% -o zed_sdk_setup.exe
+  - curl -L https://download.stereolabs.com/zedsdk/%ZED_MAJOR%.%ZED_MINOR%/cu%CUDA_MAJOR%%CUDA_MINOR%/%ZED_URL_SUFFIX% -o zed_sdk_setup.exe
   
   # Get innoextract
   - curl -L http://constexpr.org/innoextract/files/innoextract-1.7-windows.zip -o innoextract_setup.zip
