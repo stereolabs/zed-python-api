@@ -32,6 +32,7 @@ before_script:
 build:u16cu90:
   image: stereolabs/zed:3.0-devel-cuda9.0-ubuntu16.04
   script:
+  - apt install libusb-1.0 -y
   - python3 setup.py build
   - pip3 wheel .
   artifacts:
@@ -39,8 +40,9 @@ build:u16cu90:
     - ./*.whl
     
 build:u16cu100:
-  image: stereolabs/zed:u3.0-devel-cuda10.0-ubuntu16.04
+  image: stereolabs/zed:3.0-devel-cuda10.0-ubuntu16.04
   script:
+  - apt install libusb-1.0 -y
   - python3 setup.py build
   - pip3 wheel .
   artifacts:
@@ -48,8 +50,9 @@ build:u16cu100:
     - ./*.whl
 
 build:u16cu102:
-  image: stereolabs/zed:u3.0-devel-cuda10.2-ubuntu16.04
+  image: stereolabs/zed:3.0-devel-cuda10.2-ubuntu16.04
   script:
+  - apt install libusb-1.0 -y
   - python3 setup.py build
   - pip3 wheel .
   artifacts:
