@@ -29,7 +29,7 @@ install:
   - curl -L https://download.stereolabs.com/zedsdk/%ZED_MAJOR%.%ZED_MINOR%/cu%CUDA_MAJOR%%CUDA_MINOR%/%ZED_URL_SUFFIX% -o zed_sdk_setup.exe
   
   # Get innoextract
-  - curl -L http://constexpr.org/innoextract/files/innoextract-1.7-windows.zip -o innoextract_setup.zip
+  - curl -L http://constexpr.org/innoextract/files/innoextract-1.8-windows.zip -o innoextract_setup.zip
   - 7z x innoextract_setup.zip
   - .\innoextract.exe zed_sdk_setup.exe
   - mkdir "C:\Program Files (x86)\ZED SDK"
