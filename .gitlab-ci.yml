@@ -30,8 +30,9 @@ before_script:
 #  - tox -e py36,flake8
 
 build:u16cu90:
-  image: stereolabs/zed:ubuntu1604-cuda9.0-zed2.8
+  image: stereolabs/zed:3.0-devel-cuda9.0-ubuntu16.04
   script:
+  - apt install libusb-1.0 -y
   - python3 setup.py build
   - pip3 wheel .
   artifacts:
@@ -39,32 +40,39 @@ build:u16cu90:
     - ./*.whl
     
 build:u16cu100:
-  image: stereolabs/zed:ubuntu1604-cuda10.0-zed2.8
+  image: stereolabs/zed:3.0-devel-cuda10.0-ubuntu16.04
   script:
+  - apt install libusb-1.0 -y
   - python3 setup.py build
   - pip3 wheel .
   artifacts:
     paths:
     - ./*.whl
-    
+
+build:u16cu102:
+  image: stereolabs/zed:3.0-devel-cuda10.2-ubuntu16.04
+  script:
+  - apt install libusb-1.0 -y
+  - python3 setup.py build
+  - pip3 wheel .
+  artifacts:
+    paths:
+    - ./*.whl
+
 build:u18cu100:
-  image: stereolabs/zed:ubuntu1804-cuda10.0-zed2.8
+  image: stereolabs/zed:3.0-devel-cuda10.0-ubuntu18.04
   script:
   - python3 setup.py build
   - pip3 wheel .
   artifacts:
     paths:
     - ./*.whl
-    
-pages:
-  image: stereolabs/zed:ubuntu1604-cuda9.0-zed2.8
+
+build:u18cu102:
+  image: stereolabs/zed:3.0-devel-cuda10.2-ubuntu18.04
   script:
-  - python3 setup.py install
-  - pip3 install sphinx sphinx-rtd-theme
-  - cd doc ; make html
-  - mv build/html/ ../public/
+  - python3 setup.py build
+  - pip3 wheel .
   artifacts:
     paths:
-    - public
-  only:
-  - master
+    - ./*.whl
