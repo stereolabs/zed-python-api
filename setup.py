@@ -180,7 +180,7 @@ for mod in GPUmodulesTable:
     extension = create_extension(mod[0], mod[1])
     if extension == None:
         print ("WARNING: extension is None, see setup.py:", mod)
-    extList = cythonize(extension, compiler_directives=cython_directives, language_level = "3")
+    extList = cythonize(extension, compiler_directives=cython_directives)#, language_level = "3")
     extensions.extend(extList)
 
 setup(name="pyzed",
