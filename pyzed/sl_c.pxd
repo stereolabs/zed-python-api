@@ -1,6 +1,6 @@
 ########################################################################
 #
-# Copyright (c) 2017, STEREOLABS.
+# Copyright (c) 2020, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -447,21 +447,21 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         Resolution camera_resolution
         float camera_fps
 
-    cdef enum MEM 'sl::MEM':
+    ctypedef enum MEM 'sl::MEM':
         CPU 'sl::MEM::CPU'
         GPU 'sl::MEM::GPU'
 
     MEM operator|(MEM a, MEM b)
 
 
-    cdef enum COPY_TYPE 'sl::COPY_TYPE':
+    ctypedef enum COPY_TYPE 'sl::COPY_TYPE':
         CPU_CPU 'sl::COPY_TYPE::CPU_CPU'
         CPU_GPU 'sl::COPY_TYPE::CPU_GPU'
         GPU_GPU 'sl::COPY_TYPE::GPU_GPU'
         GPU_CPU 'sl::COPY_TYPE::GPU_CPU'
 
 
-    cdef enum MAT_TYPE 'sl::MAT_TYPE':
+    ctypedef enum MAT_TYPE 'sl::MAT_TYPE':
         F32_C1 'sl::MAT_TYPE::F32_C1'
         F32_C2 'sl::MAT_TYPE::F32_C2'
         F32_C3 'sl::MAT_TYPE::F32_C3'
@@ -471,14 +471,14 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         U8_C3 'sl::MAT_TYPE::U8_C3'
         U8_C4 'sl::MAT_TYPE::U8_C4'
 
-    cdef enum OBJECT_CLASS 'sl::OBJECT_CLASS':
+    ctypedef enum OBJECT_CLASS 'sl::OBJECT_CLASS':
         PERSON 'sl::OBJECT_CLASS::PERSON' = 0
         VEHICLE 'sl::OBJECT_CLASS::VEHICLE' = 1
         OBJECT_CLASS_LAST 'sl::OBJECT_CLASS::LAST' = 2
 
     String toString(OBJECT_CLASS o)
 
-    cdef enum OBJECT_TRACKING_STATE 'sl::OBJECT_TRACKING_STATE':
+    ctypedef enum OBJECT_TRACKING_STATE 'sl::OBJECT_TRACKING_STATE':
         OBJECT_TRACKING_STATE_OFF 'sl::OBJECT_TRACKING_STATE::OFF'
         OBJECT_TRACKING_STATE_OK 'sl::OBJECT_TRACKING_STATE::OK'
         OBJECT_TRACKING_STATE_SEARCHING 'sl::OBJECT_TRACKING_STATE::SEARCHING'
@@ -487,7 +487,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     String toString(OBJECT_TRACKING_STATE o)
 
-    cdef enum OBJECT_ACTION_STATE 'sl::OBJECT_ACTION_STATE':
+    ctypedef enum OBJECT_ACTION_STATE 'sl::OBJECT_ACTION_STATE':
         IDLE 'sl::OBJECT_ACTION_STATE::IDLE'
         OBJECT_ACTION_STATE_MOVING 'sl::OBJECT_ACTION_STATE::MOVING'
         OBJECT_ACTION_STATE_LAST 'sl::OBJECT_ACTION_STATE::LAST'
@@ -948,7 +948,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool load(String filename)
 
 
-    cdef enum STREAMING_CODEC 'sl::STREAMING_CODEC':
+    ctypedef enum STREAMING_CODEC 'sl::STREAMING_CODEC':
         STREAMING_CODEC_H264 'sl::STREAMING_CODEC::H264'
         STREAMING_CODEC_H265 'sl::STREAMING_CODEC::H265'
         STREAMING_CODEC_LAST 'sl::STREAMING_CODEC::LAST'
@@ -999,7 +999,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         int pose_confidence
         float pose_covariance[36]
 
-    cdef enum CAMERA_MOTION_STATE 'sl::SensorsData::CAMERA_MOTION_STATE':
+    ctypedef enum CAMERA_MOTION_STATE 'sl::SensorsData::CAMERA_MOTION_STATE':
         STATIC 'sl::SensorsData::CAMERA_MOTION_STATE::STATIC'
         MOVING 'sl::SensorsData::CAMERA_MOTION_STATE::MOVING'
         FALLING 'sl::SensorsData::CAMERA_MOTION_STATE::FALLING'
@@ -1013,7 +1013,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         BarometerData()
 
-    cdef enum SENSOR_LOCATION 'sl::SensorsData::TemperatureData::SENSOR_LOCATION':
+    ctypedef enum SENSOR_LOCATION 'sl::SensorsData::TemperatureData::SENSOR_LOCATION':
         IMU 'sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU'
         BAROMETER 'sl::SensorsData::TemperatureData::SENSOR_LOCATION::BAROMETER'
         ONBOARD_LEFT 'sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT'

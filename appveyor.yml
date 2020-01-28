@@ -50,7 +50,7 @@ install:
   
   # Install CUDA
   - curl -L %CUDA_URL% -o cuda_setup.exe
-  - .\cuda_setup.exe -s nvcc_%CUDA_MAJOR%.%CUDA_MINOR%
+  - if "%CUDA_MAJOR%"=="9" (.\cuda_setup.exe -s compiler_%CUDA_MAJOR%.%CUDA_MINOR%) else (.\cuda_setup.exe -s nvcc_%CUDA_MAJOR%.%CUDA_MINOR%)
   - set CUDA_PATH=%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v%CUDA_MAJOR%.%CUDA_MINOR%
   - set CUDA_PATH_V%CUDA_MAJOR%_%CUDA_MINOR%=%CUDA_PATH%
   - set CUDA_TOOLKIT_ROOT_DIR=%CUDA_PATH%
@@ -58,8 +58,8 @@ install:
   - cd %WORKSPACE%\zed-python\
   
   # Python dep
-  #- "%PYTHON35%\\python.exe -m pip install --upgrade pip"
-  #- "%PYTHON35%\\python.exe -m pip install -r requirements.txt"
+  - "%PYTHON35%\\python.exe -m pip install --upgrade pip"
+  - "%PYTHON35%\\python.exe -m pip install -r requirements.txt"
 
   - "%PYTHON36%\\python.exe -m pip install --upgrade pip"
   - "%PYTHON36%\\python.exe -m pip install -r requirements.txt"
@@ -74,9 +74,9 @@ build_script:
   # All python version in one for faster build
   - cd %WORKSPACE%\zed-python\
   
-  #- "%PYTHON35%\\python.exe setup.py build"
-  #- "%PYTHON35%\\python.exe -m pip wheel ."
-  #- "%PYTHON35%\\python.exe setup.py clean"
+  - "%PYTHON35%\\python.exe setup.py build"
+  - "%PYTHON35%\\python.exe -m pip wheel ."
+  - "%PYTHON35%\\python.exe setup.py clean"
 
   - "%PYTHON36%\\python.exe setup.py build"
   - "%PYTHON36%\\python.exe -m pip wheel ."
