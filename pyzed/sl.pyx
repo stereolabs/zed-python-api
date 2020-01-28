@@ -1,6 +1,6 @@
 ########################################################################
 #
-# Copyright (c) 2017, STEREOLABS.
+# Copyright (c) 2020, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -4953,7 +4953,7 @@ cdef class IMUData:
     ##
     # Gets the (3x3) Covariance matrix for linear acceleration (x,y,z axes)
     # \param linear_acceleration_covariance : \ref Matrix3f to be returned. It creates one by default.
-    # \return The (3x3) Covariance matrix for linear acceleration
+    # \return The (3x3) Covariance matrix for linear acceleration
     def get_linear_acceleration_covariance(self, Matrix3f linear_acceleration_covariance = Matrix3f()):
         linear_acceleration_covariance.mat = self.imuData.linear_acceleration_covariance
         return linear_acceleration_covariance
@@ -6319,7 +6319,7 @@ cdef class Camera:
         vect_python = []
         for i in range(vect_.size()):
             prop = DeviceProperties()
-            prop.camera_state = <int> vect_[i].camera_state
+            prop.camera_state = CAMERA_STATE(<int> vect_[i].camera_state)
             prop.id = vect_[i].id
             prop.path = vect_[i].path.get().decode()
             prop.camera_model = MODEL(<int>vect_[i].camera_model)
