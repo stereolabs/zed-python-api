@@ -60,6 +60,8 @@ def main():
 
     objects = sl.Objects()
     obj_runtime_param = sl.ObjectDetectionRuntimeParameters()
+    obj_runtime_param.detection_confidence_threshold = 40
+
     while zed.grab() == sl.ERROR_CODE.SUCCESS:
         err = zed.retrieve_objects(objects, obj_runtime_param)
         if objects.is_new :

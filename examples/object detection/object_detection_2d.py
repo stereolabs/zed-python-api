@@ -1,6 +1,6 @@
 ########################################################################
 #
-# Copyright (c) 2017, STEREOLABS.
+# Copyright (c) 2020, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -53,12 +53,14 @@ def main():
     key = ''
 
     obj_param = sl.ObjectDetectionParameters()
-    obj_param.enable_tracking=False
+    obj_param.enable_tracking = False
 
     zed.enable_object_detection(obj_param)
 
     objects = sl.Objects()
     obj_runtime_param = sl.ObjectDetectionRuntimeParameters()
+    obj_runtime_param.detection_confidence_threshold = 40
+
     while key != 113: # for 'q' key
         # Grab an image, a RuntimeParameters object must be given to grab()
         if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
@@ -75,9 +77,7 @@ def main():
                               get_color_id_gr(int(obj_data.id)), 3)
 
             cv2.imshow("ZED", image_data)
-            key = cv2.waitKey(5)
-        else:
-            key = cv2.waitKey(5)
+        key = cv2.waitKey(5)
 
     cv2.destroyAllWindows()
 
