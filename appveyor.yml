@@ -58,11 +58,11 @@ install:
   - cd %WORKSPACE%\zed-python\
   
   # Python dep
-  - "%PYTHON35%\\python.exe -m pip install --upgrade pip"
-  - "%PYTHON35%\\python.exe -m pip install -r requirements.txt"
+  #- "%PYTHON35%\\python.exe -m pip install --upgrade pip"
+  #- "%PYTHON35%\\python.exe -m pip install -r requirements.txt"
 
-  - "%PYTHON36%\\python.exe -m pip install --upgrade pip"
-  - "%PYTHON36%\\python.exe -m pip install -r requirements.txt"
+  #- "%PYTHON36%\\python.exe -m pip install --upgrade pip"
+  #- "%PYTHON36%\\python.exe -m pip install -r requirements.txt"
 
   - "%PYTHON37%\\python.exe -m pip install --upgrade pip"
   - "%PYTHON37%\\python.exe -m pip install -r requirements.txt"
@@ -74,13 +74,13 @@ build_script:
   # All python version in one for faster build
   - cd %WORKSPACE%\zed-python\
   
-  - "%PYTHON35%\\python.exe setup.py build"
-  - "%PYTHON35%\\python.exe -m pip wheel ."
-  - "%PYTHON35%\\python.exe setup.py clean"
+  #- "%PYTHON35%\\python.exe setup.py build"
+  #- "%PYTHON35%\\python.exe -m pip wheel ."
+  #- "%PYTHON35%\\python.exe setup.py clean"
 
-  - "%PYTHON36%\\python.exe setup.py build"
-  - "%PYTHON36%\\python.exe -m pip wheel ."
-  - "%PYTHON36%\\python.exe setup.py clean"
+  #- "%PYTHON36%\\python.exe setup.py build"
+  #- "%PYTHON36%\\python.exe -m pip wheel ."
+  #- "%PYTHON36%\\python.exe setup.py clean"
 
   - "%PYTHON37%\\python.exe setup.py build"
   - "%PYTHON37%\\python.exe -m pip wheel ."
