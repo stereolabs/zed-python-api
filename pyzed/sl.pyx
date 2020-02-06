@@ -1428,7 +1428,7 @@ cdef class ObjectDetectionRuntimeParameters:
         return self.object_detection_rt.detection_confidence_threshold
 
     @detection_confidence_threshold.setter
-    def detection_confidence_threshold(self, bool detection_confidence_threshold):
+    def detection_confidence_threshold(self, int detection_confidence_threshold):
         self.object_detection_rt.detection_confidence_threshold = detection_confidence_threshold
 
 #   @property
