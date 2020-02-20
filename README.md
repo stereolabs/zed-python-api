@@ -2,8 +2,6 @@
 
 This package lets you use the ZED stereo camera in Python 3.
 
-[![Linux pipeline status](https://gitlab.com/bot-stereolabs/zed-python-api/badges/master/pipeline.svg)](https://gitlab.com/bot-stereolabs/zed-python-api/commits/master) [![Windows Build status](https://ci.appveyor.com/api/projects/status/qtnt36xkmfrooj7j/branch/master?svg=true)](https://ci.appveyor.com/project/adujardin/zed-python-api-l80k9/branch/master)
-
 ## Getting started
 
 - First, download the latest version of the ZED SDK on [stereolabs.com](https://www.stereolabs.com/developers)
@@ -34,28 +32,6 @@ python -m pip install cython numpy
 ```
 python3 --version
 pip3 install -r requirements.txt
-```
-
-### Installing the plugin using pip
-
-Currently the package is built for Desktop for the latest ZED SDK 2.8, depending on your configuration (Python, CUDA or OS version), choose the relevant command :
-
-**Ubuntu 16** using the default Python 3.5 and CUDA 9
-
-```bash
-pip3 install https://download.stereolabs.com/whl/cu90/pyzed-2.8-cp35-cp35m-linux_x86_64.whl
-```
-
-**Ubuntu 18** using the default Python 3.6 and CUDA 10
-
-```bash
-pip3 install https://download.stereolabs.com/whl/cu100/pyzed-2.8-cp36-cp36m-linux_x86_64.whl
-```
-
-**Windows** : Python 3.5, 3.6 and 3.7 are available. For instance Python 3.7, CUDA 10 :
-
-```batch
-python.exe -m pip install https://download.stereolabs.com/whl/cu100/pyzed-2.8-cp37-cp37m-win_amd64.whl
 ```
 
 ### Build the plugin from source
@@ -130,12 +106,6 @@ Sphinx is used to generates the html documentation.
 ```
 
 4. The documentation can be viewed in a browser by opening the generated [index.html file](doc/build/html/index.html) located in `doc/build/html/`
-
-## Stable API notice
-
-The ZED Python API is now stable but has some breaking changes from the previous (beta) version. The older beta version can be found in the [legacy branch](https://github.com/stereolabs/zed-python-api/tree/legacy).
-
-The changes were made to better reflect the C++ API and ease of use. Mainly all classes have a similar name to the C++ SDK (without the "Py" prefix), and all components were migrated to a unified `sl` namespace.
 
 ## Contributing
 
