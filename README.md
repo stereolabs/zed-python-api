@@ -12,8 +12,8 @@ This package lets you use the ZED stereo camera in Python 3.
 - [ZED SDK 3.0](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - Python 3.5+ x64  (3.7 recommended, [Windows installer](https://www.python.org/ftp/python/3.7.6/python-3.7.6-amd64.exe))
 - C++ compiler (VS2017 recommended)
-- [Cython 0.26](http://cython.org/#download)
-- [Numpy 1.13.1](https://www.scipy.org/scipylib/download.html)
+- [Cython 0.28](http://cython.org/#download)
+- [Numpy 1.13](https://www.scipy.org/scipylib/download.html)
 
 The ZED SDK 2.X compatible API can be found in the [zedsdk_2.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_2.X).
 
@@ -72,11 +72,11 @@ Numpy package.
 
 ### Run the tutorials
 
-The [tutorials](tutorials) provide simple projects to show how to use each module of the ZED SDK. For a similar version using the C++ API checkout the [Cpp tutorials](https://github.com/stereolabs/zed-examples/tree/master/tutorials).
+The [tutorials](https://github.com/stereolabs/zed-examples/tree/master/tutorials) provide simple projects to show how to use each module of the ZED SDK.
 
 ### Run the examples
 
-Please refer to the [examples](examples) README for more informations.
+Please refer to the [examples](https://github.com/stereolabs/zed-examples) README for more informations.
 
 ## Contributing
 
