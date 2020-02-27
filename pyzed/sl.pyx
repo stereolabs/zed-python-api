@@ -6306,8 +6306,8 @@ cdef class Camera:
     @staticmethod
     def get_sdk_version():
         cls = Camera()
-        return cls.camera.getSDKVersion().get().decode()
-
+        return to_str(cls.camera.getSDKVersion()).decode()
+    
     ##
     # List all the connected devices with their associated information.
     # This function lists all the cameras available and provides their serial number, models and other information.
