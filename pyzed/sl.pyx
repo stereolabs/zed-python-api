@@ -24,7 +24,7 @@ from libcpp.vector cimport vector
 from libc.string cimport const_char
 from libcpp.string cimport string
 from libcpp.pair cimport pair
-from sl_c cimport to_str, ERROR_CODE as c_ERROR_CODE, toString, sleep_ms, MODEL as c_MODEL, CAMERA_STATE as c_CAMERA_STATE, String, DeviceProperties as c_DeviceProperties, Vector2, Vector3, Vector4, Matrix3f as c_Matrix3f, Matrix4f as c_Matrix4f, UNIT as c_UNIT, COORDINATE_SYSTEM as c_COORDINATE_SYSTEM, RESOLUTION as c_RESOLUTION, VIDEO_SETTINGS as c_VIDEO_SETTINGS, DEPTH_MODE as c_DEPTH_MODE, SENSING_MODE as c_SENSING_MODE, MEASURE as c_MEASURE, VIEW as c_VIEW, TIME_REFERENCE as c_TIME_REFERENCE, POSITIONAL_TRACKING_STATE as c_POSITIONAL_TRACKING_STATE, AREA_EXPORTING_STATE as c_AREA_EXPORTING_STATE, REFERENCE_FRAME as c_REFERENCE_FRAME, SPATIAL_MAPPING_STATE as c_SPATIAL_MAPPING_STATE, SVO_COMPRESSION_MODE as c_SVO_COMPRESSION_MODE, RecordingStatus as c_RecordingStatus, getCurrentTimeStamp, Timestamp as c_Timestamp, Resolution as c_Resolution, CameraParameters as c_CameraParameters, CalibrationParameters as c_CalibrationParameters, RecordingParameters as c_RecordingParameters, CameraInformation as c_CameraInformation, MEM as c_MEM, COPY_TYPE as c_COPY_TYPE, MAT_TYPE as c_MAT_TYPE, Mat as c_Mat, Rotation as c_Rotation, Translation as c_Translation, Orientation as c_Orientation, Transform as c_Transform, uchar1, uchar2, uchar3, uchar4, float1, float2, float3, float4, matResolution, setToUchar1, setToUchar2, setToUchar3, setToUchar4, setToFloat1, setToFloat2, setToFloat3, setToFloat4, setValueUchar1, setValueUchar2, setValueUchar3, setValueUchar4, setValueFloat1, setValueFloat2, setValueFloat3, setValueFloat4, getValueUchar1, getValueUchar2, getValueUchar3, getValueUchar4, getValueFloat1, getValueFloat2, getValueFloat3, getValueFloat4, getPointerUchar1, getPointerUchar2, getPointerUchar3, getPointerUchar4, getPointerFloat1, getPointerFloat2, getPointerFloat3, getPointerFloat4, uint, MESH_FILE_FORMAT as c_MESH_FILE_FORMAT, MESH_TEXTURE_FORMAT as c_MESH_TEXTURE_FORMAT, MESH_FILTER as c_MESH_FILTER, PLANE_TYPE as c_PLANE_TYPE, MeshFilterParameters as c_MeshFilterParameters, Chunk as c_Chunk, PointCloudChunk as c_PointCloudChunk, FusedPointCloud as c_FusedPointCloud, Mesh as c_Mesh, Plane as c_Plane, CUctx_st, CUcontext, MAPPING_RESOLUTION as c_MAPPING_RESOLUTION, MAPPING_RANGE as c_MAPPING_RANGE, SPATIAL_MAP_TYPE as c_SPATIAL_MAP_TYPE, InputType as c_InputType, InitParameters as c_InitParameters, RuntimeParameters as c_RuntimeParameters, PositionalTrackingParameters as c_PositionalTrackingParameters, SpatialMappingParameters as c_SpatialMappingParameters, Pose as c_Pose, SensorsData as c_SensorsData, CAMERA_MOTION_STATE as c_CAMERA_MOTION_STATE, BarometerData as c_BarometerData, SENSOR_LOCATION as c_SENSOR_LOCATION, TemperatureData as c_TemperatureData, MagnetometerData as c_MagnetometerData, IMUData as c_IMUData, Camera as c_Camera, StreamingParameters as c_StreamingParameters, STREAMING_CODEC as c_STREAMING_CODEC, StreamingProperties as c_StreamingProperties, ObjectData as c_ObjectData, Objects as c_Objects, OBJECT_CLASS as c_OBJECT_CLASS, ObjectDetectionParameters as c_ObjectDetectionParameters, ObjectDetectionRuntimeParameters as c_ObjectDetectionRuntimeParameters, OBJECT_TRACKING_STATE as c_OBJECT_TRACKING_STATE, OBJECT_ACTION_STATE as c_OBJECT_ACTION_STATE, create_object_detection_runtime_parameters
+from sl_c cimport to_str, ERROR_CODE as c_ERROR_CODE, toString, sleep_ms, INPUT_TYPE as c_INPUT_TYPE, SENSOR_TYPE as c_SENSOR_TYPE, SENSORS_UNIT as c_SENSORS_UNIT, MODEL as c_MODEL, CAMERA_STATE as c_CAMERA_STATE,     String, DeviceProperties as c_DeviceProperties, Vector2, Vector3, Vector4, Matrix3f as c_Matrix3f, Matrix4f as c_Matrix4f,    UNIT as c_UNIT, COORDINATE_SYSTEM as c_COORDINATE_SYSTEM, SIDE as c_SIDE, RESOLUTION as c_RESOLUTION,    VIDEO_SETTINGS as c_VIDEO_SETTINGS, DEPTH_MODE as c_DEPTH_MODE, SENSING_MODE as c_SENSING_MODE, MEASURE as c_MEASURE,    VIEW as c_VIEW, TIME_REFERENCE as c_TIME_REFERENCE, POSITIONAL_TRACKING_STATE as c_POSITIONAL_TRACKING_STATE,    AREA_EXPORTING_STATE as c_AREA_EXPORTING_STATE, REFERENCE_FRAME as c_REFERENCE_FRAME,    SPATIAL_MAPPING_STATE as c_SPATIAL_MAPPING_STATE, SVO_COMPRESSION_MODE as c_SVO_COMPRESSION_MODE,    RecordingStatus as c_RecordingStatus, getCurrentTimeStamp, Timestamp as c_Timestamp, Resolution as c_Resolution,  SIDE as c_SIDE,  Rect as c_Rect, CameraParameters as c_CameraParameters, SensorParameters as c_SensorParameters, SensorsConfiguration as c_SensorsConfiguration, CalibrationParameters as c_CalibrationParameters,    RecordingParameters as c_RecordingParameters, CameraConfiguration as c_CameraConfiguration, CameraInformation as c_CameraInformation, MEM as c_MEM,    COPY_TYPE as c_COPY_TYPE, MAT_TYPE as c_MAT_TYPE, Mat as c_Mat, Rotation as c_Rotation,    Translation as c_Translation, Orientation as c_Orientation, Transform as c_Transform, uchar1, uchar2, uchar3, uchar4,    float1, float2, float3, float4, matResolution, setToUchar1, setToUchar2, setToUchar3, setToUchar4, setToFloat1, setToFloat2,    setToFloat3, setToFloat4, setValueUchar1, setValueUchar2, setValueUchar3, setValueUchar4, setValueFloat1, setValueFloat2,    setValueFloat3, setValueFloat4, getValueUchar1, getValueUchar2, getValueUchar3, getValueUchar4, getValueFloat1,    getValueFloat2, getValueFloat3, getValueFloat4, getPointerUchar1, getPointerUchar2, getPointerUchar3, getPointerUchar4,    getPointerFloat1, getPointerFloat2, getPointerFloat3, getPointerFloat4, uint, MESH_FILE_FORMAT as c_MESH_FILE_FORMAT,    MESH_TEXTURE_FORMAT as c_MESH_TEXTURE_FORMAT, MESH_FILTER as c_MESH_FILTER, PLANE_TYPE as c_PLANE_TYPE,    MeshFilterParameters as c_MeshFilterParameters, Chunk as c_Chunk, PointCloudChunk as c_PointCloudChunk,    FusedPointCloud as c_FusedPointCloud, Mesh as c_Mesh, Plane as c_Plane, CUctx_st, CUcontext,    MAPPING_RESOLUTION as c_MAPPING_RESOLUTION, MAPPING_RANGE as c_MAPPING_RANGE, SPATIAL_MAP_TYPE as c_SPATIAL_MAP_TYPE,    InputType as c_InputType, InitParameters as c_InitParameters, RuntimeParameters as c_RuntimeParameters,    PositionalTrackingParameters as c_PositionalTrackingParameters, SpatialMappingParameters as c_SpatialMappingParameters,    Pose as c_Pose, SensorsData as c_SensorsData, CAMERA_MOTION_STATE as c_CAMERA_MOTION_STATE,    BarometerData as c_BarometerData, SENSOR_LOCATION as c_SENSOR_LOCATION, TemperatureData as c_TemperatureData,    MagnetometerData as c_MagnetometerData, IMUData as c_IMUData, Camera as c_Camera, StreamingParameters as c_StreamingParameters,    STREAMING_CODEC as c_STREAMING_CODEC, StreamingProperties as c_StreamingProperties, ObjectData as c_ObjectData,    Objects as c_Objects, OBJECT_CLASS as c_OBJECT_CLASS, ObjectDetectionParameters as c_ObjectDetectionParameters,    ObjectDetectionRuntimeParameters as c_ObjectDetectionRuntimeParameters, OBJECT_TRACKING_STATE as c_OBJECT_TRACKING_STATE,     OBJECT_ACTION_STATE as c_OBJECT_ACTION_STATE, create_object_detection_runtime_parameters
 from cython.operator cimport dereference as deref
 from libc.string cimport memcpy
 from cpython cimport bool
@@ -202,6 +202,11 @@ class MODEL(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_MODEL>(<unsigned int>self.value))).decode()
+
+class INPUT_TYPE(enum.Enum):
+    USB = <int>c_INPUT_TYPE.USB
+    SVO = <int>c_INPUT_TYPE.SVO
+    STREAM = <int>c_INPUT_TYPE.STREAM
 
 ##
 # List of possible camera state
@@ -698,6 +703,11 @@ cdef class Matrix4f:
     def __repr__(self):
         return self.get_infos()
 
+class SIDE(enum.Enum):
+    LEFT = <int>c_SIDE.LEFT
+    RIGHT = <int>c_SIDE.RIGHT
+    BOTH = <int>c_SIDE.BOTH
+
 ##
 # Represents the available resolution list.
 # \ingroup Core_group
@@ -731,9 +741,11 @@ class RESOLUTION(enum.Enum):
 # | HUE | Defines the hue control. Affected value should be between 0 and 11. |
 # | SATURATION | Defines the saturation control. Affected value should be between 0 and 8. |
 # | SHARPNESS | Defines the digital sharpening control. Affected value should be betwwen 0 and 8. |
+# | GAMMA |  Defines the ISP gamma control. Affected value should be between 1 and 9. |
 # | GAIN |  Defines the gain control. Affected value should be between 0 and 100 for manual control. |
 # | EXPOSURE | Defines the exposure control. Affected value should be between 0 and 100 for manual control.\n The exposition is mapped linearly in a percentage of the following max values. Special case for set_exposure(0) that corresponds to 0.17072ms.\n The conversion to milliseconds depends on the framerate: <ul><li>15fps set_exposure(100) -> 19.97ms</li><li>30fps set_exposure(100) -> 19.97ms</li><li>60fps se_exposure(100) -> 10.84072ms</li><li>100fps set_exposure(100) -> 10.106624ms</li></ul> |
 # | AEC_AGC | Defines if the Gain and Exposure are in automatic mode or not. Setting a Gain or Exposure through @GAIN or @EXPOSURE values will automatically set this value to 0. |
+# | AEC_AGC_ROI | Defines the region of interest for automatic exposure/gain computation. To be used with the dedicated @set_camera_settings_roi/@get_camera_settings_roi functions. |
 # | WHITEBALANCE_TEMPERATURE | Defines the color temperature value. Setting a value will automatically set @WHITEBALANCE_AUTO to 0. Affected value should be between 2800 and 6500 with a step of 100. |
 # | WHITEBALANCE_AUTO | Defines if the White balance is in automatic mode or not |
 # | Defines the status of the camera front LED. Set to 0 to disable the light, 1 to enable the light. Default value is on. Requires Camera FW 1523 at least |
@@ -743,9 +755,11 @@ class VIDEO_SETTINGS(enum.Enum):
     HUE = <int>c_VIDEO_SETTINGS.HUE
     SATURATION = <int>c_VIDEO_SETTINGS.SATURATION
     SHARPNESS = <int>c_VIDEO_SETTINGS.SHARPNESS
+    GAMMA = <int>c_VIDEO_SETTINGS.GAMMA
     GAIN = <int>c_VIDEO_SETTINGS.GAIN
     EXPOSURE = <int>c_VIDEO_SETTINGS.EXPOSURE
     AEC_AGC = <int>c_VIDEO_SETTINGS.AEC_AGC
+    AEC_AGC_ROI = <int>c_VIDEO_SETTINGS.AEC_AGC_ROI
     WHITEBALANCE_TEMPERATURE = <int>c_VIDEO_SETTINGS.WHITEBALANCE_TEMPERATURE
     WHITEBALANCE_AUTO = <int>c_VIDEO_SETTINGS.WHITEBALANCE_AUTO
     LED_STATUS = <int>c_VIDEO_SETTINGS.LED_STATUS
@@ -1094,6 +1108,20 @@ class MAT_TYPE(enum.Enum):
     U8_C3 = <int>c_MAT_TYPE.U8_C3
     U8_C4 = <int>c_MAT_TYPE.U8_C4
 
+
+class SENSOR_TYPE(enum.Enum):
+    ACCELEROMETER = <int>c_SENSOR_TYPE.ACCELEROMETER
+    GYROSCOPE = <int>c_SENSOR_TYPE.GYROSCOPE
+    MAGNETOMETER = <int>c_SENSOR_TYPE.MAGNETOMETER
+    BAROMETER = <int>c_SENSOR_TYPE.BAROMETER
+
+class SENSORS_UNIT(enum.Enum):
+    M_SEC_2 = <int>c_SENSORS_UNIT.M_SEC_2
+    DEG_SEC = <int>c_SENSORS_UNIT.DEG_SEC
+    U_T = <int>c_SENSORS_UNIT.U_T
+    HPA = <int>c_SENSORS_UNIT.HPA
+    CELSIUS = <int>c_SENSORS_UNIT.CELSIUS
+    HERTZ = <int>c_SENSORS_UNIT.HERTZ
 
 ##
 # Lists available object class
@@ -1466,7 +1494,7 @@ cdef class Resolution:
     ##
     # Returns the area of the image.
     # \return The number of pixels of the array.
-    def py_area(self):
+    def area(self):
         return self.resolution.width * self.resolution.height
 
     ##
@@ -1494,6 +1522,84 @@ cdef class Resolution:
             return left.width==right.width and left.height==right.height
         if op == 3:
             return left.width!=right.width or left.height!=right.height
+        else:
+            raise NotImplementedError()
+
+##
+# Width and height of an array.
+# \ingroup Core_group
+cdef class Rect:
+    cdef c_Rect rect
+    def __cinit__(self, x=0, y=0, width=0, height=0):
+        self.rect.x = x
+        self.rect.y = y
+        self.rect.width = width
+        self.rect.height = height
+
+    ##
+    # array width in pixels
+    @property
+    def width(self):
+        return self.rect.width
+
+    @width.setter
+    def width(self, value):
+        self.rect.width = value
+
+    ##
+    # array height in pixels
+    @property
+    def height(self):
+        return self.rect.height
+
+    @height.setter
+    def height(self, value):
+        self.rect.height = value
+
+    @property
+    def x(self):
+        return self.rect.x
+
+    @x.setter
+    def x(self, value):
+        self.rect.x = value
+
+    @property
+    def y(self):
+        return self.rect.y
+
+    @y.setter
+    def y(self, value):
+        self.rect.y = value
+
+    ##
+    # Returns the area of the image.
+    # \return The number of pixels of the array.
+    def area(self):
+        return self.rect.width * self.rect.height
+
+    def is_empty(self):
+        return (self.rect.width * self.rect.height == 0)
+
+    ##
+    # \brief Tests if this \ref Rect contains the <target> \ref Rect.
+    # \return Returns true if this rectangle contains the <target> rectangle. otherwise returns false.
+    # If proper is true, this function only returns true if the target rectangle is entirely inside this rectangle (not on the edge).
+    def contains(self, Rect target, proper = False):
+        return self.rect.contains(target.rect, proper)
+
+    ##
+    # \brief Tests if this \ref Rect is contained inside the given <target> \ref Rect.
+    # \return Returns true if this rectangle is inside the current target \ref Rect. otherwise returns false.
+    # If proper is true, this function only returns true if this rectangle is entirely inside the <target> rectangle (not on the edge).
+    def is_contained(self, Rect target, proper = False):
+        return self.rect.isContained((<c_Rect>target.rect), proper)
+
+    def __richcmp__(Rect left, Rect right, int op):
+        if op == 2:
+            return left.width==right.width and left.height==right.height and left.x==right.x and left.y==right.y
+        if op == 3:
+            return left.width!=right.width or left.height!=right.height or left.x!=right.x or left.y!=right.y
         else:
             raise NotImplementedError()
 
@@ -1636,16 +1742,19 @@ cdef class CalibrationParameters:
     cdef CameraParameters py_right_cam
     cdef Vector3[float] R
     cdef Vector3[float] T
+    cdef Transform py_stereo_transform
 
     def __cinit__(self):
         self.py_left_cam = CameraParameters()
         self.py_right_cam = CameraParameters()
-
+        self.py_stereo_transform = Transform()
+        
     def set(self):
         self.py_left_cam.camera_params = self.calibration.left_cam
         self.py_right_cam.camera_params = self.calibration.right_cam
         self.R = self.calibration.R
         self.T = self.calibration.T
+        self.py_stereo_transform.mat =  self.calibration.stereo_transform
 
     ##
     # Rotation on its own (using Rodrigues' transformation) of the right sensor. The left is considered as the reference. Defined as 'tilt', 'convergence' and 'roll'. Using a \ref Rotation , you can use \ref Rotation.set_rotation_vector() to convert into other representations.
@@ -1711,6 +1820,228 @@ cdef class CalibrationParameters:
         self.calibration.right_cam = right_cam_.camera_params
         self.set()
 
+    ##
+    # Left to Right camera transform, expressed in user coordinate system and unit (defines by \ref InitParameters).
+    @property
+    def stereo_transform(self):
+        return self.py_stereo_transform
+
+cdef class SensorParameters:
+    cdef c_SensorParameters c_sensor_parameters
+    cdef c_SENSOR_TYPE sensor_type
+    cdef float resolution
+    cdef float sampling_rate
+    cdef Vector2[float] sensor_range
+    cdef float noise_density
+    cdef float random_walk
+    cdef c_SENSORS_UNIT sensor_unit
+    cdef bool is_available
+
+    def set(self):
+        self.sensor_type = self.c_sensor_parameters.type
+        self.resolution = self.c_sensor_parameters.resolution
+        self.sampling_rate = self.c_sensor_parameters.sampling_rate
+        self.sensor_range = self.c_sensor_parameters.range
+        self.noise_density =  self.c_sensor_parameters.noise_density
+        self.random_walk =  self.c_sensor_parameters.random_walk
+        self.sensor_unit =  self.c_sensor_parameters.sensor_unit
+        self.is_available =  self.c_sensor_parameters.isAvailable
+
+    ##
+    # The type of the sensor as \ref DEVICE_SENSORS
+    @property
+    def sensor_type(self):
+        return SENSOR_TYPE(<int>self.sensor_type)
+
+    ##
+    # The resolution of the sensor.
+    @property
+    def resolution(self):
+        return self.c_sensor_parameters.resolution
+
+    @resolution.setter
+    def resolution(self, float resolution_):
+        self.c_sensor_parameters.resolution = resolution_
+
+    ##
+    # The sampling rate (or ODR) of the sensor.
+    @property
+    def sampling_rate(self):
+        return self.c_sensor_parameters.sampling_rate
+
+    @sampling_rate.setter
+    def sampling_rate(self, float sampling_rate_):
+        self.c_sensor_parameters.sampling_rate = sampling_rate_
+
+    ##
+    # The range values of the sensor. MIN: `sensor_range[0]`, MAX: `sensor_range[1]`
+    @property
+    def sensor_range(self):
+        cdef np.ndarray arr = np.zeros(2)
+        for i in range(2):
+            arr[i] = self.c_sensor_parameters.range[i]
+        return arr
+
+    def set_sensor_range(self, float value1, float value2) :
+        self.c_sensor_parameters.range[0] = value1
+        self.c_sensor_parameters.range[1] = value2
+        self.set()
+
+    ##
+    # Also known as white noise, given as continous (frequency independant). Units will be expressed in sensor_unit/√(Hz). `NAN` if the information is not available 
+    @property
+    def noise_density(self):
+        return self.c_sensor_parameters.noise_density
+
+    @noise_density.setter
+    def noise_density(self, float noise_density_):
+        self.c_sensor_parameters.noise_density = noise_density_
+
+    ##
+    # derived from the Allan Variance, given as continous (frequency independant). Units will be expressed in sensor_unit/s/√(Hz).`NAN` if the information is not available
+    @property
+    def random_walk(self):
+        return self.c_sensor_parameters.random_walk
+
+    @random_walk.setter
+    def random_walk(self, float random_walk_):
+        self.c_sensor_parameters.random_walk = random_walk_
+    
+    ##
+    # The string relative to the measurement unit of the sensor.
+    @property
+    def sensor_unit(self):
+        return SENSORS_UNIT(<int>self.sensor_unit)
+
+    @property
+    def is_available(self):
+        return self.c_sensor_parameters.isAvailable
+
+
+cdef class SensorsConfiguration:
+    cdef unsigned int firmware_version
+    cdef Transform camera_imu_transform
+    cdef SensorParameters accelerometer_parameters
+    cdef SensorParameters gyroscope_parameters
+    cdef SensorParameters magnetometer_parameters
+    cdef SensorParameters barometer_parameters
+
+    def __cinit__(self, Camera py_camera, Resolution resizer=Resolution(0,0)):
+        res = c_Resolution(resizer.width, resizer.height)
+        self.accelerometer_parameters = SensorParameters()
+        self.accelerometer_parameters.c_sensor_parameters = py_camera.camera.getCameraInformation(res).sensors_configuration.accelerometer_parameters
+        self.accelerometer_parameters.set()
+        self.gyroscope_parameters = SensorParameters()
+        self.gyroscope_parameters.c_sensor_parameters = py_camera.camera.getCameraInformation(res).sensors_configuration.gyroscope_parameters
+        self.gyroscope_parameters.set()
+        self.magnetometer_parameters = SensorParameters()
+        self.magnetometer_parameters.c_sensor_parameters = py_camera.camera.getCameraInformation(res).sensors_configuration.magnetometer_parameters
+        self.magnetometer_parameters.set()
+        self.barometer_parameters = SensorParameters()
+        self.barometer_parameters.c_sensor_parameters = py_camera.camera.getCameraInformation(res).sensors_configuration.barometer_parameters
+        self.barometer_parameters.set()
+        self.firmware_version = py_camera.camera.getCameraInformation(res).camera_firmware_version
+        self.camera_imu_transform = Transform()
+        self.camera_imu_transform.mat = py_camera.camera.getCameraInformation(res).sensors_configuration.camera_imu_transform
+
+    ##
+    # Configuration of the accelerometer device
+    @property
+    def accelerometer_parameters(self):
+        return self.accelerometer_parameters
+    
+    ##
+    # Configuration of the gyroscope device
+    @property
+    def gyroscope_parameters(self):
+        return self.gyroscope_parameters
+
+    ##
+    # Configuration of the magnetometer device    
+    @property
+    def magnetometer_parameters(self):
+        return self.magnetometer_parameters
+
+    ##
+    # Configuration of the barometer device
+    @property
+    def barometer_parameters(self):
+        return self.barometer_parameters
+    
+    ##
+    # IMU to Left camera transform matrix, that contains rotation and translation between IMU frame and camera frame.
+    @property
+    def camera_imu_transform(self):
+        return self.camera_imu_transform
+    ##
+    # The internal firmware version of the sensors.
+    @property
+    def firmware_version(self):
+        return self.firmware_version
+
+
+cdef class CameraConfiguration:
+    cdef CalibrationParameters py_calib
+    cdef CalibrationParameters py_calib_raw
+    cdef unsigned int firmware_version
+    cdef c_Resolution py_res
+    cdef float camera_fps
+
+    def __cinit__(self, Camera py_camera, Resolution resizer=Resolution(0,0)):
+        res = c_Resolution(resizer.width, resizer.height)
+        self.py_calib = CalibrationParameters()
+        self.py_calib.calibration = py_camera.camera.getCameraInformation(res).calibration_parameters
+        self.py_calib_raw = CalibrationParameters()
+        self.py_calib_raw.calibration = py_camera.camera.getCameraInformation(res).calibration_parameters_raw
+        self.py_calib.set()
+        self.py_calib_raw.set()
+        self.firmware_version = py_camera.camera.getCameraInformation(res).camera_firmware_version
+        self.py_res = py_camera.camera.getCameraInformation(res).camera_resolution
+        self.camera_fps = py_camera.camera.getCameraInformation(res).camera_fps
+
+    ##
+    # \ref Resolution of the camera
+    @property
+    def camera_resolution(self):
+        return Resolution(self.py_res.width, self.py_res.height)
+
+    ##
+    # \ref FPS of the camera
+    @property
+    def camera_fps(self):
+        return self.camera_fps
+
+    ##
+    # The model of the camera (ZED, ZED2 or ZED-M).
+    @property
+    def camera_model(self):
+        return MODEL(<int>self.camera_model)
+
+    ##
+    # Intrinsic and Extrinsic stereo \ref CalibrationParameters for rectified/undistorded images (default).
+    @property
+    def calibration_parameters(self):
+        return self.py_calib
+
+    ##
+    # Intrinsic and Extrinsic stereo \ref CalibrationParameters for original images (unrectified/distorded).
+    @property
+    def calibration_parameters_raw(self):
+        return self.py_calib_raw
+
+    ##
+    # The serial number of the camera.
+    @property
+    def serial_number(self):
+        return self.serial_number
+
+    ##
+    # The internal firmware version of the camera.
+    @property
+    def firmware_version(self):
+        return self.firmware_version
+
+
 
 ##
 # Structure containing information of a signle camera (serial number, model, calibration, etc.)
@@ -1719,15 +2050,21 @@ cdef class CalibrationParameters:
 # \note This object is meant to be used as a read-only container, editing any of its field won't impact the SDK.
 # \warning \ref CalibrationParameters are returned in \ref COORDINATE_SYSTEM.IMAGE , they are not impacted by the \ref InitParameters.coordinate_system
 cdef class CameraInformation:
-    cdef CalibrationParameters py_calib
-    cdef CalibrationParameters py_calib_raw
     cdef unsigned int serial_number
+    cdef c_MODEL camera_model
+    cdef c_INPUT_TYPE input_type
+    cdef CameraConfiguration py_camera_configuration
+    cdef SensorsConfiguration py_sensors_configuration
+    
+    # Deprecated
     cdef unsigned int camera_firmware_version
     cdef unsigned int sensors_firmware_version
-    cdef c_MODEL camera_model
+    cdef CalibrationParameters py_calib
+    cdef CalibrationParameters py_calib_raw
     cdef Transform py_camera_imu_transform
-    cdef c_Resolution py_res
     cdef float camera_fps
+    cdef c_Resolution py_res
+
 
     ##
     # Constructor. Gets the \ref CameraParameters from a \ref Camera object.
@@ -1741,6 +2078,7 @@ cdef class CameraInformation:
     # \endcode
     def __cinit__(self, Camera py_camera, Resolution resizer=Resolution(0,0)):
         res = c_Resolution(resizer.width, resizer.height)
+
         self.py_calib = CalibrationParameters()
         self.py_calib.calibration = py_camera.camera.getCameraInformation(res).calibration_parameters
         self.py_calib_raw = CalibrationParameters()
@@ -1748,13 +2086,36 @@ cdef class CameraInformation:
         self.py_calib.set()
         self.py_calib_raw.set()
         self.py_camera_imu_transform = Transform()
-        self.py_camera_imu_transform.transform = py_camera.camera.getCameraInformation(res).camera_imu_transform
+        self.py_camera_imu_transform.mat = py_camera.camera.getCameraInformation(res).camera_imu_transform
+
         self.serial_number = py_camera.camera.getCameraInformation(res).serial_number
         self.camera_firmware_version = py_camera.camera.getCameraInformation(res).camera_firmware_version
         self.sensors_firmware_version = py_camera.camera.getCameraInformation(res).sensors_firmware_version
         self.camera_model = py_camera.camera.getCameraInformation(res).camera_model
         self.py_res = py_camera.camera.getCameraInformation(res).camera_resolution
         self.camera_fps = py_camera.camera.getCameraInformation(res).camera_fps
+
+        self.py_camera_configuration = CameraConfiguration(py_camera, resizer)
+        self.py_sensors_configuration = SensorsConfiguration(py_camera, resizer)
+        self.input_type = py_camera.camera.getCameraInformation(res).input_type
+
+    ##
+    # Device Sensors configuration as defined in \ref SensorsConfiguration.
+    @property
+    def sensors_configuration(self):
+        return self.py_sensors_configuration
+
+    ##
+    # Camera configuration as defined in \ref CameraConfiguration.
+    @property
+    def camera_configuration(self):
+        return self.py_camera_configuration
+
+    ##
+    # Input type used in SDK.
+    @property
+    def input_type(self):
+        return INPUT_TYPE(<int>self.input_type)
 
     ##
     # \ref Resolution of the camera
@@ -1763,7 +2124,7 @@ cdef class CameraInformation:
         return Resolution(self.py_res.width, self.py_res.height)
 
     ##
-    # \ref FPS of the camera
+    # FPS of the camera
     @property
     def camera_fps(self):
         return self.camera_fps
@@ -1947,7 +2308,8 @@ cdef class Mat:
     # \warning It erases previously allocated memory.
     def alloc_resolution(self, Resolution resolution, mat_type, memory_type=MEM.CPU):
         if isinstance(mat_type, MAT_TYPE) and isinstance(memory_type, MEM):
-            self.mat.alloc(resolution.width, resolution.height, <c_MAT_TYPE>(<unsigned int>mat_type.value), <c_MEM>(<unsigned int>memory_type.value))
+            self.mat.alloc(resolution.resolution, <c_MAT_TYPE>(<unsigned int>mat_type.value), <c_MEM>(<unsigned int>memory_type.value))
+            #self.mat.alloc(resolution.width, resolution.height, <c_MAT_TYPE>(<unsigned int>mat_type.value), <c_MEM>(<unsigned int>memory_type.value))
         else:
             raise TypeError("Arguments must be of Mat and MEM types.")
 
@@ -2014,11 +2376,15 @@ cdef class Mat:
     # Writes the \ref Mat (only if \ref MEM.CPU is available on the current \ref Mat ) into a file as an image.
     # Supported output files format are PNG and JPEG.
     # \param filepath : file path including the name and extension.
+    # \param memory_type : memory type (CPU or GPU) of the Mat.
+    # \param compression_level : level of compression between 0 (lowest compression == highest size == highest quality(jpg)) and 100 (highest compression == lowest size == lowest quality(jpg)).
+    # \note Specific/default value for compression_level = -1 : This will set the default quality for PNG(30) or JPEG(5).
+    # \note compression_level is only supported for U8_Cx \ref MAT_TYPE.
     # \return \ref ERROR_CODE.SUCCESS if everything went well, \ref ERROR_CODE.FAILURE otherwise.
     #
     # \note Supported \ref MAT_TYPE are \ref MAT_TYPE.U8_C1 , \ref MAT_TYPE.U8_C3 and \ef MAT_TYPE.U8_C4 .
-    def write(self, str filepath):
-        return ERROR_CODE(<int>self.mat.write(filepath.encode()))
+    def write(self, str filepath, memory_type=MEM.CPU, compression_level = -1):
+        return ERROR_CODE(<int>self.mat.write(filepath.encode(), <c_MEM>(<unsigned int>memory_type.value), compression_level))
 
     ##
     # Fills the \ref Mat with the given value.
@@ -3823,15 +4189,17 @@ cdef class InitParameters:
     # See \ref InputType for complementary information.
     # 
     # \warning Using the ZED SDK Python API, using init_params.input.set_from_XXX won't work, use init_params.set_from_XXX instead
-    @property
-    def input(self):
-        input_t = InputType()
-        input_t.input = self.init.input
-        return input_t
+    #@property
+    #def input(self):
+    #    input_t = InputType()
+    #    input_t.input = self.init.input
+    #    return input_t
 
-    @input.setter
+    #@input.setter
     def input(self, InputType input_t):
         self.init.input = input_t.input
+
+    input = property(None, input)
 
     ##
     # Set the optional path where the SDK has to search for the settings files (SN<XXXX>.conf files). Those file contains the calibration of the camera.
@@ -3900,13 +4268,13 @@ cdef class RuntimeParameters:
     # params = sl.RuntimeParameters(sensing_mode=SENSING_MODE.STANDARD, enable_depth=True)
     # \endcode
     def __cinit__(self, sensing_mode=SENSING_MODE.STANDARD, enable_depth=True,
-                  confidence_threshold = 100, textureness_confidence_threshold = 100,
+                  confidence_threshold = 100, texture_confidence_threshold = 100,
                   measure3D_reference_frame=REFERENCE_FRAME.CAMERA):
         if (isinstance(sensing_mode, SENSING_MODE) and isinstance(enable_depth, bool)
             and isinstance(confidence_threshold, int) and
             isinstance(measure3D_reference_frame, REFERENCE_FRAME)):
 
-            self.runtime = new c_RuntimeParameters(<c_SENSING_MODE>(<unsigned int>sensing_mode.value), enable_depth, confidence_threshold, textureness_confidence_threshold,
+            self.runtime = new c_RuntimeParameters(<c_SENSING_MODE>(<unsigned int>sensing_mode.value), enable_depth, confidence_threshold, texture_confidence_threshold,
                                                  <c_REFERENCE_FRAME>(<unsigned int>measure3D_reference_frame.value))
         else:
             raise TypeError()
@@ -3988,14 +4356,25 @@ cdef class RuntimeParameters:
     def confidence_threshold(self, value):
         self.runtime.confidence_threshold = value
 
+    ##
+    # \deprecated Use texture_confidence_threshold instead
     @property
     def textureness_confidence_threshold(self):
         return self.runtime.textureness_confidence_threshold
 
+    ##
+    # \deprecated Use texture_confidence_threshold instead
     @textureness_confidence_threshold.setter
     def textureness_confidence_threshold(self, value):
         self.runtime.textureness_confidence_threshold = value
 
+    @property
+    def texture_confidence_threshold(self):
+        return self.runtime.texture_confidence_threshold
+
+    @texture_confidence_threshold.setter
+    def texture_confidence_threshold(self, value):
+        self.runtime.texture_confidence_threshold = value
 
 ##
 # Parameters for positional tracking initialization.
@@ -4926,7 +5305,7 @@ cdef class IMUData:
     # \note Those values can be directly ingested in a IMU fusion algorithm to extract quaternion
     # \param angular_velocity : A numpy array to be returned.
     # \return The angular velocity (3x1) vector in a numpy array
-    def get_angular_velocity(self, angular_velocity):
+    def get_angular_velocity(self, angular_velocity = [0, 0, 0]):
         for i in range(3):
             angular_velocity[i] = self.imuData.angular_velocity[i]
         return angular_velocity
@@ -4937,7 +5316,7 @@ cdef class IMUData:
     # \note Those values can be directly ingested in a IMU fusion algorithm to extract quaternion
     # \param linear_acceleration : A numpy array to be returned.
     # \return The linear acceleration (3x1) vector in a numpy array
-    def get_linear_acceleration(self, linear_acceleration):
+    def get_linear_acceleration(self, linear_acceleration = [0, 0, 0]):
         for i in range(3):
             linear_acceleration[i] = self.imuData.linear_acceleration[i]
         return linear_acceleration
@@ -4949,7 +5328,7 @@ cdef class IMUData:
     def get_angular_velocity_covariance(self, Matrix3f angular_velocity_covariance = Matrix3f()):
         angular_velocity_covariance.mat = self.imuData.angular_velocity_covariance
         return angular_velocity_covariance
-
+        
     ##
     # Gets the (3x3) Covariance matrix for linear acceleration (x,y,z axes)
     # \param linear_acceleration_covariance : \ref Matrix3f to be returned. It creates one by default.
@@ -5426,6 +5805,25 @@ cdef class Camera:
             raise TypeError("Arguments must be of VIDEO_SETTINGS and boolean types.")
 
     ##
+    # Sets the ROI of the requested \ref VIDEO_SETTINGS "camera setting". (AEC_AGC_ROI)
+    #
+    # \param settings : the setting to be set
+    # \param roi : the requested ROI
+    # \param eye : the requested side
+    # \param reset : cancel the manual ROI and reset it to the full image
+    #
+    # \code
+    #   roi = sl.Rect(42, 56, 120, 15)
+    #   zed.set_camera_settings_roi(sl.VIDEO_SETTINGS.AEC_AGC_ROI, roi, sl.SIDE.BOTH)
+    # \endcode
+    #
+    # \note Works only if the camera is opened in live mode.
+    def set_camera_settings_roi(self, settings, Rect roi, eye = SIDE.BOTH, reset = False):
+        if isinstance(settings, VIDEO_SETTINGS) :
+            return ERROR_CODE(<int>self.camera.setCameraSettings(<c_VIDEO_SETTINGS>(<unsigned int>settings.value), roi.rect, <c_SIDE>(<unsigned int>eye.value), reset))
+        else:
+            raise TypeError("Arguments must be of VIDEO_SETTINGS and boolean types.")
+    ##
     # Returns the current value of the requested \ref VIDEO_SETTINGS "camera setting". (gain, brightness, hue, exposure, etc.)
     # 
     # Possible values (range) of each setting are available \ref VIDEO_SETTINGS "here".
@@ -5433,18 +5831,38 @@ cdef class Camera:
     # \param setting : the requested setting.
     # \return The current value for the corresponding setting. Returns -1 if encounters an error.
     #
-    # 
     # \code
     # gain = zed.get_camera_settings(sl.VIDEO_SETTINGS.GAIN)
     # print("Current gain value: ", gain)
     # \endcode
     #
-    # \note Works only if the camera is open in live mode. (Settings aren't exported in the SVO file format)
+    # \note Works only if the camera is open in live mode. (Settings aren't exported in the SVO file format)            
     def get_camera_settings(self, setting):
         if isinstance(setting, VIDEO_SETTINGS):
             return self.camera.getCameraSettings(<c_VIDEO_SETTINGS>(<unsigned int>setting.value))
         else:
             raise TypeError("Argument is not of VIDEO_SETTINGS type.")
+
+    ##
+    # Returns the current value of the currently used ROI for the \ref VIDEO_SETTINGS "camera setting" (AEC_AGC_ROI)
+    # 
+    # \param setting : the requested setting.
+    # \param roi : the current ROI used
+    # \param eye : the requested side
+    # \return ERROR_CODE
+    #
+    # \code
+    # roi = sl.Rect()
+    # err = zed.get_camera_settings_roi(sl.VIDEO_SETTINGS.AEC_AGC_ROI, roi, sl.SIDE.BOTH)
+    # print("Current ROI for AEC_AGC: " + str(roi_.x) + " " + str(roi_.y)+ " " + str(roi_.width) + " " + str(roi_.height))
+    # \endcode
+    #
+    # \note Works only if the camera is open in live mode. (Settings aren't exported in the SVO file format)       
+    def get_camera_settings_roi(self, setting, Rect roi, eye = SIDE.BOTH):
+        if isinstance(setting, VIDEO_SETTINGS) and isinstance(eye, SIDE):
+            return ERROR_CODE(<int>self.camera.getCameraSettings(<c_VIDEO_SETTINGS>(<unsigned int>setting.value), roi.rect, <c_SIDE>(<unsigned int>eye.value)))
+        else:
+            raise TypeError("Argument is not of SIDE type.")
 
     ##
     # Returns the current framerate at which the \ref grab() method is successfully called.
@@ -6307,7 +6725,7 @@ cdef class Camera:
     def get_sdk_version():
         cls = Camera()
         return to_str(cls.camera.getSDKVersion()).decode()
-    
+
     ##
     # List all the connected devices with their associated information.
     # This function lists all the cameras available and provides their serial number, models and other information.

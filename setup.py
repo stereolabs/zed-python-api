@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 ########################################################################
 #
-# Copyright (c) 2018, STEREOLABS.
+# Copyright (c) 2020, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -42,7 +42,11 @@ ZED_SDK_MINOR = "0"
 cuda_path = "/usr/local/cuda"
 
 def check_zed_sdk_version_private(file_path):
-    with open(file_path, "r") as myfile:
+
+    global ZED_SDK_MAJOR
+    global ZED_SDK_MINOR
+
+    with open(file_path, "r", encoding="utf-8") as myfile:
         data = myfile.read()
 
     p = re.compile("ZED_SDK_MAJOR_VERSION (.*)")
@@ -56,16 +60,23 @@ def check_zed_sdk_version_private(file_path):
 
     if major == ZED_SDK_MAJOR and minor >= ZED_SDK_MINOR:
         print("ZED SDK Version: OK")
+        ZED_SDK_MAJOR = major
+        ZED_SDK_MINOR = minor
     else:
         print("WARNING ! Required ZED SDK version: " + ZED_SDK_MAJOR + "." + ZED_SDK_MINOR)
         print("ZED SDK detected: " + major + "." + minor + "." + patch)
         print("Aborting")
         sys.exit(0)
 
-def check_zed_sdk_version(file_path):
-    file_path = file_path+"/sl/Camera.hpp"
-    check_zed_sdk_version_private(file_path)
-   
+def check_zed_sdk_version(file_path_):
+    dev_file_path = file_path_ + "/sl_zed/defines.hpp"
+    file_path = file_path_ + "/sl/Camera.hpp"
+    if os.path.isfile(dev_file_path):
+         # internal dev mode
+        check_zed_sdk_version_private(dev_file_path)
+    else:
+        check_zed_sdk_version_private(file_path)
+
 def clean_cpp():
     if os.path.isfile("pyzed/camera.cpp"):
         os.remove("pyzed/camera.cpp")
@@ -134,6 +145,7 @@ print ("include dirs:", incDirs)
 print ("library dirs:", libDirs)
 print ("libraries:", libs)
 
+#cython_directives = {"embedsignature": True, 'language_level' : "2"}
 cython_directives = {"embedsignature": True}
 
 def create_extension(name, sources):
@@ -180,7 +192,7 @@ for mod in GPUmodulesTable:
     extension = create_extension(mod[0], mod[1])
     if extension == None:
         print ("WARNING: extension is None, see setup.py:", mod)
-    extList = cythonize(extension, compiler_directives=cython_directives)#, language_level = "3")
+    extList = cythonize(extension, compiler_directives=cython_directives)
     extensions.extend(extList)
 
 setup(name="pyzed",

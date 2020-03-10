@@ -263,6 +263,11 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     String toString(COORDINATE_SYSTEM o)
 
+    ctypedef enum SIDE 'sl::SIDE':
+        LEFT 'sl::SIDE::LEFT'
+        RIGHT 'sl::SIDE::RIGHT'
+        BOTH 'sl::SIDE::BOTH'
+
     ctypedef enum RESOLUTION 'sl::RESOLUTION':
         HD2K 'sl::RESOLUTION::HD2K'
         HD1080 'sl::RESOLUTION::HD1080'
@@ -278,9 +283,11 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         HUE 'sl::VIDEO_SETTINGS::HUE'
         SATURATION 'sl::VIDEO_SETTINGS::SATURATION'
         SHARPNESS 'sl::VIDEO_SETTINGS::SHARPNESS'
+        GAMMA 'sl::VIDEO_SETTINGS::GAMMA'
         GAIN 'sl::VIDEO_SETTINGS::GAIN'
         EXPOSURE 'sl::VIDEO_SETTINGS::EXPOSURE'
         AEC_AGC 'sl::VIDEO_SETTINGS::AEC_AGC'
+        AEC_AGC_ROI 'sl::VIDEO_SETTINGS::AEC_AGC_ROI'
         WHITEBALANCE_TEMPERATURE 'sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE'
         WHITEBALANCE_AUTO 'sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO'
         LED_STATUS 'sl::VIDEO_SETTINGS::LED_STATUS'
@@ -397,6 +404,25 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     String toString(SVO_COMPRESSION_MODE o)
 
+    ctypedef enum SENSOR_TYPE 'sl::SENSOR_TYPE':
+        ACCELEROMETER 'sl::SENSOR_TYPE::ACCELEROMETER'
+        GYROSCOPE 'sl::SENSOR_TYPE::GYROSCOPE'
+        MAGNETOMETER 'sl::SENSOR_TYPE::MAGNETOMETER'
+        BAROMETER 'sl::SENSOR_TYPE::BAROMETER'
+
+    ctypedef enum SENSORS_UNIT 'sl::SENSORS_UNIT':
+        M_SEC_2 'sl::SENSORS_UNIT::M_SEC_2'
+        DEG_SEC 'sl::SENSORS_UNIT::DEG_SEC'
+        U_T 'sl::SENSORS_UNIT::U_T'
+        HPA 'sl::SENSORS_UNIT::HPA'
+        CELSIUS 'sl::SENSORS_UNIT::CELSIUS'
+        HERTZ 'sl::SENSORS_UNIT::HERTZ'
+
+    ctypedef enum INPUT_TYPE 'sl::INPUT_TYPE':
+        USB 'sl::INPUT_TYPE::USB'
+        SVO 'sl::INPUT_TYPE::SVO'
+        STREAM 'sl::INPUT_TYPE::STREAM'
+
     cdef struct RecordingStatus:
         bool is_recording
         bool is_paused
@@ -413,6 +439,13 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         size_t width
         size_t height
 
+    cdef cppclass Rect 'sl::Rect':
+        size_t x
+        size_t y
+        size_t width
+        size_t height
+        bool contains(const Rect target, bool proper) const
+        bool isContained(Rect target, bool proper) const
 
     cdef struct CameraParameters:
         float fx
@@ -429,23 +462,60 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
 
     cdef struct CalibrationParameters:
-        Vector3[float] R
-        Vector3[float] T
         CameraParameters left_cam
         CameraParameters right_cam
+        Transform stereo_transform
+
+        # Deprecated
+        Vector3[float] R
+        Vector3[float] T
+
+
+    cdef struct SensorParameters:
+        SENSOR_TYPE type
+        float resolution
+        float sampling_rate
+        Vector2[float] range
+        float noise_density
+        float random_walk
+        SENSORS_UNIT sensor_unit
+        bool isAvailable
+
+
+    cdef struct SensorsConfiguration:
+        unsigned int firmware_version
+        Transform camera_imu_transform
+
+        SensorParameters accelerometer_parameters
+        SensorParameters gyroscope_parameters
+        SensorParameters magnetometer_parameters
+        SensorParameters barometer_parameters
+
+
+    cdef struct CameraConfiguration:
+        CalibrationParameters calibration_parameters
+        CalibrationParameters calibration_parameters_raw
+        unsigned int firmware_version
+        float camera_fps
+        Resolution camera_resolution
 
 
     cdef struct CameraInformation:
+        unsigned int serial_number
+        MODEL camera_model
+        INPUT_TYPE input_type
+        CameraConfiguration camera_configuration
+        SensorsConfiguration sensors_configuration
+
+        # Deprecated
         CalibrationParameters calibration_parameters
         CalibrationParameters calibration_parameters_raw
         Transform camera_imu_transform
-        unsigned int serial_number
         unsigned int camera_firmware_version
         unsigned int sensors_firmware_version
-        MODEL camera_model
-        InputType input_type
-        Resolution camera_resolution
         float camera_fps
+        Resolution camera_resolution
+
 
     ctypedef enum MEM 'sl::MEM':
         CPU 'sl::MEM::CPU'
@@ -536,7 +606,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         ERROR_CODE copyTo(Mat &dst, COPY_TYPE cpyType) const
         ERROR_CODE setFrom(const Mat &src, COPY_TYPE cpyType) const
         ERROR_CODE read(const char* filePath)
-        ERROR_CODE write(const char* filePath)
+        ERROR_CODE write(const char* filePath, MEM memory_type, int compression_level)
         size_t getWidth() const
         size_t getHeight() const
         Resolution getResolution() const
@@ -873,12 +943,13 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool enable_depth
         int confidence_threshold
         int textureness_confidence_threshold
+        int texture_confidence_threshold
         REFERENCE_FRAME measure3D_reference_frame
 
         RuntimeParameters(SENSING_MODE sensing_mode,
                           bool enable_depth,
                           int confidence_threshold,
-                          int textureness_confidence_threshold,
+                          int texture_confidence_threshold,
                           REFERENCE_FRAME measure3D_reference_frame)
 
         bool save(String filename)
@@ -1080,7 +1151,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         int getSVOPosition()
         int getSVONumberOfFrames()
         void setCameraSettings(VIDEO_SETTINGS settings, int value)
+        ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, Rect roi, SIDE eye, bool reset)
         int getCameraSettings(VIDEO_SETTINGS setting)
+        ERROR_CODE getCameraSettings(VIDEO_SETTINGS setting, Rect &roi, SIDE eye)
         float getCurrentFPS()
         Timestamp getTimestamp(TIME_REFERENCE reference_time)
         unsigned int getFrameDroppedCount()
