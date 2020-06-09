@@ -1,6 +1,6 @@
 # Stereolabs ZED - Python API
 
-This package lets you use the ZED stereo camera in Python 3.
+This package lets you use the ZED stereo camera in Python 3. The Python API is a wrapper around the ZED SDK which is written in C++ optimized code. We make the ZED SDK accessible from external Python code using Cython.
 
 ## Getting started
 
@@ -9,13 +9,14 @@ This package lets you use the ZED stereo camera in Python 3.
 
 ### Prerequisites
 
-- [ZED SDK 3.0](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+To start using the ZED SDK in Python, you will need to install the following dependencies on your system:  
+
+- [ZED SDK 3.1](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - Python 3.5+ x64  (3.7 recommended, [Windows installer](https://www.python.org/ftp/python/3.7.6/python-3.7.6-amd64.exe))
-- C++ compiler (VS2017 recommended)
 - [Cython 0.28](http://cython.org/#download)
 - [Numpy 1.13](https://www.scipy.org/scipylib/download.html)
-
-The ZED SDK 2.X compatible API can be found in the [zedsdk_2.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_2.X).
+- OpenCV Python (optional)
+- PyOpenGL (optional)
 
 Please check your python version with the following command. The result should be 3.5 or higher.
 
@@ -28,35 +29,52 @@ Cython and Numpy can be installed via pip.
 python -m pip install cython numpy
 ```
 
+The sample dependencies can also be installed via pip
+```
+python -m pip install opencv-python pyopengl
+```
+
 **Note:** On Linux, it is advised to use the `python3` command instead of `python` which by default point to python 2.7. To do so, the following packages `python3-dev` and `python3-pip` need to be installed.
 
+## Installing the Python API
+
+A Python script is available in the ZED SDK installation folder and can automatically detect your platform, CUDA and Python version and download the corresponding pre-compiled Python API package.
+
+### Running the install script
+
+The Python install script is located on Windows in `C:\Program Files (x86)\ZED SDK\` (make sure you have admin access to run it in the Program Files folder). On Linux it is located in `/usr/local/zed/`.
+
+Run the script:
+
+```bash
+$ cd "/usr/local/zed/"
+$ python get_python_api.py
+
+    # The script displays the detected platform versions
+    CUDA 10.0
+    Platform ubuntu18
+    ZED 3.1
+    Python 3.7
+    # Downloads the whl package
+    Downloading python package from https://download.stereolabs.com/zedsdk/3.1/ubuntu18/cu100/py37 ...
+
+    # Gives instruction on how to install the downloaded package
+    File saved into pyzed-3.1-cp37-cp37m-linux_x86_64.whl
+    To install it run :
+      python3 -m pip install pyzed-3.1-cp37-cp37m-linux_x86_64.whl
 ```
-python3 --version
-pip3 install -r requirements.txt
-```
-  
-### Build the plugin
 
-```
-python setup.py build
-python setup.py install
-```
+Now install the downloaded package with pip:
 
-or on Linux
+```bash
+$ python3 -m pip install pyzed-3.1-cp37-cp37m-linux_x86_64.whl
 
-```
-python3 setup.py build
-python3 setup.py install
+    Processing ./pyzed-3.1-cp37-cp37m-linux_x86_64.whl
+    Installing collected packages: pyzed
+    Successfully installed pyzed-3.1
 ```
 
-
-If an __error__ occurs during the compilation, make sure that you're using the latest [ZED SDK](https://www.stereolabs.com/developers/) and that you installed an x64 version of python. `python -c "import platform; print(platform.architecture())"`
-
-The packages *.pyd* for Windows or *.so* for Linux will be generated and installed.
-
-You can use `python setup.py cleanall` to remove every cpp files generated and build directory.
-
-> Make sure to be **out** of the plugin driectory when using it. It will prevent Python from considering the `pyzed` folder of the plugin as the **pyzed** package.
+That's it ! The Python API is now installed.
 
 ## Use the plugin
 
@@ -78,6 +96,3 @@ The [tutorials](https://github.com/stereolabs/zed-examples/tree/master/tutorials
 
 Please refer to the [examples](https://github.com/stereolabs/zed-examples) README for more informations.
 
-## Contributing
-
-Feel free to open an issue if you find a bug, or a pull request for bug fixes, features or other improvements.
