@@ -5,7 +5,7 @@ This package lets you use the ZED stereo camera in Python 3. The Python API is a
 ## Getting started
 
 - First, download the latest version of the ZED SDK on [stereolabs.com](https://www.stereolabs.com/developers)
-- For more information, read the ZED [API documentation](https://www.stereolabs.com/developers/documentation/API/)
+- For more information, read the ZED [Documentation](https://www.stereolabs.com/docs/app-development/python/install/) and [API documentation](https://www.stereolabs.com/docs/api/python/)
 
 ### Prerequisites
 
