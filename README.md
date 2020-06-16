@@ -96,3 +96,22 @@ The [tutorials](https://github.com/stereolabs/zed-examples/tree/master/tutorials
 
 Please refer to the [examples](https://github.com/stereolabs/zed-examples) README for more informations.
 
+
+## Troubleshooting
+
+###  "Numpy binary incompatiblity"
+
+```
+Traceback (most recent call last):
+    ...
+    File "__init__.pxd", line 918, in init pyzed.sl
+ValueError: numpy.ufunc size changed, may indicate binary incompatiblity. Expected 216 from C header, got 192 from PyObject
+```
+
+This error usually means numpy isn't installed. To install it, simply run these commands : 
+
+```bash
+# On Jetson (aarch64) cython needs to be installed first since numpy needs to be compiled.
+python3 -m pip install cython
+python3 -m pip install numpy
+```
