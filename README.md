@@ -11,7 +11,7 @@ This package lets you use the ZED stereo camera in Python 3. The Python API is a
 
 To start using the ZED SDK in Python, you will need to install the following dependencies on your system:  
 
-- [ZED SDK 3.1](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ZED SDK 3.3](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - Python 3.5+ x64  (3.7 recommended, [Windows installer](https://www.python.org/ftp/python/3.7.6/python-3.7.6-amd64.exe))
 - [Cython 0.28](http://cython.org/#download)
 - [Numpy 1.13](https://www.scipy.org/scipylib/download.html)
@@ -42,7 +42,7 @@ A Python script is available in the ZED SDK installation folder and can automati
 
 ### Running the install script
 
-The Python install script is located on Windows in `C:\Program Files (x86)\ZED SDK\` (make sure you have admin access to run it in the Program Files folder). On Linux it is located in `/usr/local/zed/`.
+The Python install script is located on Windows in `C:\Program Files (x86)\ZED SDK\` (**make sure you have admin access to run it in the Program Files folder**). On Linux it is located in `/usr/local/zed/`.
 
 Run the script:
 
@@ -115,3 +115,10 @@ This error usually means numpy isn't installed. To install it, simply run these 
 python3 -m pip install cython
 python3 -m pip install numpy
 ```
+
+
+## Compiling the Python API from source (only for developers of the python wrapper)
+
+To compile the ZED SDK Python wrapper go to [src folder](./src) to get the cython sources and instructions.
+
+Note : This step is not useful for *users* of the wrapper, it is only meant to be used to extend the wrapper for advanced uses.
