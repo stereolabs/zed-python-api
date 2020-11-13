@@ -42,7 +42,16 @@ A Python script is available in the ZED SDK installation folder and can automati
 
 ### Running the install script
 
-The Python install script is located on Windows in `C:\Program Files (x86)\ZED SDK\` (**make sure you have admin access to run it in the Program Files folder**). On Linux it is located in `/usr/local/zed/`.
+**Windows**
+
+The Python install script is located in: `C:\Program Files (x86)\ZED SDK\`
+
+:warning: *Make sure you have admin access to run it in the Program Files folder, otherwise, you will have a `Permission denied` error. You can still copy the file into another location to run it without permissions.*
+
+**Linux**
+
+The Python install script is located in: `/usr/local/zed/`
+
 
 Run the script:
 
