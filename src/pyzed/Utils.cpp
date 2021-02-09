@@ -54,6 +54,10 @@ namespace sl {
         return mat.setTo<uchar4>(value, memory_type);
     }
 
+    ERROR_CODE setToUshort1(sl::Mat &mat, ushort1 value, MEM memory_type) {
+        return mat.setTo<ushort1>(value, memory_type);
+    }
+
     ERROR_CODE setToFloat1(sl::Mat &mat, float1 value, MEM memory_type) {
         return mat.setTo<float1>(value, memory_type);
     }
@@ -84,6 +88,10 @@ namespace sl {
 
     ERROR_CODE setValueUchar4(sl::Mat &mat, size_t x, size_t y, uchar4 value, MEM memory_type) {
         return mat.setValue<uchar4>(x, y, value, memory_type);
+    }
+
+    ERROR_CODE setValueUshort1(sl::Mat &mat, size_t x, size_t y, ushort1 value, MEM memory_type) {
+        return mat.setValue<ushort1>(x, y, value, memory_type);
     }
 
     ERROR_CODE setValueFloat1(sl::Mat &mat, size_t x, size_t y, float1 value, MEM memory_type) {
@@ -118,6 +126,10 @@ namespace sl {
         return mat.getValue<uchar4>(x, y, value, memory_type);
     }
 
+    ERROR_CODE getValueUshort1(sl::Mat &mat, size_t x, size_t y, ushort1 *value, MEM memory_type) {
+        return mat.getValue<ushort1>(x, y, value, memory_type);
+    }
+
     ERROR_CODE getValueFloat1(sl::Mat &mat, size_t x, size_t y, float1 *value, MEM memory_type) {
         return mat.getValue<float1>(x, y, value, memory_type);
     }
@@ -148,6 +160,10 @@ namespace sl {
 
     uchar4 *getPointerUchar4(sl::Mat &mat, MEM memory_type) {
         return mat.getPtr<uchar4>(memory_type);
+    }
+
+    ushort1 *getPointerUshort1(sl::Mat &mat, MEM memory_type) {
+        return mat.getPtr<ushort1>(memory_type);
     }
 
     float1 *getPointerFloat1(sl::Mat &mat, MEM memory_type) {

@@ -1,6 +1,6 @@
 ########################################################################
 #
-# Copyright (c) 2020, STEREOLABS.
+# Copyright (c) 2021, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -87,6 +87,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     void sleep_ms(int time)
 
+    void sleep_us(int time)
+
     ctypedef enum MODEL "sl::MODEL":
         ZED 'sl::MODEL::ZED',
         ZED_M 'sl::MODEL::ZED_M',
@@ -161,6 +163,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         void setZeros()
         Matrix3f zeros()
         String getInfos()
+        String matrix_name
 
     cdef cppclass Matrix4f 'sl::Matrix4f':
         float m[]
@@ -283,6 +286,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         XYZARGB_RIGHT 'sl::MEASURE::XYZARGB_RIGHT'
         XYZABGR_RIGHT 'sl::MEASURE::XYZABGR_RIGHT'
         NORMALS_RIGHT 'sl::MEASURE::NORMALS_RIGHT'
+        DEPTH_U16_MM 'sl::MEASURE::DEPTH_U16_MM'
+        DEPTH_U16_MM_RIGHT 'sl::MEASURE::DEPTH_U16_MM_RIGHT'
         MEASURE_LAST 'sl::MEASURE::LAST'
 
     String toString(MEASURE o)
@@ -503,6 +508,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         U8_C2 'sl::MAT_TYPE::U8_C2'
         U8_C3 'sl::MAT_TYPE::U8_C3'
         U8_C4 'sl::MAT_TYPE::U8_C4'
+        U16_C1 'sl::MAT_TYPE::U16_C1'
 
     ctypedef enum OBJECT_CLASS 'sl::OBJECT_CLASS':
         PERSON 'sl::OBJECT_CLASS::PERSON' = 0
@@ -576,6 +582,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         vector[Vector3[float]] head_bounding_box
         vector[Vector2[uint]] head_bounding_box_2d
         Vector3[float] head_position
+        vector[float] keypoint_confidence
 
 
     cdef cppclass Objects 'sl::Objects':
@@ -725,6 +732,8 @@ ctypedef Vector2[float] float2
 ctypedef Vector3[float] float3
 ctypedef Vector4[float] float4
 
+ctypedef unsigned short ushort1
+
 cdef extern from "Utils.cpp" namespace "sl":
 
     Mat matResolution(Resolution resolution, MAT_TYPE mat_type, uchar1 *ptr_cpu, size_t step_cpu,
@@ -734,6 +743,7 @@ cdef extern from "Utils.cpp" namespace "sl":
     ERROR_CODE setToUchar2(Mat &mat, uchar2 value, MEM memory_type)
     ERROR_CODE setToUchar3(Mat &mat, uchar3 value, MEM memory_type)
     ERROR_CODE setToUchar4(Mat &mat, uchar4 value, MEM memory_type)
+    ERROR_CODE setToUshort1(Mat &mat, ushort1 value, MEM memory_type)
 
     ERROR_CODE setToFloat1(Mat &mat, float1 value, MEM memory_type)
     ERROR_CODE setToFloat2(Mat &mat, float2 value, MEM memory_type)
@@ -744,6 +754,7 @@ cdef extern from "Utils.cpp" namespace "sl":
     ERROR_CODE setValueUchar2(Mat &mat, size_t x, size_t y, uchar2 value, MEM memory_type)
     ERROR_CODE setValueUchar3(Mat &mat, size_t x, size_t y, uchar3 value, MEM memory_type)
     ERROR_CODE setValueUchar4(Mat &mat, size_t x, size_t y, uchar4 value, MEM memory_type)
+    ERROR_CODE setValueUshort1(Mat &mat, size_t x, size_t y, ushort1 value, MEM memory_type)
 
     ERROR_CODE setValueFloat1(Mat &mat, size_t x, size_t y, float1 value, MEM memory_type)
     ERROR_CODE setValueFloat2(Mat &mat, size_t x, size_t y, float2 value, MEM memory_type)
@@ -754,6 +765,7 @@ cdef extern from "Utils.cpp" namespace "sl":
     ERROR_CODE getValueUchar2(Mat &mat, size_t x, size_t y, Vector2[uchar1] *value, MEM memory_type)
     ERROR_CODE getValueUchar3(Mat &mat, size_t x, size_t y, Vector3[uchar1] *value, MEM memory_type)
     ERROR_CODE getValueUchar4(Mat &mat, size_t x, size_t y, Vector4[uchar1] *value, MEM memory_type)
+    ERROR_CODE getValueUshort1(Mat &mat, size_t x, size_t y, ushort1 *value, MEM memory_type)
 
     ERROR_CODE getValueFloat1(Mat &mat, size_t x, size_t y, float1 *value, MEM memory_type)
     ERROR_CODE getValueFloat2(Mat &mat, size_t x, size_t y, Vector2[float1] *value, MEM memory_type)
@@ -764,6 +776,7 @@ cdef extern from "Utils.cpp" namespace "sl":
     uchar2 *getPointerUchar2(Mat &mat, MEM memory_type)
     uchar3 *getPointerUchar3(Mat &mat, MEM memory_type)
     uchar4 *getPointerUchar4(Mat &mat, MEM memory_type)
+    ushort1 *getPointerUshort1(Mat &mat, MEM memory_type)
 
     float1 *getPointerFloat1(Mat &mat, MEM memory_type)
     float2 *getPointerFloat2(Mat &mat, MEM memory_type)
@@ -874,6 +887,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         vector[Vector3[float]] getBounds()
         Mesh extractMesh()
         float getClosestDistance(Vector3[float] point)
+        void clear()
 
 
 
@@ -932,6 +946,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         String optional_settings_path
         bool sensors_required
         bool enable_image_enhancement
+        String optional_opencv_calibration_file
 
         InitParameters(RESOLUTION camera_resolution,
                        int camera_fps,
@@ -952,7 +967,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        InputType input,
                        String optional_settings_path,
                        bool sensors_required,
-                       bool enable_image_enhancement)
+                       bool enable_image_enhancement,
+                       String optional_opencv_calibration_file)
 
         bool save(String filename)
         bool load(String filename)
@@ -1080,6 +1096,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool enable_mask_output
         DETECTION_MODEL detection_model
         bool enable_body_fitting
+        float max_range
 
         ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output, DETECTION_MODEL detection_model, bool enable_body_fitting)
 
@@ -1118,6 +1135,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float pressure
         float relative_altitude
         Timestamp timestamp
+        float effective_rate
 
         BarometerData()
 
@@ -1136,6 +1154,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
     cdef cppclass MagnetometerData 'sl::SensorsData::MagnetometerData':
         bool is_available
         Timestamp timestamp
+        float effective_rate
 
         Vector3[float] magnetic_field_uncalibrated
         Vector3[float] magnetic_field_calibrated
@@ -1167,6 +1186,14 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         int image_sync_trigger
 
+    ctypedef enum FLIP_MODE 'sl::FLIP_MODE':
+        OFF 'sl::FLIP_MODE::OFF'
+        ON 'sl::FLIP_MODE::ON'
+        AUTO 'sl::FLIP_MODE::AUTO'
+    
+    String toString(FLIP_MODE o)
+
+    Resolution getResolution(RESOLUTION resolution)
 
     cdef cppclass Camera 'sl::Camera':
         Camera()
@@ -1245,6 +1272,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE retrieveObjects(Objects &objects, ObjectDetectionRuntimeParameters parameters)
         ObjectDetectionParameters getObjectDetectionParameters()
         void pauseObjectDetection(bool status)
+        void updateSelfCalibration()
 
         @staticmethod
         String getSDKVersion()
