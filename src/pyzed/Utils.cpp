@@ -194,11 +194,18 @@ namespace sl {
         return std::string(sl_str.c_str());
     }
 
-    sl::ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, std::vector<int> object_vector) {
+    sl::ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, std::vector<int> object_vector, std::map<int,float> object_class_confidence_map) {
         std::vector<sl::OBJECT_CLASS> object_vector_cpy;
         for (unsigned int i = 0; i < object_vector.size(); i++)
             object_vector_cpy.push_back(static_cast<sl::OBJECT_CLASS>(object_vector[i]));
-        return new ObjectDetectionRuntimeParameters(confidence_threshold, object_vector_cpy);
-    }
+        
+        std::map<sl::OBJECT_CLASS,float> object_class_confidence_map_cpy = std::map<sl::OBJECT_CLASS,float>();
+        if (object_class_confidence_map.size()>0) {
+            for (const auto& map_elem: object_class_confidence_map) {
+                object_class_confidence_map_cpy[static_cast<sl::OBJECT_CLASS>(map_elem.first)] = map_elem.second;
+            }
+        }
 
+        return new ObjectDetectionRuntimeParameters(confidence_threshold, object_vector_cpy, object_class_confidence_map_cpy);
+    }
 }

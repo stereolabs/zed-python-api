@@ -199,5 +199,17 @@ setup(name="pyzed",
       version= ZED_SDK_MAJOR + "." + ZED_SDK_MINOR,
       author_email="developers@stereolabs.com",
       description="Use the ZED SDK with Python",
+      url='https://github.com/stereolabs/zed-python-api',
       packages=py_packages,
-      ext_modules=extensions)
+      ext_modules=extensions,
+      python_requires='>=3.6',
+      install_requires=[
+        'numpy>=1.13',
+        'cython>=0.28'],
+      extras_require={
+        'sample': [
+            'opencv-python',
+            'pyopengl',
+        ]
+      }
+)

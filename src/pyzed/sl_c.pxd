@@ -27,6 +27,11 @@ from libcpp.vector cimport vector
 from libc.string cimport const_char
 from libcpp.map cimport map
 
+cdef extern from "<array>" namespace "std" nogil:
+  cdef cppclass array6 "std::array<float, 6>":
+    array6() except+
+    int& operator[](size_t)
+
 cdef extern from "Utils.cpp" namespace "sl":
     string to_str(String sl_str)
 
@@ -93,6 +98,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         ZED 'sl::MODEL::ZED',
         ZED_M 'sl::MODEL::ZED_M',
         ZED2 'sl::MODEL::ZED2',
+        ZED2i 'sl::MODEL::ZED2i',
         MODEL_LAST 'sl::MODEL::LAST'
 
     String toString(MODEL o)
@@ -387,6 +393,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         HUMAN_BODY_FAST 'sl::DETECTION_MODEL::HUMAN_BODY_FAST'
         HUMAN_BODY_ACCURATE 'sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE'
         MULTI_CLASS_BOX_ACCURATE 'sl::DETECTION_MODEL::MULTI_CLASS_BOX_ACCURATE'
+        MULTI_CLASS_BOX_MEDIUM 'sl::DETECTION_MODEL::MULTI_CLASS_BOX_MEDIUM'
+        HUMAN_BODY_MEDIUM 'sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM'
         LAST 'sl::DETECTION_MODEL::LAST'
 
     cdef struct RecordingStatus:
@@ -584,6 +592,25 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         Vector3[float] head_position
         vector[float] keypoint_confidence
 
+    cdef cppclass ObjectsBatch 'sl::ObjectsBatch':
+        int id
+        OBJECT_CLASS label
+        OBJECT_SUBCLASS sublabel
+        OBJECT_TRACKING_STATE tracking_state
+        vector[Vector3[float]] positions
+        vector[array6] position_covariances
+        vector[Vector3[float]] velocities
+        vector[Timestamp] timestamps
+        vector[vector[Vector3[float]]] bounding_boxes
+        vector[vector[Vector2[uint]]] bounding_boxes_2d
+        vector[float] confidences
+        vector[OBJECT_ACTION_STATE] action_states
+        vector[vector[Vector2[float]]] keypoints_2d
+        vector[vector[Vector3[float]]] keypoints
+        vector[vector[Vector2[uint]]] head_bounding_boxes_2d
+        vector[vector[Vector3[float]]] head_bounding_boxes
+        vector[Vector3[float]] head_positions
+        vector[vector[float]] keypoint_confidences
 
     cdef cppclass Objects 'sl::Objects':
         Timestamp timestamp
@@ -613,6 +640,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         RIGHT_EAR 'sl::BODY_PARTS::RIGHT_EAR'
         LEFT_EAR 'sl::BODY_PARTS::LEFT_EAR'
         LAST 'sl::BODY_PARTS::LAST'
+
+    int getIdx(BODY_PARTS part)
 
     cdef cppclass Mat 'sl::Mat':
         String name
@@ -782,7 +811,6 @@ cdef extern from "Utils.cpp" namespace "sl":
     float2 *getPointerFloat2(Mat &mat, MEM memory_type)
     float3 *getPointerFloat3(Mat &mat, MEM memory_type)
     float4 *getPointerFloat4(Mat &mat, MEM memory_type)
-
 
 ctypedef unsigned int uint
 
@@ -1090,6 +1118,12 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         unsigned int target_framerate
         StreamingParameters(STREAMING_CODEC codec, unsigned short port_, unsigned int bitrate, int gop_size, bool adaptative_bitrate_, unsigned short chunk_size_, unsigned int target_framerate)
 
+    cdef cppclass BatchParameters:
+        bool enable
+        float id_retention_time
+        float latency
+        BatchParameters(bool enable, float id_retention_time, float batch_duration)
+
     cdef cppclass ObjectDetectionParameters:
         bool image_sync
         bool enable_tracking
@@ -1097,14 +1131,14 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         DETECTION_MODEL detection_model
         bool enable_body_fitting
         float max_range
-
-        ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output, DETECTION_MODEL detection_model, bool enable_body_fitting)
+        BatchParameters batch_parameters
+        ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output, DETECTION_MODEL detection_model, bool enable_body_fitting, float max_range, BatchParameters batch_trajectories_parameters)
 
     cdef cppclass ObjectDetectionRuntimeParameters:
         float detection_confidence_threshold
         vector[OBJECT_CLASS] object_class_filter
-
-        ObjectDetectionRuntimeParameters(float detection_confidence_threshold, vector[OBJECT_CLASS] object_class_filter)
+        map[OBJECT_CLASS,float] object_class_detection_confidence_threshold
+        ObjectDetectionRuntimeParameters(float detection_confidence_threshold, vector[OBJECT_CLASS] object_class_filter, map[OBJECT_CLASS,float] object_class_detection_confidence_threshold)
 
     cdef cppclass Pose:
         Pose()
@@ -1195,6 +1229,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
     Resolution getResolution(RESOLUTION resolution)
 
+    ctypedef vector[ObjectsBatch] vectorObj
     cdef cppclass Camera 'sl::Camera':
         Camera()
         void close()
@@ -1270,6 +1305,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE enableObjectDetection(ObjectDetectionParameters object_detection_parameters)
         void disableObjectDetection()
         ERROR_CODE retrieveObjects(Objects &objects, ObjectDetectionRuntimeParameters parameters)
+        ERROR_CODE getObjectsBatch(vector[ObjectsBatch] &trajectories)
         ObjectDetectionParameters getObjectDetectionParameters()
         void pauseObjectDetection(bool status)
         void updateSelfCalibration()
@@ -1287,4 +1323,4 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE reboot(int sn)
 
 cdef extern from "Utils.cpp" namespace "sl":
-    ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector)
+    ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector, map[int,float] object_confidence_map)
