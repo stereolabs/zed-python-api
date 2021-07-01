@@ -6,15 +6,15 @@
 
 ### Prerequisites
 
-- [ZED SDK 3.3](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
-- Python 3.5+ x64  (3.7 recommended)
+- [ZED SDK 3.5](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- Python 3.6+ x64  (3.7 recommended)
 - C++ compiler (VS2017 recommended)
 - [Cython 0.26](http://cython.org/#download)
 - [Numpy 1.13.1](https://www.scipy.org/scipylib/download.html)
 
 The ZED SDK 2.X compatible API can be found in the [zedsdk_2.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_2.X).
 
-Please check your python version with the following command. The result should be 3.5 or higher.
+Please check your python version with the following command. The result should be 3.6 or higher.
 
 ```
 python --version
