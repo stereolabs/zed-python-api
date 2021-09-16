@@ -926,7 +926,7 @@ class COORDINATE_SYSTEM(enum.Enum):
 # | Enumerator |                         |
 # |------------|-------------------------|
 # | DISPARITY | Disparity map. Each pixel contains 1 float. [sl.MAT_TYPE.F32_C1] (\ref sl.MAT_TYPE) |
-# | DEPTH | Depth map. Each pixel contains 1 float. [sl.MAT_TYPE.F32_C1] (\ref sl.MAT_TYPE) |
+# | DEPTH | Depth map, in \ref sl.UNIT defined in \ref sl.InitParameters. Each pixel contains 1 float. [sl.MAT_TYPE.F32_C1] (\ref sl.MAT_TYPE) |
 # | CONFIDENCE | Certainty/confidence of the depth map. Each pixel contains 1 float. [sl.MAT_TYPE.F32_C1] (\ref sl.MAT_TYPE) |
 # | XYZ | Point cloud. Each pixel contains 4 float (X, Y, Z, not used). [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
 # | XYZRGBA | Colored point cloud. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the RGBA color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
@@ -942,7 +942,7 @@ class COORDINATE_SYSTEM(enum.Enum):
 # | XYZARGB_RIGHT | Colored point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the ARGB color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
 # | XYZABGR_RIGHT | Colored point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the ABGR color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
 # | NORMALS_RIGHT | Normals vector for right view. Each pixel contains 4 float (X, Y, Z, 0). [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
-# | DEPTH_U16_MM | Depth map in millimeter. Each pixel  contains 1 unsigned short. [sl.MAT_TYPE.U16_C1] (\ref sl.MAT_TYPE)|
+# | DEPTH_U16_MM | Depth map in millimeter whatever the \ref sl.UNIT defined in \ref sl.InitParameters. Invalid values are set to 0, depth values are clamped at 65000. Each pixel contains 1 unsigned short. [sl.MAT_TYPE.U16_C1] (\ref sl.MAT_TYPE)|
 # | DEPTH_U16_MM_RIGHT | Depth map in millimeter for right sensor. Each pixel  contains 1 unsigned short. [sl.MAT_TYPE.U16_C1] (\ref sl.MAT_TYPE)|
 class MEASURE(enum.Enum):
     DISPARITY = <int>c_MEASURE.DISPARITY
@@ -3283,8 +3283,8 @@ cdef class Mat:
 
     ##
     # Returns the value of a specific point in the matrix.
-    # \param x : specifies the column
-    # \param y : specifies the row
+    # \param x : specifies the row
+    # \param y : specifies the column
     # \param memory_type : defines which memory should be read. Default: [MEM.CPU](\ref MEM)
     # \return ERROR_CODE.SUCCESS if everything went well, \ref ERROR_CODE.FAILURE otherwise.
     #
@@ -3304,7 +3304,7 @@ cdef class Mat:
 
         if self.get_data_type() == MAT_TYPE.U8_C1:
             status = getValueUchar1(self.mat, x, y, &value1u, <c_MEM>(<unsigned int>memory_type.value))
-            return ERROR_CODE(<int>status), self.get_data()[x, y]
+            return ERROR_CODE(<int>status), value1u
         elif self.get_data_type() == MAT_TYPE.U8_C2:
             status = getValueUchar2(self.mat, x, y, &value2u, <c_MEM>(<unsigned int>memory_type.value))
             return ERROR_CODE(<int>status), np.array([value2u.ptr()[0], value2u.ptr()[1]])
@@ -3317,10 +3317,10 @@ cdef class Mat:
                                                          value4u.ptr()[3]])
         elif self.get_data_type() == MAT_TYPE.U16_C1:
             status = getValueUshort1(self.mat, x, y, &value1us, <c_MEM>(<unsigned int>memory_type.value))
-            return ERROR_CODE(<int>status), self.get_data()[x, y]
+            return ERROR_CODE(<int>status), value1us
         elif self.get_data_type() == MAT_TYPE.F32_C1:
             status = getValueFloat1(self.mat, x, y, &value1f, <c_MEM>(<unsigned int>memory_type.value))
-            return ERROR_CODE(<int>status), self.get_data()[x, y]
+            return ERROR_CODE(<int>status), value1f
         elif self.get_data_type() == MAT_TYPE.F32_C2:
             status = getValueFloat2(self.mat, x, y, &value2f, <c_MEM>(<unsigned int>memory_type.value))
             return ERROR_CODE(<int>status), np.array([value2f.ptr()[0], value2f.ptr()[1]])
@@ -4945,8 +4945,12 @@ cdef class InitParameters:
     # This parameter allows you to specify the minimum depth value (from the camera) that will be computed, measured in the \ref UNIT you define.
     # In stereovision (the depth technology used by the camera), looking for closer depth values can have a slight impact on performance. However, this difference is almost invisible on modern GPUs.
     # In cases of limited computational power, increasing this value can provide better performance.
-    # default : (-1) corresponding to 700 mm for a ZED and 200 mm for ZED Mini.
-    # \note With a ZED camera you can decrease this value to 300 mm whereas you can set it to 100 mm using a ZED Mini. In any case this value cannot be greater than 3 meters.
+    # default : (-1) corresponding to 700 mm for a ZED/ZED2 and 200 mm for ZED Mini.
+    # \note With a ZED camera you can decrease this value to 300 mm whereas you can set it to 100 mm using a ZED Mini and 200 mm for a ZED2. In any case this value cannot be greater than 3 meters.
+    # Specific value (0): This will set the depth minimum distance to the minimum authorized value :
+    #     - 300mm for ZED
+    #     - 100mm for ZED-M
+    #     - 200mm for ZED2
     @property
     def depth_minimum_distance(self):
         return  self.init.depth_minimum_distance
