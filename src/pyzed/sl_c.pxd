@@ -59,6 +59,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         NO_GPU_COMPATIBLE 'sl::ERROR_CODE::NO_GPU_COMPATIBLE',
         NOT_ENOUGH_GPU_MEMORY 'sl::ERROR_CODE::NOT_ENOUGH_GPU_MEMORY',
         CAMERA_NOT_DETECTED 'sl::ERROR_CODE::CAMERA_NOT_DETECTED',
+        SENSORS_NOT_INITIALIZED 'sl::ERROR_CODE::SENSORS_NOT_INITIALIZED', 
         SENSORS_NOT_AVAILABLE 'sl::ERROR_CODE::SENSORS_NOT_AVAILABLE',
         INVALID_RESOLUTION 'sl::ERROR_CODE::INVALID_RESOLUTION',
         LOW_USB_BANDWIDTH 'sl::ERROR_CODE::LOW_USB_BANDWIDTH',
@@ -86,7 +87,11 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         PLANE_NOT_FOUND 'sl::ERROR_CODE::PLANE_NOT_FOUND',
         MODULE_NOT_COMPATIBLE_WITH_CAMERA 'sl::ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CAMERA',
         MOTION_SENSORS_REQUIRED 'sl::ERROR_CODE::MOTION_SENSORS_REQUIRED',
+        MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION 'sl::ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION',
         LAST 'sl::ERROR_CODE::LAST'
+
+
+
 
     String toString(ERROR_CODE o)
 
@@ -395,6 +400,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         MULTI_CLASS_BOX_ACCURATE 'sl::DETECTION_MODEL::MULTI_CLASS_BOX_ACCURATE'
         MULTI_CLASS_BOX_MEDIUM 'sl::DETECTION_MODEL::MULTI_CLASS_BOX_MEDIUM'
         HUMAN_BODY_MEDIUM 'sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM'
+        PERSON_HEAD_BOX 'sl::DETECTION_MODEL::PERSON_HEAD_BOX'
+        CUSTOM_BOX_OBJECTS 'sl::DETECTION_MODEL::CUSTOM_BOX_OBJECTS'
         LAST 'sl::DETECTION_MODEL::LAST'
 
     cdef struct RecordingStatus:
@@ -461,6 +468,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
     cdef struct SensorsConfiguration:
         unsigned int firmware_version
         Transform camera_imu_transform
+        Transform imu_magnetometer_transform
 
         SensorParameters accelerometer_parameters
         SensorParameters gyroscope_parameters
@@ -525,7 +533,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         ANIMAL 'sl::OBJECT_CLASS::ANIMAL' = 3
         ELECTRONICS 'sl::OBJECT_CLASS::ELECTRONICS' = 4
         FRUIT_VEGETABLE 'sl::OBJECT_CLASS::FRUIT_VEGETABLE' = 5
-        OBJECT_CLASS_LAST 'sl::OBJECT_CLASS::LAST' = 6
+        SPORT 'sl::OBJECT_CLASS::SPORT' = 6
+        OBJECT_CLASS_LAST 'sl::OBJECT_CLASS::LAST' = 7
 
     String toString(OBJECT_CLASS o)
 
@@ -552,7 +561,9 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         APPLE 'sl::OBJECT_SUBCLASS::APPLE' = 19
         ORANGE 'sl::OBJECT_SUBCLASS::ORANGE' = 20
         CARROT 'sl::OBJECT_SUBCLASS::CARROT' = 21
-        OBJECT_SUBCLASS_LAST 'sl::OBJECT_SUBCLASS::LAST' = 22
+        PERSON_HEAD 'sl::OBJECT_SUBCLASS::PERSON_HEAD' = 21
+        SPORTSBALL 'sl::OBJECT_SUBCLASS::SPORTSBALL' = 23
+        OBJECT_SUBCLASS_LAST 'sl::OBJECT_SUBCLASS::LAST' = 24
 
     String toString(OBJECT_SUBCLASS o)
 
@@ -573,7 +584,9 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
     String toString(OBJECT_ACTION_STATE o)
 
     cdef cppclass ObjectData 'sl::ObjectData':
-        unsigned int id
+        int id
+        String unique_object_id
+        int raw_label
         OBJECT_CLASS label
         OBJECT_SUBCLASS sublabel
         OBJECT_TRACKING_STATE tracking_state
@@ -591,6 +604,18 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         vector[Vector2[uint]] head_bounding_box_2d
         Vector3[float] head_position
         vector[float] keypoint_confidence
+        vector[Vector3[float]] local_position_per_joint
+        vector[Vector4[float]] local_orientation_per_joint
+        Vector4[float] global_root_orientation
+
+    String generate_unique_id()
+
+    cdef cppclass CustomBoxObjectData 'sl::CustomBoxObjectData':
+        String unique_object_id
+        vector[Vector2[uint]] bounding_box_2d
+        int label
+        float probability
+        bool is_grounded
 
     cdef cppclass ObjectsBatch 'sl::ObjectsBatch':
         int id
@@ -641,7 +666,50 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         LEFT_EAR 'sl::BODY_PARTS::LEFT_EAR'
         LAST 'sl::BODY_PARTS::LAST'
 
+    ctypedef enum BODY_PARTS_POSE_34 'sl::BODY_PARTS_POSE_34':
+        PELVIS 'sl::BODY_PARTS_POSE_34::PELVIS' 
+        NAVAL_SPINE 'sl::BODY_PARTS_POSE_34::NAVAL_SPINE' 
+        CHEST_SPINE 'sl::BODY_PARTS_POSE_34::CHEST_SPINE' 
+        NECK 'sl::BODY_PARTS_POSE_34::NECK' 
+        LEFT_CLAVICLE 'sl::BODY_PARTS_POSE_34::LEFT_CLAVICLE' 
+        LEFT_SHOULDER 'sl::BODY_PARTS_POSE_34::LEFT_SHOULDER' 
+        LEFT_ELBOW 'sl::BODY_PARTS_POSE_34::LEFT_ELBOW' 
+        LEFT_WRIST 'sl::BODY_PARTS_POSE_34::LEFT_WRIST' 
+        LEFT_HAND 'sl::BODY_PARTS_POSE_34::LEFT_HAND' 
+        LEFT_HANDTIP 'sl::BODY_PARTS_POSE_34::LEFT_HANDTIP' 
+        LEFT_THUMB 'sl::BODY_PARTS_POSE_34::LEFT_THUMB' 
+        RIGHT_CLAVICLE 'sl::BODY_PARTS_POSE_34::RIGHT_CLAVICLE'  
+        RIGHT_SHOULDER 'sl::BODY_PARTS_POSE_34::RIGHT_SHOULDER' 
+        RIGHT_ELBOW 'sl::BODY_PARTS_POSE_34::RIGHT_ELBOW' 
+        RIGHT_WRIST 'sl::BODY_PARTS_POSE_34::RIGHT_WRIST' 
+        RIGHT_HAND 'sl::BODY_PARTS_POSE_34::RIGHT_HAND' 
+        RIGHT_HANDTIP 'sl::BODY_PARTS_POSE_34::RIGHT_HANDTIP' 
+        RIGHT_THUMB 'sl::BODY_PARTS_POSE_34::RIGHT_THUMB' 
+        LEFT_HIP 'sl::BODY_PARTS_POSE_34::LEFT_HIP' 
+        LEFT_KNEE 'sl::BODY_PARTS_POSE_34::LEFT_KNEE' 
+        LEFT_ANKLE 'sl::BODY_PARTS_POSE_34::LEFT_ANKLE' 
+        LEFT_FOOT 'sl::BODY_PARTS_POSE_34::LEFT_FOOT' 
+        RIGHT_HIP 'sl::BODY_PARTS_POSE_34::RIGHT_HIP' 
+        RIGHT_KNEE 'sl::BODY_PARTS_POSE_34::RIGHT_KNEE' 
+        RIGHT_ANKLE 'sl::BODY_PARTS_POSE_34::RIGHT_ANKLE' 
+        RIGHT_FOOT 'sl::BODY_PARTS_POSE_34::RIGHT_FOOT' 
+        HEAD 'sl::BODY_PARTS_POSE_34::HEAD' 
+        NOSE 'sl::BODY_PARTS_POSE_34::NOSE' 
+        LEFT_EYE 'sl::BODY_PARTS_POSE_34::LEFT_EYE' 
+        LEFT_EAR 'sl::BODY_PARTS_POSE_34::LEFT_EAR' 
+        RIGHT_EYE 'sl::BODY_PARTS_POSE_34::RIGHT_EYE' 
+        RIGHT_EAR 'sl::BODY_PARTS_POSE_34::RIGHT_EAR' 
+        LEFT_HEEL 'sl::BODY_PARTS_POSE_34::LEFT_HEEL' 
+        RIGHT_HEEL 'sl::BODY_PARTS_POSE_34::RIGHT_HEEL' 
+        LAST 'sl::BODY_PARTS_POSE_34::LAST'
+
+    ctypedef enum BODY_FORMAT 'sl::BODY_FORMAT':
+        POSE_18 'sl::BODY_FORMAT::POSE_18'
+        POSE_34 'sl::BODY_FORMAT::POSE_34'
+        LAST 'sl::BODY_FORMAT::LAST'
+
     int getIdx(BODY_PARTS part)
+    int getIdx(BODY_PARTS_POSE_34 part)
 
     cdef cppclass Mat 'sl::Mat':
         String name
@@ -965,7 +1033,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         UNIT coordinate_units
         COORDINATE_SYSTEM coordinate_system
         int sdk_gpu_id
-        bool sdk_verbose
+        int sdk_verbose
 
         String sdk_verbose_log_file
 
@@ -975,6 +1043,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool sensors_required
         bool enable_image_enhancement
         String optional_opencv_calibration_file
+        float open_timeout_sec
 
         InitParameters(RESOLUTION camera_resolution,
                        int camera_fps,
@@ -982,7 +1051,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        DEPTH_MODE depth_mode,
                        UNIT coordinate_units,
                        COORDINATE_SYSTEM coordinate_system,
-                       bool sdk_verbose,
+                       int sdk_verbose,
                        int sdk_gpu_id,
                        float depth_minimum_distance,
                        float depth_maxium_distance,
@@ -996,7 +1065,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        String optional_settings_path,
                        bool sensors_required,
                        bool enable_image_enhancement,
-                       String optional_opencv_calibration_file)
+                       String optional_opencv_calibration_file,
+                       float open_timeout_sec)
 
         bool save(String filename)
         bool load(String filename)
@@ -1132,7 +1202,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool enable_body_fitting
         float max_range
         BatchParameters batch_parameters
-        ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output, DETECTION_MODEL detection_model, bool enable_body_fitting, float max_range, BatchParameters batch_trajectories_parameters)
+        BODY_FORMAT body_format
+        ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output, DETECTION_MODEL detection_model, bool enable_body_fitting, float max_range, BatchParameters batch_trajectories_parameters, BODY_FORMAT body_format)
 
     cdef cppclass ObjectDetectionRuntimeParameters:
         float detection_confidence_threshold
@@ -1185,10 +1256,21 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         map[SENSOR_LOCATION,float] temperature_map
         TemperatureData()
 
+    ctypedef enum HEADING_STATE 'sl::SensorsData::MagnetometerData::HEADING_STATE':
+        GOOD 'sl::SensorsData::MagnetometerData::HEADING_STATE::GOOD'
+        OK 'sl::SensorsData::MagnetometerData::HEADING_STATE::OK'
+        NOT_GOOD 'sl::SensorsData::MagnetometerData::HEADING_STATE::NOT_GOOD'
+        NOT_CALIBRATED 'sl::SensorsData::MagnetometerData::HEADING_STATE::NOT_CALIBRATED'
+        MAG_NOT_AVAILABLE 'sl::SensorsData::MagnetometerData::HEADING_STATE::MAG_NOT_AVAILABLE'
+        HEADING_STATE_LAST 'sl::SensorsData::MagnetometerData::HEADING_STATE::LAST'
+
     cdef cppclass MagnetometerData 'sl::SensorsData::MagnetometerData':
         bool is_available
         Timestamp timestamp
         float effective_rate
+        float magnetic_heading
+        float magnetic_heading_accuracy
+        HEADING_STATE magnetic_heading_state
 
         Vector3[float] magnetic_field_uncalibrated
         Vector3[float] magnetic_field_calibrated
@@ -1197,9 +1279,11 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
     cdef cppclass IMUData 'sl::SensorsData::IMUData':
         bool is_available
         Timestamp timestamp
+        float effective_rate
         Transform pose
         Matrix3f pose_covariance
         Vector3[float] angular_velocity
+        Vector3[float] angular_velocity_uncalibrated
         Vector3[float] linear_acceleration
         Vector3[float] linear_acceleration_uncalibrated
         Matrix3f angular_velocity_covariance
@@ -1229,7 +1313,6 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
     Resolution getResolution(RESOLUTION resolution)
 
-    ctypedef vector[ObjectsBatch] vectorObj
     cdef cppclass Camera 'sl::Camera':
         Camera()
         void close()
@@ -1306,6 +1389,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         void disableObjectDetection()
         ERROR_CODE retrieveObjects(Objects &objects, ObjectDetectionRuntimeParameters parameters)
         ERROR_CODE getObjectsBatch(vector[ObjectsBatch] &trajectories)
+        ERROR_CODE ingestCustomBoxObjects(vector[CustomBoxObjectData] &objects_in)
         ObjectDetectionParameters getObjectDetectionParameters()
         void pauseObjectDetection(bool status)
         void updateSelfCalibration()
@@ -1320,7 +1404,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         vector[StreamingProperties] getStreamingDeviceList()
 
         @staticmethod
-        ERROR_CODE reboot(int sn)
+        ERROR_CODE reboot(int sn, bool fullReboot)
 
 cdef extern from "Utils.cpp" namespace "sl":
     ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector, map[int,float] object_confidence_map)

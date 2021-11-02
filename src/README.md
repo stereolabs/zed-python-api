@@ -6,7 +6,7 @@
 
 ### Prerequisites
 
-- [ZED SDK 3.5](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ZED SDK 3.6](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - Python 3.6+ x64  (3.7 recommended)
 - C++ compiler (VS2017 recommended)
 - [Cython 0.26](http://cython.org/#download)

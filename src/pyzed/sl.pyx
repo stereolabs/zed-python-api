@@ -52,7 +52,7 @@ from sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CO
                     , Mesh as c_Mesh, Plane as c_Plane, Vector2, Vector3, Vector4, Rotation as c_Rotation
                     , CameraConfiguration as c_CameraConfiguration, SensorsConfiguration as c_SensorsConfiguration
                     , CalibrationParameters as c_CalibrationParameters, CameraParameters as c_CameraParameters
-                    , SensorParameters as c_SensorParameters, SENSOR_TYPE as c_SENSOR_TYPE, SENSORS_UNIT as c_SENSORS_UNIT
+                    , SensorParameters as c_SensorParameters, SENSOR_TYPE as c_SENSOR_TYPE, SENSORS_UNIT as c_SENSORS_UNIT, HEADING_STATE as c_HEADING_STATE
                     , SENSOR_LOCATION as c_SENSOR_LOCATION, TemperatureData as c_TemperatureData, MagnetometerData as c_MagnetometerData, IMUData as c_IMUData
                     , MeshFilterParameters as c_MeshFilterParameters, MESH_FILTER as c_MESH_FILTER
                     , PointCloudChunk as c_PointCloudChunk, Chunk as c_Chunk, MESH_TEXTURE_FORMAT as c_MESH_TEXTURE_FORMAT
@@ -68,7 +68,8 @@ from sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CO
                     , OBJECT_TRACKING_STATE as c_OBJECT_TRACKING_STATE, OBJECT_ACTION_STATE as c_OBJECT_ACTION_STATE
                     , BODY_PARTS as c_BODY_PARTS, SIDE as c_SIDE, CameraInformation as c_CameraInformation, CUctx_st
                     , FLIP_MODE as c_FLIP_MODE, getResolution as c_getResolution, BatchParameters as c_BatchParameters
-                    , ObjectsBatch as c_ObjectsBatch, getIdx as c_getIdx)
+                    , ObjectsBatch as c_ObjectsBatch, getIdx as c_getIdx, BODY_FORMAT as c_BODY_FORMAT, BODY_PARTS_POSE_34 as c_BODY_PARTS_POSE_34
+                    , generate_unique_id as c_generate_unique_id, CustomBoxObjectData as c_CustomBoxObjectData)
 from cython.operator cimport (dereference as deref, postincrement)
 from libc.string cimport memcpy
 from cpython cimport bool
@@ -157,6 +158,7 @@ cdef class Timestamp():
 # | NO_GPU_COMPATIBLE                                  | No GPU found or CUDA capability of the device is not supported.                                                                                                 |
 # | NOT_ENOUGH_GPU_MEMORY                              | Not enough GPU memory for this depth mode, try a different mode (such as PERFORMANCE), or increase the minimum depth value (see \ref InitParameters.depth_minimum_distance).                                                                          |
 # | CAMERA_NOT_DETECTED                                | The ZED camera is not plugged or detected.                                                                                                                      |
+# | SENSORS_NOT_INITIALIZED                            | The MCU that controls the sensors module has an invalid Serial Number. You can try to recover it launching the 'ZED Diagnostic' tool from the command line with the option '-r'. |
 # | SENSORS_NOT_AVAILABLE                              | a ZED-M or ZED2/2i camera is detected but the sensors (imu,barometer...) cannot be opened. Only for ZED-M or ZED2/2i devices.                                   |
 # | INVALID_RESOLUTION                                 | In case of invalid resolution parameter, such as an upsize beyond the original image size in Camera.retrieve_image                                               |
 # | LOW_USB_BANDWIDTH                                  | This issue can occur when you use multiple ZED or a USB 2.0 port (bandwidth issue).                                                                            |
@@ -182,14 +184,16 @@ cdef class Timestamp():
 # | CANNOT_START_CAMERA_STREAM | Cannot start camera stream. Make sure your camera is not already used by another process or blocked by firewall or antivirus. |
 # | NO_GPU_DETECTED | No GPU found, CUDA is unable to list it. Can be a driver/reboot issue. |
 # | PLANE_NOT_FOUND | Plane not found, either no plane is detected in the scene, at the location or corresponding to the floor, or the floor plane doesn't match the prior given |
-# | MODULE_NOT_COMPATIBLE_WITH_CAMERA | The Object detection module is only compatible with the ZED 2 and ZED Mini |
+# | MODULE_NOT_COMPATIBLE_WITH_CAMERA | The Object detection module is only compatible with the ZED2/ZED2i and ZED Mini |
 # | MOTION_SENSORS_REQUIRED | The module needs the sensors to be enabled (see \ref InitParameters.sensors_required) |
+# |MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION | The module needs a newer version of CUDA |
 class ERROR_CODE(enum.Enum):
     SUCCESS = <int>c_ERROR_CODE.SUCCESS
     FAILURE = <int>c_ERROR_CODE.FAILURE
     NO_GPU_COMPATIBLE = <int>c_ERROR_CODE.NO_GPU_COMPATIBLE
     NOT_ENOUGH_GPU_MEMORY = <int>c_ERROR_CODE.NOT_ENOUGH_GPU_MEMORY
     CAMERA_NOT_DETECTED = <int>c_ERROR_CODE.CAMERA_NOT_DETECTED
+    SENSORS_NOT_INITIALIZED = <int>c_ERROR_CODE.SENSORS_NOT_INITIALIZED
     SENSORS_NOT_AVAILABLE = <int>c_ERROR_CODE.SENSORS_NOT_AVAILABLE
     INVALID_RESOLUTION = <int>c_ERROR_CODE.INVALID_RESOLUTION
     LOW_USB_BANDWIDTH = <int>c_ERROR_CODE.LOW_USB_BANDWIDTH
@@ -217,6 +221,7 @@ class ERROR_CODE(enum.Enum):
     PLANE_NOT_FOUND = <int>c_ERROR_CODE.PLANE_NOT_FOUND
     MODULE_NOT_COMPATIBLE_WITH_CAMERA = <int>c_ERROR_CODE.MODULE_NOT_COMPATIBLE_WITH_CAMERA
     MOTION_SENSORS_REQUIRED = <int>c_ERROR_CODE.MOTION_SENSORS_REQUIRED
+    MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION = <int>c_ERROR_CODE.MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION
     LAST = <int>c_ERROR_CODE.LAST
 
     def __str__(self):
@@ -274,8 +279,11 @@ class INPUT_TYPE(enum.Enum):
 # | MULTI_CLASS_BOX          | Any object, bounding box based |
 # | MULTI_CLASS_BOX_ACCURATE | Any object, bounding box based, more accurate but slower than the base model |
 # | HUMAN_BODY_FAST      | Keypoints based, specific to human skeleton, real time performance even on Jetson or low end GPU cards |
+# | HUMAN_BODY_ACCURATE      | Keypoints based, specific to human skeleton, state of the art accuracy, requires powerful GPU |
 # | MULTI_CLASS_BOX_MEDIUM          | Any object, bounding box based, compromise between accuracy and speed  |
 # | HUMAN_BODY_MEDIUM          | Keypoints based, specific to human skeleton, compromise between accuracy and speed  |
+# | PERSON_HEAD_BOX          | Bounding Box detector specialized in person heads, particulary well suited for crowded environments, the person localization is also improved  |
+# | CUSTOM_BOX_OBJECTS          | For external inference, using your own custom model and/or frameworks. This mode disables the internal inference engine, the 2D bounding box detection must be provided  |
 class DETECTION_MODEL(enum.Enum):
     MULTI_CLASS_BOX = <int>c_DETECTION_MODEL.MULTI_CLASS_BOX
     HUMAN_BODY_FAST = <int>c_DETECTION_MODEL.HUMAN_BODY_FAST
@@ -283,6 +291,8 @@ class DETECTION_MODEL(enum.Enum):
     MULTI_CLASS_BOX_ACCURATE = <int>c_DETECTION_MODEL.MULTI_CLASS_BOX_ACCURATE
     MULTI_CLASS_BOX_MEDIUM = <int>c_DETECTION_MODEL.MULTI_CLASS_BOX_MEDIUM
     HUMAN_BODY_MEDIUM = <int>c_DETECTION_MODEL.HUMAN_BODY_MEDIUM
+    PERSON_HEAD_BOX = <int>c_DETECTION_MODEL.PERSON_HEAD_BOX
+    CUSTOM_BOX_OBJECTS = <int>c_DETECTION_MODEL.CUSTOM_BOX_OBJECTS
     LAST = <int>c_DETECTION_MODEL.LAST
 
 ##
@@ -1246,6 +1256,7 @@ class SENSORS_UNIT(enum.Enum):
 # | ANIMAL | For animal detection (cow, sheep, horse, dog, cat, bird, etc) |
 # | ELECTRONICS | For electronic device detection (cellphone, laptop, etc) |
 # | FRUIT_VEGETABLE | For fruit and vegetable detection (banana, apple, orange, carrot, etc) |
+# | SPORT | For sport-related object detection (ball) |
 class OBJECT_CLASS(enum.Enum):
     PERSON = <int>c_OBJECT_CLASS.PERSON
     VEHICLE = <int>c_OBJECT_CLASS.VEHICLE
@@ -1253,6 +1264,7 @@ class OBJECT_CLASS(enum.Enum):
     ANIMAL = <int>c_OBJECT_CLASS.ANIMAL
     ELECTRONICS = <int>c_OBJECT_CLASS.ELECTRONICS
     FRUIT_VEGETABLE = <int>c_OBJECT_CLASS.FRUIT_VEGETABLE
+    SPORT = <int>c_OBJECT_CLASS.SPORT
     LAST = <int>c_OBJECT_CLASS.OBJECT_CLASS_LAST
 
     def __str__(self):
@@ -1268,12 +1280,13 @@ class OBJECT_CLASS(enum.Enum):
 # 
 # | OBJECT_SUBCLASS | OBJECT_CLASS |
 # |------------|-------------------------|
-# | PERSON | VEHICLES |
-# | BICYCLE | VEHICLES |
-# | CAR | VEHICLES |
-# | MOTORBIKE | VEHICLES |
-# | BUS | VEHICLES |
-# | TRUCK | VEHICLES |
+# | PERSON | PERSON |
+# | PERSON_HEAD | PERSON |
+# | BICYCLE | VEHICLE |
+# | CAR | VEHICLE |
+# | MOTORBIKE | VEHICLE |
+# | BUS | VEHICLE |
+# | TRUCK | VEHICLE |
 # | BOAT | VEHICLES |
 # | BACKPACK | BAG |
 # | HANDBAG | BAG |
@@ -1290,8 +1303,10 @@ class OBJECT_CLASS(enum.Enum):
 # | APPLE | FRUIT_VEGETABLE |
 # | ORANGE | FRUIT_VEGETABLE |
 # | CARROT | FRUIT_VEGETABLE |
+# | SPORTSBALL | SPORT |
 class OBJECT_SUBCLASS(enum.Enum):
     PERSON = <int>c_OBJECT_SUBCLASS.PERSON
+    PERSON_HEAD = <int>c_OBJECT_SUBCLASS.PERSON_HEAD
     BICYCLE = <int>c_OBJECT_SUBCLASS.BICYCLE
     CAR = <int>c_OBJECT_SUBCLASS.CAR
     MOTORBIKE = <int>c_OBJECT_SUBCLASS.MOTORBIKE
@@ -1313,6 +1328,7 @@ class OBJECT_SUBCLASS(enum.Enum):
     APPLE = <int>c_OBJECT_SUBCLASS.APPLE
     ORANGE = <int>c_OBJECT_SUBCLASS.ORANGE
     CARROT = <int>c_OBJECT_SUBCLASS.CARROT
+    SPORTSBALL = <int>c_OBJECT_SUBCLASS.SPORTSBALL
     LAST = <int>c_OBJECT_SUBCLASS.OBJECT_SUBCLASS_LAST
 
     def __str__(self):
@@ -1401,8 +1417,33 @@ cdef class ObjectData:
         return self.object_data.id
 
     @id.setter
-    def id(self, uint id):
+    def id(self, int id):
         self.object_data.id = id
+
+    ##
+    # Unique ID to help identify and track AI detections. Can be either generated externally, or using \ref generate_unique_id() or left empty
+    @property
+    def unique_object_id(self):
+        if not self.object_data.unique_object_id.empty():
+            return self.object_data.unique_object_id.get().decode()
+        else:
+            return ""
+
+    @unique_object_id.setter
+    def unique_object_id(self, str id_):
+        self.object_data.unique_object_id.set(id_.encode())
+
+
+    ##
+    # Object label, forwarded from \ref CustomBoxObjectData when using sl.DETECTION_MODEL.CUSTOM_BOX_OBJECTS
+    @property
+    def raw_label(self):
+        return self.object_data.raw_label
+
+    @raw_label.setter
+    def raw_label(self, int raw_label):
+        self.object_data.raw_label = raw_label
+
 
     ##
     # Object category. Identifies the object type. Can have the following values: \ref OBJECT_CLASS 
@@ -1578,7 +1619,7 @@ cdef class ObjectData:
             self.object_data.dimensions[i] = dimensions[i]
    
     ##
-    # A set of useful points representing the human body, expressed in 3D and only available in DETECTION_MODEL.HUMAN_BODY*. 
+    # A set of useful points representing the human body, expressed in 3D and only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL). 
     # We use a classic 18 points representation, the keypoint semantic and order is given by \ref BODY_PARTS
     # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame
     # \warning in some cases, eg. body partially out of the image, some keypoints can not be detected, they will have negative coordinates. 
@@ -1591,7 +1632,7 @@ cdef class ObjectData:
         return arr
 
     ##
-    # 2D keypoint of the object, only available in DETECTION_MODEL.HUMAN_BODY*
+    # 2D keypoint of the object, only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL)
     # \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected, they will have non finite values. 
     @property
     def keypoint_2d(self):
@@ -1603,7 +1644,7 @@ cdef class ObjectData:
 
     
     ##
-    # 3D bounding box of the person head, only available in DETECTION_MODEL.HUMAN_BODY*, represented as eight 3D points. 
+    # 3D bounding box of the person head, only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL), represented as eight 3D points. 
     # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame
     @property
     def head_bounding_box(self):
@@ -1614,7 +1655,7 @@ cdef class ObjectData:
         return arr
 
     ##
-    # 2D bounding box of the person head, only available in DETECTION_MODEL.HUMAN_BODY*, represented as four 2D points starting at the top left corner and rotation clockwise.
+    # 2D bounding box of the person head, only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL), represented as four 2D points starting at the top left corner and rotation clockwise.
     # Expressed in pixels on the original image resolution. 
     @property
     def head_bounding_box_2d(self):
@@ -1625,7 +1666,7 @@ cdef class ObjectData:
         return arr
 
     ##
-    # 3D head centroid, only available in DETECTION_MODEL.HUMAN_BODY*. 
+    # 3D head centroid, only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL). 
     # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame
     @property
     def head_position(self):
@@ -1641,7 +1682,7 @@ cdef class ObjectData:
 
     ##
     # Per keypoint detection confidence, can not be lower than the \ref ObjectDetectionRuntimeParameters::detection_confidence_threshold.
-    # \note Not available with DETECTION_MODEL.MULTI_CLASS_BOX.
+    # \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
     # \warning In some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected, they will have non finite values.
     @property
     def keypoint_confidence(self):
@@ -1650,8 +1691,126 @@ cdef class ObjectData:
             out_arr[i] = self.object_data.keypoint_confidence[i]
         return out_arr
 
+    ##
+    # Per keypoint local position (the position of the child keypoint with respect to its parent expressed in its parent coordinate frame)
+    # \note it is expressed in [sl.REFERENCE_FRAME.CAMERA](\ref REFERENCE_FRAME) or [sl.REFERENCE_FRAME.WORLD](\ref REFERENCE_FRAME)
+    # \warning Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL) and with [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT).
+    @property
+    def local_position_per_joint(self):
+        cdef np.ndarray arr = np.zeros((self.object_data.local_position_per_joint.size(), 3), dtype=np.float32)
+        for i in range(self.object_data.local_position_per_joint.size()):
+            for j in range(3):
+                arr[i,j] = self.object_data.local_position_per_joint[i].ptr()[j]
+        return arr
+
+    ##
+    # Per keypoint local orientation
+    # \note the orientation is represented by a quaternion which is stored in a numpy array of size 4 [qx,qy,qz,qw]
+    # \warning Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL) and with [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT).
+    @property
+    def local_orientation_per_joint(self):
+        cdef np.ndarray arr = np.zeros((self.object_data.local_orientation_per_joint.size(), 4), dtype=np.float32)
+        for i in range(self.object_data.local_orientation_per_joint.size()):
+            for j in range(4):
+                arr[i,j] = self.object_data.local_orientation_per_joint[i].ptr()[j]
+        return arr
+
+    ##
+    # Global root orientation of the skeleton. The orientation is also represented by a quaternion with the same format as \ref local_orientation_per_joint
+    # \note the global root position is already accessible in \ref keypoint attribute by using the root index of a given \ref sl.BODY_FORMAT
+    # \warning Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL) and with [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT).
+    @property
+    def global_root_orientation(self):
+        cdef np.ndarray arr = np.zeros(4)
+        for i in range(4):
+            arr[i] = self.object_data.global_root_orientation[i]
+        return arr
+
 ##
-# \brief Semantic and order of human body keypoints. Each keypoint is associated to an index that can be retrieved by the function \ref get_idx()
+# Generates a UUID like unique ID to help identify and track AI detections
+# \ingroup Object_group
+def generate_unique_id():
+    return to_str(c_generate_unique_id()).decode()       
+
+##
+# Container to store the externally detected objects. The objects can be ingested using \ref sl.Camera.ingest_custom_box_objects() 
+# functions to extract 3D information and tracking over time
+# \ingroup Object_group
+cdef class CustomBoxObjectData:
+    cdef c_CustomBoxObjectData custom_box_object_data
+
+    ##
+    # Unique ID to help identify and track AI detections. Can be either generated externally, or using \ref generate_unique_id() or left empty
+    @property
+    def unique_object_id(self):
+        if not self.custom_box_object_data.unique_object_id.empty():
+            return self.custom_box_object_data.unique_object_id.get().decode()
+        else:
+            return ""
+
+    @unique_object_id.setter
+    def unique_object_id(self, str id_):
+        self.custom_box_object_data.unique_object_id.set(id_.encode())
+
+    ##
+    # 2D bounding box of the object represented as four 2D points starting at the top left corner and rotation clockwise.
+    # Expressed in pixels on the original image resolution, where [0,0] is the top left corner.
+    # \code
+    # A ------ B
+    # | Object |
+    # D ------ C
+    # \endcode
+    @property
+    def bounding_box_2d(self):
+        cdef np.ndarray arr = np.zeros((self.custom_box_object_data.bounding_box_2d.size(), 2))
+        for i in range(self.custom_box_object_data.bounding_box_2d.size()):
+            for j in range(2):
+                arr[i,j] = self.custom_box_object_data.bounding_box_2d[i].ptr()[j]
+        return arr
+
+    @bounding_box_2d.setter
+    def bounding_box_2d(self, np.ndarray coordinates):
+        cdef Vector2[unsigned int] vec
+        self.custom_box_object_data.bounding_box_2d.clear()
+        for i in range(4):
+            vec[0] = coordinates[i][0]
+            vec[1] = coordinates[i][1]
+            self.custom_box_object_data.bounding_box_2d.push_back(vec)
+
+    ##
+    # Object label, this information is passed-through and can be used to improve object tracking 
+    @property
+    def label(self):
+        return self.custom_box_object_data.label
+
+    @label.setter
+    def label(self, int label):
+        self.custom_box_object_data.label = label
+
+    ##
+    # Detection confidence. Should be [0-1]. It can be used to improve the object tracking
+    @property
+    def probability(self):
+        return self.custom_box_object_data.probability
+
+    @probability.setter
+    def probability(self, float probability):
+        self.custom_box_object_data.probability = probability
+
+    ##
+    # Provides hypothesis about the object movements (degrees of freedom) to improve the object tracking
+    # \n True: means 2 DoF projected alongside the floor plane, It is the default for objects standing on the ground such as person, vehicle, etc
+    # \n False: 6 DoF full 3D movements are allowed
+    @property
+    def is_grounded(self):
+        return self.custom_box_object_data.is_grounded
+
+    @is_grounded.setter
+    def is_grounded(self, bool is_grounded):
+        self.custom_box_object_data.is_grounded = is_grounded
+
+##
+# \brief Semantic of human body parts and order of \ref sl.ObjectData.keypoint for [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT)
 # \ingroup Object_group
 # 
 # | Enumerator |                         |
@@ -1695,9 +1854,104 @@ class BODY_PARTS(enum.Enum):
     LEFT_EAR = <int>c_BODY_PARTS.LEFT_EAR
     LAST = <int>c_BODY_PARTS.LAST
 
+##
+# \brief Equivalent to \ref BODY_PARTS. Added in SDK 3.6 for compatibility with previous versions.
+# \ingroup Object_group
+BODY_PARTS_POSE_18 = BODY_PARTS
 
 ##
-# \brief Links of human body keypoints, useful for display.
+# \brief Semantic of human body parts and order of \ref sl.ObjectData.keypoint for [sl.BODY_FORMAT.POSE_32](\ref BODY_FORMAT)
+# \ingroup Object_group
+# 
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | PELVIS |  |
+# | NAVAL_SPINE |  |
+# | CHEST_SPINE |  |
+# | NECK |  |
+# | LEFT_CLAVICLE |  |
+# | LEFT_SHOULDER |  |
+# | LEFT_ELBOW |  |
+# | LEFT_WRIST |  |
+# | LEFT_HAND |  |
+# | LEFT_HANDTIP |  |
+# | LEFT_THUMB |  |
+# | RIGHT_CLAVICLE |  |
+# | RIGHT_SHOULDER |  |
+# | RIGHT_ELBOW |  |
+# | RIGHT_WRIST |  |
+# | RIGHT_HAND |  |
+# | RIGHT_HANDTIP |  |
+# | RIGHT_THUMB |  |
+# | LEFT_HIP |  |
+# | LEFT_KNEE |  |
+# | LEFT_ANKLE |  |
+# | LEFT_FOOT |  |
+# | RIGHT_HIP |  |
+# | RIGHT_KNEE |  |
+# | RIGHT_ANKLE |  |
+# | RIGHT_FOOT |  |
+# | HEAD |  |
+# | NOSE |  |
+# | LEFT_EYE |  |
+# | LEFT_EAR |  |
+# | RIGHT_EYE |  |
+# | RIGHT_EAR |  |
+# | LEFT_HEEL |  |
+# | RIGHT_HEEL |  |
+class BODY_PARTS_POSE_34(enum.Enum):
+    PELVIS = <int>c_BODY_PARTS_POSE_34.PELVIS 
+    NAVAL_SPINE = <int>c_BODY_PARTS_POSE_34.NAVAL_SPINE 
+    CHEST_SPINE = <int>c_BODY_PARTS_POSE_34.CHEST_SPINE 
+    NECK = <int>c_BODY_PARTS_POSE_34.NECK 
+    LEFT_CLAVICLE = <int>c_BODY_PARTS_POSE_34.LEFT_CLAVICLE 
+    LEFT_SHOULDER = <int>c_BODY_PARTS_POSE_34.LEFT_SHOULDER 
+    LEFT_ELBOW = <int>c_BODY_PARTS_POSE_34.LEFT_ELBOW 
+    LEFT_WRIST = <int>c_BODY_PARTS_POSE_34.LEFT_WRIST 
+    LEFT_HAND = <int>c_BODY_PARTS_POSE_34.LEFT_HAND 
+    LEFT_HANDTIP = <int>c_BODY_PARTS_POSE_34.LEFT_HANDTIP 
+    LEFT_THUMB = <int>c_BODY_PARTS_POSE_34.LEFT_THUMB 
+    RIGHT_CLAVICLE = <int>c_BODY_PARTS_POSE_34.RIGHT_CLAVICLE  
+    RIGHT_SHOULDER = <int>c_BODY_PARTS_POSE_34.RIGHT_SHOULDER 
+    RIGHT_ELBOW = <int>c_BODY_PARTS_POSE_34.RIGHT_ELBOW 
+    RIGHT_WRIST = <int>c_BODY_PARTS_POSE_34.RIGHT_WRIST 
+    RIGHT_HAND = <int>c_BODY_PARTS_POSE_34.RIGHT_HAND 
+    RIGHT_HANDTIP = <int>c_BODY_PARTS_POSE_34.RIGHT_HANDTIP 
+    RIGHT_THUMB = <int>c_BODY_PARTS_POSE_34.RIGHT_THUMB 
+    LEFT_HIP = <int>c_BODY_PARTS_POSE_34.LEFT_HIP 
+    LEFT_KNEE = <int>c_BODY_PARTS_POSE_34.LEFT_KNEE 
+    LEFT_ANKLE = <int>c_BODY_PARTS_POSE_34.LEFT_ANKLE 
+    LEFT_FOOT = <int>c_BODY_PARTS_POSE_34.LEFT_FOOT 
+    RIGHT_HIP = <int>c_BODY_PARTS_POSE_34.RIGHT_HIP 
+    RIGHT_KNEE = <int>c_BODY_PARTS_POSE_34.RIGHT_KNEE 
+    RIGHT_ANKLE = <int>c_BODY_PARTS_POSE_34.RIGHT_ANKLE 
+    RIGHT_FOOT = <int>c_BODY_PARTS_POSE_34.RIGHT_FOOT 
+    HEAD = <int>c_BODY_PARTS_POSE_34.HEAD 
+    NOSE = <int>c_BODY_PARTS_POSE_34.NOSE 
+    LEFT_EYE = <int>c_BODY_PARTS_POSE_34.LEFT_EYE 
+    LEFT_EAR = <int>c_BODY_PARTS_POSE_34.LEFT_EAR 
+    RIGHT_EYE = <int>c_BODY_PARTS_POSE_34.RIGHT_EYE 
+    RIGHT_EAR = <int>c_BODY_PARTS_POSE_34.RIGHT_EAR 
+    LEFT_HEEL = <int>c_BODY_PARTS_POSE_34.LEFT_HEEL
+    RIGHT_HEEL = <int>c_BODY_PARTS_POSE_34.RIGHT_HEEL
+    LAST = <int>c_BODY_PARTS_POSE_34.LAST
+
+##
+# \brief List of supported skeleton body model
+# \ingroup Object_group
+# 
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | POSE_18 | 18  keypoint model of COCO 18. \note local keypoint angle and position are not available with this format.  |
+# | POSE_34 | 34 keypoint model. \note local keypoint angle and position are available. \warning The SDK will automatically enable fitting. |
+class BODY_FORMAT(enum.Enum):
+    POSE_18 = <int>c_BODY_FORMAT.POSE_18
+    POSE_34 = <int>c_BODY_FORMAT.POSE_34
+    LAST = <int>c_BODY_FORMAT.LAST
+
+
+##
+# \brief Links of human body keypoints for [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT), useful for display.
 # \ingroup Object_group
 BODY_BONES = [ (BODY_PARTS.NOSE, BODY_PARTS.NECK),
                 (BODY_PARTS.NECK, BODY_PARTS.RIGHT_SHOULDER),
@@ -1720,10 +1974,57 @@ BODY_BONES = [ (BODY_PARTS.NOSE, BODY_PARTS.NECK),
                 (BODY_PARTS.LEFT_EYE, BODY_PARTS.LEFT_EAR) ]
 
 ##
+# \brief Links of human body keypoints for [sl.BODY_FORMAT.POSE_34](\ref BODY_FORMAT), useful for display.
+# \ingroup Object_group
+BODY_BONES_POSE_34 = [ 
+        (BODY_PARTS_POSE_34.PELVIS, BODY_PARTS_POSE_34.NAVAL_SPINE),
+		(BODY_PARTS_POSE_34.NAVAL_SPINE, BODY_PARTS_POSE_34.CHEST_SPINE),
+		(BODY_PARTS_POSE_34.CHEST_SPINE, BODY_PARTS_POSE_34.LEFT_CLAVICLE),
+		(BODY_PARTS_POSE_34.LEFT_CLAVICLE, BODY_PARTS_POSE_34.LEFT_SHOULDER),
+		(BODY_PARTS_POSE_34.LEFT_SHOULDER, BODY_PARTS_POSE_34.LEFT_ELBOW),
+		(BODY_PARTS_POSE_34.LEFT_ELBOW, BODY_PARTS_POSE_34.LEFT_WRIST),
+		(BODY_PARTS_POSE_34.LEFT_WRIST, BODY_PARTS_POSE_34.LEFT_HAND),
+		(BODY_PARTS_POSE_34.LEFT_HAND, BODY_PARTS_POSE_34.LEFT_HANDTIP),
+		(BODY_PARTS_POSE_34.LEFT_WRIST, BODY_PARTS_POSE_34.LEFT_THUMB),
+		(BODY_PARTS_POSE_34.CHEST_SPINE, BODY_PARTS_POSE_34.RIGHT_CLAVICLE),
+		(BODY_PARTS_POSE_34.RIGHT_CLAVICLE, BODY_PARTS_POSE_34.RIGHT_SHOULDER),
+		(BODY_PARTS_POSE_34.RIGHT_SHOULDER, BODY_PARTS_POSE_34.RIGHT_ELBOW),
+		(BODY_PARTS_POSE_34.RIGHT_ELBOW, BODY_PARTS_POSE_34.RIGHT_WRIST),
+		(BODY_PARTS_POSE_34.RIGHT_WRIST, BODY_PARTS_POSE_34.RIGHT_HAND),
+		(BODY_PARTS_POSE_34.RIGHT_HAND, BODY_PARTS_POSE_34.RIGHT_HANDTIP),
+		(BODY_PARTS_POSE_34.RIGHT_WRIST, BODY_PARTS_POSE_34.RIGHT_THUMB),
+		(BODY_PARTS_POSE_34.PELVIS, BODY_PARTS_POSE_34.LEFT_HIP),
+		(BODY_PARTS_POSE_34.LEFT_HIP, BODY_PARTS_POSE_34.LEFT_KNEE),
+		(BODY_PARTS_POSE_34.LEFT_KNEE, BODY_PARTS_POSE_34.LEFT_ANKLE),
+		(BODY_PARTS_POSE_34.LEFT_ANKLE, BODY_PARTS_POSE_34.LEFT_FOOT),
+		(BODY_PARTS_POSE_34.PELVIS, BODY_PARTS_POSE_34.RIGHT_HIP),
+		(BODY_PARTS_POSE_34.RIGHT_HIP, BODY_PARTS_POSE_34.RIGHT_KNEE),
+		(BODY_PARTS_POSE_34.RIGHT_KNEE, BODY_PARTS_POSE_34.RIGHT_ANKLE),
+		(BODY_PARTS_POSE_34.RIGHT_ANKLE, BODY_PARTS_POSE_34.RIGHT_FOOT),
+		(BODY_PARTS_POSE_34.CHEST_SPINE, BODY_PARTS_POSE_34.NECK),
+		(BODY_PARTS_POSE_34.NECK, BODY_PARTS_POSE_34.HEAD),
+		(BODY_PARTS_POSE_34.HEAD, BODY_PARTS_POSE_34.NOSE),
+		(BODY_PARTS_POSE_34.NOSE, BODY_PARTS_POSE_34.LEFT_EYE),
+		(BODY_PARTS_POSE_34.LEFT_EYE, BODY_PARTS_POSE_34.LEFT_EAR),
+		(BODY_PARTS_POSE_34.NOSE, BODY_PARTS_POSE_34.RIGHT_EYE),
+		(BODY_PARTS_POSE_34.RIGHT_EYE, BODY_PARTS_POSE_34.RIGHT_EAR),
+		(BODY_PARTS_POSE_34.LEFT_ANKLE, BODY_PARTS_POSE_34.LEFT_HEEL),
+		(BODY_PARTS_POSE_34.RIGHT_ANKLE, BODY_PARTS_POSE_34.RIGHT_HEEL),
+		(BODY_PARTS_POSE_34.LEFT_HEEL, BODY_PARTS_POSE_34.LEFT_FOOT),
+        (BODY_PARTS_POSE_34.RIGHT_HEEL, BODY_PARTS_POSE_34.RIGHT_FOOT)
+ ]
+
+##
 # Returns the associated index for a given \ref BODY_PARTS.
 # \ingroup Object_group
 def get_idx(part: BODY_PARTS):
     return c_getIdx(<c_BODY_PARTS>(<unsigned int>part.value))
+
+##
+# Returns the associated index for a given \ref BODY_PARTS_POSE_34.
+# \ingroup Object_group
+def get_idx_34(part: BODY_PARTS_POSE_34):
+    return c_getIdx(<c_BODY_PARTS_POSE_34>(<unsigned int>part.value))
 
 ##
 # Contains batched data of a detected object
@@ -1871,35 +2172,35 @@ cdef class ObjectsBatch:
     
     ##
 	# A sample of 2d person keypoints.
-	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX](\ref DETECTION_MODEL).
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
     # \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints cannot be detected, they will have non finite values.
     @property
     def keypoints_2d(self):
         # 18 keypoints
-        cdef np.ndarray arr = np.zeros((self.objects_batch.keypoints_2d.size(),18,2))
+        cdef np.ndarray arr = np.zeros((self.objects_batch.keypoints_2d.size(),self.objects_batch.keypoints_2d[0].size(),2))
         for i in range(self.objects_batch.keypoints_2d.size()):
-            for j in range(18):
+            for j in range(self.objects_batch.keypoints_2d[0].size()):
                 for k in range(2):
                     arr[i,j,k] = self.objects_batch.keypoints_2d[i][j][k]
         return arr
 
 	##
 	# A sample of 3d person keypoints
-	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX](\ref DETECTION_MODEL).
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
 	# \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints cannot be detected, they will have non finite values.
     @property
     def keypoints(self):
         # 18 keypoints
-        cdef np.ndarray arr = np.zeros((self.objects_batch.keypoints.size(),18,3))
+        cdef np.ndarray arr = np.zeros((self.objects_batch.keypoints.size(),self.objects_batch.keypoints[0].size(),3))
         for i in range(self.objects_batch.keypoints.size()):
-            for j in range(18):
+            for j in range(self.objects_batch.keypoints[0].size()):
                 for k in range(3):
                     arr[i,j,k] = self.objects_batch.keypoints[i][j][k]
         return arr
 
     ##
 	# Bounds the head with four 2D points. Expressed in pixels on the original image resolution.
-	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX](\ref DETECTION_MODEL)
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL)
     @property
     def head_bounding_boxes_2d(self):
         cdef np.ndarray arr = np.zeros((self.objects_batch.head_bounding_boxes_2d.size(),4,2))
@@ -1912,7 +2213,7 @@ cdef class ObjectsBatch:
     ##
 	# Bounds the head with eight 3D points. 
     # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame.
-	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX](\ref DETECTION_MODEL).
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
     @property
     def head_bounding_boxes(self):
         cdef np.ndarray arr = np.zeros((self.objects_batch.head_bounding_boxes.size(),8,3))
@@ -1925,7 +2226,7 @@ cdef class ObjectsBatch:
     ##
 	# 3D head centroid.
     # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame.
-	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX](\ref DETECTION_MODEL).
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
     @property
     def head_positions(self):
         cdef np.ndarray arr = np.zeros((self.objects_batch.head_positions.size(),3))
@@ -1936,7 +2237,7 @@ cdef class ObjectsBatch:
 
 	##
 	# Per keypoint detection confidence, cannot be lower than the [sl.ObjectDetectionRuntimeParameters().detection_confidence_threshold](\ref ObjectDetectionRuntimeParameters).
-	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX](\ref DETECTION_MODEL).
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
 	# \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints cannot be detected, they will have non finite values.
     @property
     def keypoint_confidences(self):
@@ -2080,14 +2381,17 @@ cdef class ObjectDetectionParameters:
     # \param enable_body_fitting : sets \ref enable_body_fitting. Default: False
     # \param max_range : sets \ref max_range. Default: -1.0 (set to \ref InitParameters.depth_maximum_distance)
     # \param batch_trajectories_parameters : sets \ref batch_parameters. Default: see \ref BatchParameters default constructor  
+    # \param body_format : sets \ref body_format. Default: [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT)  
     def __cinit__(self, image_sync=True, enable_tracking=True
                 , enable_mask_output=True, detection_model=DETECTION_MODEL.MULTI_CLASS_BOX
                 , enable_body_fitting=False, max_range=-1.0
-                , batch_trajectories_parameters=BatchParameters()):
+                , batch_trajectories_parameters=BatchParameters()
+                , body_format=BODY_FORMAT.POSE_18):
         self.object_detection = new c_ObjectDetectionParameters(image_sync, enable_tracking
                                                                 , enable_mask_output, <c_DETECTION_MODEL>(<unsigned int>detection_model.value)
                                                                 , enable_body_fitting, max_range
-                                                                , (<BatchParameters>batch_trajectories_parameters).batch_params[0])
+                                                                , (<BatchParameters>batch_trajectories_parameters).batch_params[0]
+                                                                , <c_BODY_FORMAT>(<unsigned int>body_format.value))
 
     def __dealloc__(self):
         del self.object_detection
@@ -2134,6 +2438,18 @@ cdef class ObjectDetectionParameters:
             self.object_detection.detection_model = <c_DETECTION_MODEL>(<unsigned int>detection_model.value)
         else :
             raise TypeError()
+
+    ##
+    # Defines the body format output by the SDK when \ref retrieve_objects is called.
+    # \warning if set to sl.BODY_FORMAT.POSE_32, the ZED SDK will automatically enable the fitting (cf. \ref enable_body_fitting).
+    @property
+    def body_format(self):
+        return BODY_FORMAT(<int>self.object_detection.body_format)
+
+    @body_format.setter
+    def body_format(self, body_format):
+        if isinstance(body_format, BODY_FORMAT):
+            self.object_detection.body_format = <c_BODY_FORMAT>(<unsigned int>body_format.value)
 
     ##
     # Defines if the body fitting will be applied 
@@ -2589,6 +2905,8 @@ cdef class CalibrationParameters:
         self.calibration.T[2] = value3
         self.set()
 
+    ##
+    # Returns the camera baseline in the \ref sl.UNIT defined in \ref sl.InitParameters
     def get_camera_baseline(self):
         return self.calibration.getCameraBaseline()
 
@@ -2730,6 +3048,7 @@ cdef class SensorParameters:
 cdef class SensorsConfiguration:
     cdef unsigned int firmware_version
     cdef Transform camera_imu_transform
+    cdef Transform imu_magnetometer_transform
     cdef SensorParameters accelerometer_parameters
     cdef SensorParameters gyroscope_parameters
     cdef SensorParameters magnetometer_parameters
@@ -2755,6 +3074,9 @@ cdef class SensorsConfiguration:
         self.camera_imu_transform = Transform()
         for i in range(16):
             self.camera_imu_transform.transform.m[i] = config.camera_imu_transform.m[i]
+        self.imu_magnetometer_transform = Transform()
+        for i in range(16):
+            self.imu_magnetometer_transform.transform.m[i] = config.imu_magnetometer_transform.m[i]
 
     ##
     # Configuration of the accelerometer device
@@ -2785,6 +3107,14 @@ cdef class SensorsConfiguration:
     @property
     def camera_imu_transform(self):
         return self.camera_imu_transform
+    
+    ##
+    # Magnetometer to IMU transform matrix, that contains rotation and translation between IMU frame and magnetometer frame.
+    @property
+    def imu_magnetometer_transform(self):
+        return self.imu_magnetometer_transform
+
+
     ##
     # The internal firmware version of the sensors.
     @property
@@ -4686,7 +5016,7 @@ cdef class InputType:
 #        def main() :
 #            zed = sl.Camera() # Create a ZED camera object
 #            init_params = sl.InitParameters() # Set initial parameters
-#            init_params.sdk_verbose = False  # Disable verbose mode
+#            init_params.sdk_verbose = 0  # Disable verbose mode
 #            init_params.camera_resolution = sl.RESOLUTION.HD1080 # Use HD1080 video mode
 #            init_params.camera_fps = 30 # Set fps at 30
 #            # Other parameters are left to their default values
@@ -4718,7 +5048,7 @@ cdef class InitParameters:
     # \param depth_mode : the chosen \ref depth_mode
     # \param coordinate_units : the chosen \ref coordinate_units
     # \param coordinate_system : the chosen \ref coordinate_system
-    # \param sdk_verbose : activates \ref sdk_verbose
+    # \param sdk_verbose : sets \ref sdk_verbose
     # \param sdk_gpu_id : the chosen \ref sdk_gpu_id
     # \param depth_minimum_distance : the chosen \ref depth_minimum_distance
     # \param depth_maximum_distance : the chosen \ref depth_maximum_distance
@@ -4732,6 +5062,7 @@ cdef class InitParameters:
     # \param sensors_required : activates \ref sensors_required
     # \param enable_image_enhancement : activates \ref enable_image_enhancement
     # \param optional_opencv_calibration_file : sets \ref optional_opencv_calibration_file
+    # \param open_timeout_sec : sets \ref open_timeout_sec
     #
     # \code
     # params = sl.InitParameters(camera_resolution=RESOLUTION.HD720, camera_fps=30, depth_mode=DEPTH_MODE.PERFORMANCE)
@@ -4741,22 +5072,23 @@ cdef class InitParameters:
                   depth_mode=DEPTH_MODE.PERFORMANCE,
                   coordinate_units=UNIT.MILLIMETER,
                   coordinate_system=COORDINATE_SYSTEM.IMAGE,
-                  sdk_verbose=False, sdk_gpu_id=-1, depth_minimum_distance=-1.0, depth_maximum_distance=-1.0, camera_disable_self_calib=False,
+                  sdk_verbose=0, sdk_gpu_id=-1, depth_minimum_distance=-1.0, depth_maximum_distance=-1.0, camera_disable_self_calib=False,
                   camera_image_flip=FLIP_MODE.AUTO, enable_right_side_measure=False,
                   sdk_verbose_log_file="", depth_stabilization=1, input_t=InputType(),
                   optional_settings_path="",sensors_required=False,
-                  enable_image_enhancement=True, optional_opencv_calibration_file=""):
+                  enable_image_enhancement=True, optional_opencv_calibration_file="", open_timeout_sec=5.0):
         if (isinstance(camera_resolution, RESOLUTION) and isinstance(camera_fps, int) and
             isinstance(svo_real_time_mode, bool) and isinstance(depth_mode, DEPTH_MODE) and
             isinstance(coordinate_units, UNIT) and
-            isinstance(coordinate_system, COORDINATE_SYSTEM) and isinstance(sdk_verbose, bool) and
+            isinstance(coordinate_system, COORDINATE_SYSTEM) and isinstance(sdk_verbose, int) and
             isinstance(sdk_gpu_id, int) and isinstance(depth_minimum_distance, float) and
             isinstance(depth_maximum_distance, float) and
             isinstance(camera_disable_self_calib, bool) and isinstance(camera_image_flip, FLIP_MODE) and
             isinstance(enable_right_side_measure, bool) and
             isinstance(sdk_verbose_log_file, str) and isinstance(depth_stabilization, int) and
             isinstance(input_t, InputType) and isinstance(optional_settings_path, str) and
-            isinstance(optional_opencv_calibration_file, str)) :
+            isinstance(optional_opencv_calibration_file, str) and
+            isinstance(open_timeout_sec, float)) :
 
             filelog = sdk_verbose_log_file.encode()
             fileoption = optional_settings_path.encode()
@@ -4769,7 +5101,7 @@ cdef class InitParameters:
                                             enable_right_side_measure,
                                             String(<char*> filelog), depth_stabilization,
                                             <CUcontext> 0, (<InputType>input_t).input, String(<char*> fileoption), sensors_required, enable_image_enhancement,
-                                            String(<char*> filecalibration))
+                                            String(<char*> filecalibration), <float>(open_timeout_sec))
         else:
             raise TypeError("Argument is not of right type.")
 
@@ -4784,7 +5116,7 @@ cdef class InitParameters:
     # \code
     #
     # init_params = sl.InitParameters() # Set initial parameters
-    # init_params.sdk_verbose = True # Enable verbose mode
+    # init_params.sdk_verbose = 1 # Enable verbose mode
     # init_params.set_from_svo_file("/path/to/file.svo") # Selects the and SVO file to be read
     # init_params.save("initParameters.conf") # Export the parameters into a file
     #
@@ -4917,15 +5249,16 @@ cdef class InitParameters:
             raise TypeError("Argument must be of COORDINATE_SYSTEM type.")
 
     ##
-    # This parameter allows you to enable the verbosity of the SDK to get a variety of runtime information in the console. When developing an application, enabling verbose mode can help you understand the current SDK behavior.
+    # This parameter allows you to enable the verbosity of the SDK to get a variety of runtime information in the console. When developing an application, enabling verbose mode (sdk_verbose >= 1) can help you understand the current SDK behavior.
     # However, this might not be desirable in a shipped version.
-    # default : false
+    # default : 0 = no verbose message
+    # \note The verbose messages can also be exported into a log file. See \ref sdk_verbose_log_file for more
     @property
     def sdk_verbose(self):
         return self.init.sdk_verbose
 
     @sdk_verbose.setter
-    def sdk_verbose(self, value: bool):
+    def sdk_verbose(self, value: int):
         self.init.sdk_verbose = value
 
     ##
@@ -5054,7 +5387,7 @@ cdef class InitParameters:
     # This parameter allows you to select to desired input. It should be used like this:
     # \code
     # init_params = sl.InitParameters() # Set initial parameters
-    # init_params.sdk_verbose = True # Enable verbose mode
+    # init_params.sdk_verbose = 1 # Enable verbose mode
     # input_t = sl.InputType()
     # input_t.set_from_camera_id(0) # Selects the camera with ID = 0
     # init_params.input = input_t
@@ -5063,7 +5396,7 @@ cdef class InitParameters:
     #
     # \code
     # init_params = sl.InitParameters() # Set initial parameters
-    # init_params.sdk_verbose = True # Enable verbose mode
+    # init_params.sdk_verbose = 1 # Enable verbose mode
     # input_t = sl.InputType()
     # input_t.set_from_serial_number(1010) # Selects the camera with serial number = 101
     # init_params.input = input_t
@@ -5072,7 +5405,7 @@ cdef class InitParameters:
     #
     # \code
     # init_params = sl.InitParameters() # Set initial parameters
-    # init_params.sdk_verbose = True # Enable verbose mode
+    # init_params.sdk_verbose = 1 # Enable verbose mode
     # input_t = sl.InputType()
     # input_t.set_from_svo_file("/path/to/file.svo") # Selects the and SVO file to be read
     # init_params.input = input_t
@@ -5081,7 +5414,7 @@ cdef class InitParameters:
     # 
     # \code
     # init_params = sl.InitParameters() # Set initial parameters
-    # init_params.sdk_verbose = True # Enable verbose mode
+    # init_params.sdk_verbose = 1 # Enable verbose mode
     # input_t = sl.InputType()
     # input_t.set_from_stream("192.168.1.42")
     # init_params.input = input_t
@@ -5149,6 +5482,21 @@ cdef class InitParameters:
     def optional_opencv_calibration_file(self, value: str):
         value_filename = value.encode()
         self.init.optional_opencv_calibration_file.set(<char*>value_filename)
+
+    ##
+    # Defines a timeout in seconds after which an error is reported if the \ref sl.Camera.open() command fails.
+    # Set to '-1' to try to open the camera endlessly without returning error in case of failure.
+    # Set to '0' to return error in case of failure at the first attempt.
+    # Default : 5.0f
+    # \note This parameter only impacts the LIVE mode.
+    @property
+    def open_timeout_sec(self):
+        return self.init.open_timeout_sec
+
+    @open_timeout_sec.setter
+    def open_timeout_sec(self, value: float):
+        self.init.open_timeout_sec = value
+
 
     ##
     # Call of \ref InputType.set_from_camera_id function of \ref input
@@ -6177,6 +6525,26 @@ cdef class TemperatureData:
         else:
             raise TypeError("Argument not of type SENSOR_LOCATION")
 
+
+##
+# Defines the magnetic heading state for \ref MagnetometerData
+# \ingroup Sensors_group
+#
+# | Enumerator     |                  |
+# |------------|------------------|
+# | GOOD | The heading is reliable and not affected by iron interferences |
+# | OK | The heading is reliable, but affected by slight iron interferences |
+# | NOT_GOOD | The heading is not reliable because affected by strong iron interferences |
+# | NOT_CALIBRATED | The magnetometer has not been calibrated |
+# | MAG_NOT_AVAILABLE | The magnetomer sensor is not available |
+class HEADING_STATE(enum.Enum):
+    GOOD = <int>c_HEADING_STATE.GOOD
+    OK = <int>c_HEADING_STATE.OK
+    NOT_GOOD = <int>c_HEADING_STATE.NOT_GOOD
+    NOT_CALIBRATED = <int>c_HEADING_STATE.NOT_CALIBRATED
+    MAG_NOT_AVAILABLE = <int>c_HEADING_STATE.MAG_NOT_AVAILABLE
+    HEADING_STATE_LAST = <int>c_HEADING_STATE.HEADING_STATE_LAST
+
 ##
 # Contains magnetometer sensor data.
 # \ingroup Sensors_group
@@ -6207,8 +6575,47 @@ cdef class MagnetometerData:
         self.magnetometerData.effective_rate = rate
 
     ##
+    # The camera heading in degrees relative to the magnetic North Pole.
+    # \note The magnetic North Pole has an offset with respect to the geographic North Pole, depending on the geographic position of the camera.
+    # \note To get a correct magnetic heading the magnetometer sensor must be calibrated using the ZED Sensor Viewer tool
+    @property
+    def magnetic_heading(self):
+        return self.magnetometerData.magnetic_heading
+
+    @magnetic_heading.setter
+    def magnetic_heading(self, heading: float):
+        self.magnetometerData.magnetic_heading = heading
+
+    ##
+    # The accuracy of the magnetic heading measure in the range [0.0,1.0].
+    # \note A negative value means that the magnetometer must be calibrated using the ZED Sensor Viewer tool
+    @property
+    def magnetic_heading_accuracy(self):
+        return self.magnetometerData.magnetic_heading_accuracy
+
+    @magnetic_heading_accuracy.setter
+    def magnetic_heading_accuracy(self, accuracy: float):
+        self.magnetometerData.magnetic_heading_accuracy = accuracy
+
+    ##
+    # The state of the \ref magnetic_heading value
+    @property
+    def magnetic_heading_state(self):
+        return HEADING_STATE(<int>self.magnetometerData.magnetic_heading_state)
+
+    @magnetic_heading_state.setter
+    def magnetic_heading_state(self, state):
+        if isinstance(state, HEADING_STATE):
+            self.magnetometerData.magnetic_heading_state = <c_HEADING_STATE>(<unsigned int>state.value)
+        else:
+            raise TypeError("Argument is not of HEADING_STATE type.")
+
+    ##
     # (3x1) Vector for magnetometer raw values (uncalibrated). In other words, the current magnetic field (uT), along with the x, y, and z axes.
     # \return the magnetic field array
+    # \note The magnetometer raw values are affected by soft and hard iron interferences. 
+    # The sensor must be calibrated, placing the camera in the working environment, using the ZED Sensor Viewer tool.
+    # \note Not available in SVO or Stream mode.
     def get_magnetic_field_uncalibrated(self):
         cdef np.ndarray magnetic_field = np.zeros(3)
         for i in range(3):
@@ -6216,8 +6623,9 @@ cdef class MagnetometerData:
         return magnetic_field
 
     ##
-    # (3x1) Vector for magnetometer values (after user calibration). In other words, the current magnetic field (uT), along with the x, y, and z axes. \note To calibrate the magnetometer sensor please use the ZED Sensor Viewer tool
+    # (3x1) Vector for magnetometer values (after user calibration). In other words, the current calibrated and normalized magnetic field (uT), along with the x, y, and z axes.
     # \return the magnetic field array
+    # \note To calibrate the magnetometer sensor please use the ZED Sensor Viewer tool after placing the camera in the final operating environment
     def get_magnetic_field_calibrated(self):
         cdef np.ndarray magnetic_field = np.zeros(3)
         for i in range(3):
@@ -6321,12 +6729,26 @@ cdef class IMUData:
         self.imuData = c_IMUData()
     
     ##
-    # Gets the (3x1) Vector for angular velocity of the gyroscope, given in deg/s.
+    # Gets the (3x1) Vector for raw angular velocity of the gyroscope, given in deg/s.
+    # Values are uncorrected from IMU calibration.
+    # In other words, the current velocity at which the sensor is rotating around the x, y, and z axes.
+    # \param angular_velocity_uncalibrated : An array to be returned. It creates one by default.
+    # \return The uncalibrated angular velocity (3x1) vector in an array
+    # \note Those values are the exact raw values from the IMU. 
+    # \note Not available in SVO or Stream mode
+    def get_angular_velocity_uncalibrated(self, angular_velocity_uncalibrated = [0, 0, 0]):
+        for i in range(3):
+            angular_velocity_uncalibrated[i] = self.imuData.angular_velocity_uncalibrated[i]
+        return angular_velocity_uncalibrated    
+        
+    ##
+    # Gets the (3x1) Vector for uncalibrated angular velocity of the gyroscope, given in deg/s.
     # Values are corrected from bias, scale and misalignment.
     # In other words, the current velocity at which the sensor is rotating around the x, y, and z axes.
+    # \param angular_velocity : An array to be returned. It creates one by default.
+    # \return The angular velocity (3x1) vector in an array
     # \note Those values can be directly ingested in a IMU fusion algorithm to extract quaternion
-    # \param angular_velocity : A numpy array to be returned. It creates one by default.
-    # \return The angular velocity (3x1) vector in a numpy array
+    # \note Not available in SVO or Stream mode
     def get_angular_velocity(self, angular_velocity = [0, 0, 0]):
         for i in range(3):
             angular_velocity[i] = self.imuData.angular_velocity[i]
@@ -6335,18 +6757,33 @@ cdef class IMUData:
     ##
     # Gets the (3x1) Vector for linear acceleration of the gyroscope, given in m/s^2.
     # In other words, the current acceleration of the sensor, along with the x, y, and z axes.
+    # \param linear_acceleration : An array to be returned. It creates one by default.
+    # \return The linear acceleration (3x1) vector in an array
     # \note Those values can be directly ingested in a IMU fusion algorithm to extract quaternion
-    # \param linear_acceleration : A numpy array to be returned. It creates one by default.
-    # \return The linear acceleration (3x1) vector in a numpy array
     def get_linear_acceleration(self, linear_acceleration = [0, 0, 0]):
         for i in range(3):
             linear_acceleration[i] = self.imuData.linear_acceleration[i]
         return linear_acceleration
 
     ##
+    # Gets the (3x1) Vector for uncalibrated linear acceleration of the gyroscope, given in m/s^2.
+    # Values are uncorrected from IMU calibration.
+    # In other words, the current acceleration of the sensor, along with the x, y, and z axes.
+    # \param linear_acceleration_uncalibrated : An array to be returned. It creates one by default.
+    # \return The uncalibrated linear acceleration (3x1) vector in an array
+    # \note Those values are the exact raw values from the IMU. 
+    # \note Those values can be directly ingested in a IMU fusion algorithm to extract quaternion.
+    # \note Not available in SVO or Stream mode
+    def get_linear_acceleration_uncalibrated(self, linear_acceleration_uncalibrated = [0, 0, 0]):
+        for i in range(3):
+            linear_acceleration_uncalibrated[i] = self.imuData.linear_acceleration_uncalibrated[i]
+        return linear_acceleration_uncalibrated
+
+    ##
     # Gets the (3x3) Covariance matrix for angular velocity (x,y,z axes)
     # \param angular_velocity_covariance : \ref Matrix3f to be returned. It creates one by default.
     # \return The (3x3) Covariance matrix for angular velocity
+    # \note Not available in SVO or Stream mode
     def get_angular_velocity_covariance(self, angular_velocity_covariance = Matrix3f()):        
         for i in range(9):
             (<Matrix3f>angular_velocity_covariance).mat.r[i] = self.imuData.angular_velocity_covariance.r[i]
@@ -6356,6 +6793,7 @@ cdef class IMUData:
     # Gets the (3x3) Covariance matrix for linear acceleration (x,y,z axes)
     # \param linear_acceleration_covariance : \ref Matrix3f to be returned. It creates one by default.
     # \return The (3x3) Covariance matrix for linear acceleration
+    # \note Not available in SVO or Stream mode
     def get_linear_acceleration_covariance(self, linear_acceleration_covariance = Matrix3f()):
         for i in range(9):
             (<Matrix3f>linear_acceleration_covariance).mat.r[i] = self.imuData.linear_acceleration_covariance.r[i]
@@ -6382,6 +6820,16 @@ cdef class IMUData:
     @timestamp.setter
     def timestamp(self, unsigned long long timestamp):
         self.imuData.timestamp.data_ns = timestamp
+
+    ##
+    # Realtime data acquisition rate [Hz]
+    @property
+    def effective_rate(self):
+        return self.imuData.effective_rate
+
+    @effective_rate.setter
+    def effective_rate(self, rate: float):
+        self.imuData.effective_rate = rate
 
     ##
     # (3x3) 3x3 Covariance matrix for pose orientation (x,y,z axes)
@@ -6718,10 +7166,18 @@ cdef class Camera:
     #         zed.retrieve_measure(point_cloud, sl.MEASURE.XYZRGBA, sl.MEM.CPU) # Get the point cloud
     #
     #         # Read a point cloud value
-    #         pc_value = point_cloud.get_value(x, y) # each point cloud pixel contains 4 floats, so we are using a numpy array
-    #
+    #         err, pc_value = point_cloud.get_value(x, y) # each point cloud pixel contains 4 floats, so we are using a numpy array
+    #         
+    #         # Get 3D coordinates
     #         if (isnormal(pc_value[2])) :
     #             print("Point cloud coordinates at center: X=", pc_value[0], ", Y=", pc_value[1], ", Z=", pc_value[2])
+    #         
+    #        # Get color information using Python struct package to unpack the unsigned char array containing RGBA values
+    #        import struct
+    #        packed = struct.pack('f', pc_value[3])
+    #        char_array = struct.unpack('BBBB', packed)
+    #        print("Color values at center: R=", char_array[0], ", G=", char_array[1], ", B=", char_array[2], ", A=", char_array[3])
+    #     
     # \endcode
     def retrieve_measure(self, py_mat: Mat, measure=MEASURE.DEPTH, type=MEM.CPU, resolution=Resolution(0,0)):
         if (isinstance(measure, MEASURE) and isinstance(type, MEM)):
@@ -7801,6 +8257,22 @@ cdef class Camera:
             raise TypeError("Argument is not of the right type")
 
     ##
+    # Feed the 3D Object tracking function with your own 2D bounding boxes from your own detection algorithm.
+    # \param objects_in : list of \ref CustomBoxObjectData.
+    # \return [ERROR_CODE.SUCCESS](\ref ERROR_CODE) if everything went fine
+    # \note The detection should be done on the current grabbed left image as the internal process will use all current available data to extract 3D information and perform object tracking.
+    def ingest_custom_box_objects(self, objects_in: list[CustomBoxObjectData]):
+        cdef vector[c_CustomBoxObjectData] custom_obj
+        if objects_in is not None:
+            # Convert input list into C vector
+            for i in range(len(objects_in)):
+                custom_obj.push_back((<CustomBoxObjectData>objects_in[i]).custom_box_object_data) 
+            status = self.camera.ingestCustomBoxObjects(custom_obj)
+            return ERROR_CODE(<int>status)
+        else:
+            raise TypeError("Argument is not of the right type")
+
+    ##
     # Returns the version of the currently installed ZED SDK.
     @staticmethod
     def get_sdk_version():
@@ -7851,13 +8323,14 @@ cdef class Camera:
     ##
     # Performs an hardware reset of the ZED 2.
     # 
-    # \param Serial number of the camera to reset, or 0 to reset the first camera detected.
+    # \param sn (int) : Serial number of the camera to reset, or 0 to reset the first camera detected.
+    # \param fullReboot (bool) : If set to True, performs a full reboot (Sensors and Video modules). Default: True
     # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if everything went fine, \ref ERROR_CODE "ERROR_CODE.CAMERA_NOT_DETECTED" if no camera was detected, \ref ERROR_CODE "ERROR_CODE.FAILURE"  otherwise.
     #
-    # \note This function only works for ZED 2 cameras.
+    # \note This function only works for ZED2 and ZED2i cameras.
     # 
     # \warning This function will invalidate any sl.Camera object, since the device is rebooting.
     @staticmethod
-    def reboot(sn: int):
+    def reboot(int sn, bool fullReboot=True):
         cls = Camera()
-        return ERROR_CODE(<int>cls.camera.reboot(sn))
+        return ERROR_CODE(<int>cls.camera.reboot(sn, fullReboot))
