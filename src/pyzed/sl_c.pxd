@@ -1,6 +1,6 @@
 ########################################################################
 #
-# Copyright (c) 2021, STEREOLABS.
+# Copyright (c) 2022, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -268,6 +268,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         PERFORMANCE 'sl::DEPTH_MODE::PERFORMANCE'
         QUALITY 'sl::DEPTH_MODE::QUALITY'
         ULTRA 'sl::DEPTH_MODE::ULTRA'
+        NEURAL 'sl::DEPTH_MODE::NEURAL'
         DEPTH_MODE_LAST 'sl::DEPTH_MODE::LAST'
 
     String toString(DEPTH_MODE o)
@@ -370,6 +371,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         LOSSLESS 'sl::SVO_COMPRESSION_MODE::LOSSLESS'
         H264 'sl::SVO_COMPRESSION_MODE::H264'
         H265 'sl::SVO_COMPRESSION_MODE::H265'
+        H264_LOSSLESS 'sl::SVO_COMPRESSION_MODE::H264_LOSSLESS'
+        H265_LOSSLESS 'sl::SVO_COMPRESSION_MODE::H265_LOSSLESS'
         SVO_COMPRESSION_MODE_LAST 'sl::SVO_COMPRESSION_MODE::LAST'
 
     String toString(SVO_COMPRESSION_MODE o)
@@ -403,6 +406,12 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         PERSON_HEAD_BOX 'sl::DETECTION_MODEL::PERSON_HEAD_BOX'
         CUSTOM_BOX_OBJECTS 'sl::DETECTION_MODEL::CUSTOM_BOX_OBJECTS'
         LAST 'sl::DETECTION_MODEL::LAST'
+
+    ctypedef enum OBJECT_FILTERING_MODE 'sl::OBJECT_FILTERING_MODE':
+        NONE 'sl::OBJECT_FILTERING_MODE::NONE'
+        NMS3D 'sl::OBJECT_FILTERING_MODE::NMS3D'
+        NMS3D_PER_CLASS 'sl::OBJECT_FILTERING_MODE::NMS3D_PER_CLASS'
+        LAST 'sl::OBJECT_FILTERING_MODE::LAST'
 
     cdef struct RecordingStatus:
         bool is_recording
@@ -503,17 +512,12 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     ctypedef enum MEM 'sl::MEM':
         CPU 'sl::MEM::CPU'
-        GPU 'sl::MEM::GPU'
 
     MEM operator|(MEM a, MEM b)
 
 
     ctypedef enum COPY_TYPE 'sl::COPY_TYPE':
         CPU_CPU 'sl::COPY_TYPE::CPU_CPU'
-        CPU_GPU 'sl::COPY_TYPE::CPU_GPU'
-        GPU_GPU 'sl::COPY_TYPE::GPU_GPU'
-        GPU_CPU 'sl::COPY_TYPE::GPU_CPU'
-
 
     ctypedef enum MAT_TYPE 'sl::MAT_TYPE':
         F32_C1 'sl::MAT_TYPE::F32_C1'
@@ -728,8 +732,6 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         void alloc(Resolution resolution, MAT_TYPE mat_type, MEM memory_type)
         void free(MEM memory_type)
         Mat &operator=(const Mat &that)
-        ERROR_CODE updateCPUfromGPU()
-        ERROR_CODE updateGPUfromCPU()
         ERROR_CODE copyTo(Mat &dst, COPY_TYPE cpyType) const
         ERROR_CODE setFrom(const Mat &src, COPY_TYPE cpyType) const
         ERROR_CODE read(const char* filePath)
@@ -1092,12 +1094,14 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         int textureness_confidence_threshold
         int texture_confidence_threshold
         REFERENCE_FRAME measure3D_reference_frame
+        bool remove_saturated_areas
 
         RuntimeParameters(SENSING_MODE sensing_mode,
                           bool enable_depth,
                           int confidence_threshold,
                           int texture_confidence_threshold,
-                          REFERENCE_FRAME measure3D_reference_frame)
+                          REFERENCE_FRAME measure3D_reference_frame,
+                          bool remove_saturated_areas)
 
         bool save(String filename)
         bool load(String filename)
@@ -1203,7 +1207,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float max_range
         BatchParameters batch_parameters
         BODY_FORMAT body_format
-        ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output, DETECTION_MODEL detection_model, bool enable_body_fitting, float max_range, BatchParameters batch_trajectories_parameters, BODY_FORMAT body_format)
+        OBJECT_FILTERING_MODE filtering_mode
+        ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output, DETECTION_MODEL detection_model, bool enable_body_fitting, float max_range, BatchParameters batch_trajectories_parameters, BODY_FORMAT body_format, OBJECT_FILTERING_MODE filtering_mode)
 
     cdef cppclass ObjectDetectionRuntimeParameters:
         float detection_confidence_threshold
@@ -1328,6 +1333,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         ERROR_CODE retrieveImage(Mat &mat, VIEW view, MEM type, Resolution resolution)
         ERROR_CODE retrieveMeasure(Mat &mat, MEASURE measure, MEM type, Resolution resolution)
+        ERROR_CODE getCurrentMinMaxDepth(float& min, float& max)
 
         void setSVOPosition(int frame_number)
         int getSVOPosition()
