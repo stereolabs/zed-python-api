@@ -3191,12 +3191,6 @@ cdef class CameraConfiguration:
         return self.camera_fps
 
     ##
-    # The model of the camera (ZED, ZED2 or ZED-M).
-    @property
-    def camera_model(self):
-        return MODEL(<int>self.camera_model)
-
-    ##
     # Intrinsic and Extrinsic stereo \ref CalibrationParameters for rectified/undistorded images (default).
     @property
     def calibration_parameters(self):
@@ -3207,12 +3201,6 @@ cdef class CameraConfiguration:
     @property
     def calibration_parameters_raw(self):
         return self.py_calib_raw
-
-    ##
-    # The serial number of the camera.
-    @property
-    def serial_number(self):
-        return self.serial_number
 
     ##
     # The internal firmware version of the camera.
