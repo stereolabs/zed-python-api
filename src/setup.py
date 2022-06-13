@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 ########################################################################
 #
-# Copyright (c) 2021, STEREOLABS.
+# Copyright (c) 2022, STEREOLABS.
 #
 # All rights reserved.
 #

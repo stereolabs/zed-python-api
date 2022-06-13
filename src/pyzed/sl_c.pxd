@@ -718,6 +718,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
     cdef cppclass Mat 'sl::Mat':
         String name
         bool verbose
+        Timestamp timestamp
 
         Mat()
         Mat(size_t width, size_t height, MAT_TYPE mat_type, MEM memory_type)

@@ -79,6 +79,8 @@ import enum
 
 import numpy as np
 cimport numpy as np
+#https://github.com/cython/cython/wiki/tutorials-numpy#c-api-initialization
+np.import_array()
 from math import sqrt
 
 ## \defgroup Video_group Video Module
@@ -275,14 +277,14 @@ class INPUT_TYPE(enum.Enum):
 #
 # \ingroup Object_group
 #
-# | Enumerator     |                  |
-# |------------|------------------|
+# | Enumerator               |                  |
+# |--------------------------|------------------|
 # | MULTI_CLASS_BOX          | Any object, bounding box based |
 # | MULTI_CLASS_BOX_ACCURATE | Any object, bounding box based, more accurate but slower than the base model |
-# | HUMAN_BODY_FAST      | Keypoints based, specific to human skeleton, real time performance even on Jetson or low end GPU cards |
+# | HUMAN_BODY_FAST          | Keypoints based, specific to human skeleton, real time performance even on Jetson or low end GPU cards |
 # | HUMAN_BODY_ACCURATE      | Keypoints based, specific to human skeleton, state of the art accuracy, requires powerful GPU |
-# | MULTI_CLASS_BOX_MEDIUM          | Any object, bounding box based, compromise between accuracy and speed  |
-# | HUMAN_BODY_MEDIUM          | Keypoints based, specific to human skeleton, compromise between accuracy and speed  |
+# | MULTI_CLASS_BOX_MEDIUM   | Any object, bounding box based, compromise between accuracy and speed  |
+# | HUMAN_BODY_MEDIUM        | Keypoints based, specific to human skeleton, compromise between accuracy and speed  |
 # | PERSON_HEAD_BOX          | Bounding Box detector specialized in person heads, particulary well suited for crowded environments, the person localization is also improved  |
 # | CUSTOM_BOX_OBJECTS          | For external inference, using your own custom model and/or frameworks. This mode disables the internal inference engine, the 2D bounding box detection must be provided  |
 class DETECTION_MODEL(enum.Enum):
@@ -903,7 +905,7 @@ class SENSING_MODE(enum.Enum):
     LAST = <int>c_SENSING_MODE.SENSING_MODE_LAST
 
 ##
-# Lists availablpe unit for measures.
+# Lists available unit for measures.
 # \ingroup Core_group
 # 
 # | Enumerator |                         |
@@ -924,6 +926,7 @@ class UNIT(enum.Enum):
 
 ##
 # Lists available coordinates systems for positional tracking and 3D measures.
+# \image html CoordinateSystem.png
 # \ingroup Core_group
 # 
 # | Enumerator |                         |
@@ -958,18 +961,18 @@ class COORDINATE_SYSTEM(enum.Enum):
 # | DEPTH | Depth map, in \ref sl.UNIT defined in \ref sl.InitParameters. Each pixel contains 1 float. [sl.MAT_TYPE.F32_C1] (\ref sl.MAT_TYPE) |
 # | CONFIDENCE | Certainty/confidence of the depth map. Each pixel contains 1 float. [sl.MAT_TYPE.F32_C1] (\ref sl.MAT_TYPE) |
 # | XYZ | Point cloud. Each pixel contains 4 float (X, Y, Z, not used). [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
-# | XYZRGBA | Colored point cloud. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the RGBA color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
-# | XYZBGRA | Colored point cloud. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the BGRA color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
-# | XYZARGB | Colored point cloud. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the ARGB color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
-# | XYZABGR | Colored point cloud. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the ABGR color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
+# | XYZRGBA | Colored point cloud. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an unsigned char[4] representing the RGBA color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
+# | XYZBGRA | Colored point cloud. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an unsigned char[4] representing the BGRA color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
+# | XYZARGB | Colored point cloud. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an unsigned char[4] representing the ARGB color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
+# | XYZABGR | Colored point cloud. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an unsigned char[4] representing the ABGR color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
 # | NORMALS | Normals vector. Each pixel contains 4 float (X, Y, Z, 0). [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE) |
 # | DISPARITY_RIGHT | Disparity map for right sensor. Each pixel contains 1 float. [sl.MAT_TYPE.F32_C1] (\ref sl.MAT_TYPE)|
 # | DEPTH_RIGHT | Depth map for right sensor. Each pixel contains 1 float. [sl.MAT_TYPE.F32_C1] (\ref sl.MAT_TYPE)|
 # | XYZ_RIGHT | Point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, not used). [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
-# | XYZRGBA_RIGHT | Colored point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the RGBA color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
-# | XYZBGRA_RIGHT | Colored point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the BGRA color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
-# | XYZARGB_RIGHT | Colored point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the ARGB color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
-# | XYZABGR_RIGHT | Colored point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an usigned char[4] representing the ABGR color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
+# | XYZRGBA_RIGHT | Colored point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an unsigned char[4] representing the RGBA color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
+# | XYZBGRA_RIGHT | Colored point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an unsigned char[4] representing the BGRA color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
+# | XYZARGB_RIGHT | Colored point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an unsigned char[4] representing the ARGB color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
+# | XYZABGR_RIGHT | Colored point cloud for right sensor. Each pixel contains 4 float (X, Y, Z, color). The color needs to be read as an unsigned char[4] representing the ABGR color. [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
 # | NORMALS_RIGHT | Normals vector for right view. Each pixel contains 4 float (X, Y, Z, 0). [sl.MAT_TYPE.F32_C4] (\ref sl.MAT_TYPE)|
 # | DEPTH_U16_MM | Depth map in millimeter whatever the \ref sl.UNIT defined in \ref sl.InitParameters. Invalid values are set to 0, depth values are clamped at 65000. Each pixel contains 1 unsigned short. [sl.MAT_TYPE.U16_C1] (\ref sl.MAT_TYPE)|
 # | DEPTH_U16_MM_RIGHT | Depth map in millimeter for right sensor. Each pixel  contains 1 unsigned short. [sl.MAT_TYPE.U16_C1] (\ref sl.MAT_TYPE)|
@@ -1007,20 +1010,20 @@ class MEASURE(enum.Enum):
 #
 # | Enumerator |                         |
 # |------------|-------------------------|
-# | LEFT | Left RGBA image. Each pixel contains 4 usigned char (R,G,B,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE) |
-# | RIGHT | Right RGBA image. Each pixel contains 4 usigned char (R,G,B,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE) |
-# | LEFT_GRAY | Left GRAY image. Each pixel contains 1 usigned char. [sl.MAT_TYPE.U8_C1] (\ref sl.MAT_TYPE)|
-# | RIGHT_GRAY | Right GRAY image. Each pixel contains 1 usigned char. sl.MAT_TYPE.U8_C1 [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
-# | LEFT_UNRECTIFIED | Left RGBA unrectified image. Each pixel contains 4 usigned char (R,G,B,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
-# | RIGHT_UNRECTIFIED | Right RGBA unrectified image. Each pixel contains 4 usigned char (R,G,B,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
-# | LEFT_UNRECTIFIED_GRAY | Left GRAY unrectified image. Each pixel contains 1 usigned char. [sl.MAT_TYPE.U8_C1] (\ref sl.MAT_TYPE)|
-# | RIGHT_UNRECTIFIED_GRAY | Right GRAY unrectified image. Each pixel contains 1 usigned char. [sl.MAT_TYPE.U8_C1] (\ref sl.MAT_TYPE)|
-# | SIDE_BY_SIDE | Left and right image (the image width is therefore doubled). Each pixel contains 4 usigned char (R,G,B,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
-# | DEPTH | Color rendering of the depth. Each pixel contains 4 usigned char (R,G,B,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE). Use [MEASURE.DEPTH](\ref MEASURE) with \ref Camera.retrieve_measure() to get depth values. |
-# | CONFIDENCE | Color rendering of the depth confidence. Each pixel contains 4 usigned char (R,G,B,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
-# | NORMALS | Color rendering of the normals. Each pixel contains 4 usigned char (R,G,B,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
+# | LEFT | Left RGBA image. Each pixel contains 4 unsigned char (B,G,R,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE) |
+# | RIGHT | Right RGBA image. Each pixel contains 4 unsigned char (B,G,R,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE) |
+# | LEFT_GRAY | Left GRAY image. Each pixel contains 1 unsigned char. [sl.MAT_TYPE.U8_C1] (\ref sl.MAT_TYPE)|
+# | RIGHT_GRAY | Right GRAY image. Each pixel contains 1 unsigned char. sl.MAT_TYPE.U8_C1 [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
+# | LEFT_UNRECTIFIED | Left RGBA unrectified image. Each pixel contains 4 unsigned char (B,G,R,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
+# | RIGHT_UNRECTIFIED | Right RGBA unrectified image. Each pixel contains 4 unsigned char (B,G,R,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
+# | LEFT_UNRECTIFIED_GRAY | Left GRAY unrectified image. Each pixel contains 1 unsigned char. [sl.MAT_TYPE.U8_C1] (\ref sl.MAT_TYPE)|
+# | RIGHT_UNRECTIFIED_GRAY | Right GRAY unrectified image. Each pixel contains 1 unsigned char. [sl.MAT_TYPE.U8_C1] (\ref sl.MAT_TYPE)|
+# | SIDE_BY_SIDE | Left and right image (the image width is therefore doubled). Each pixel contains 4 unsigned char (B,G,R,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
+# | DEPTH | Color rendering of the depth. Each pixel contains 4 unsigned char (B,G,R,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE). Use [MEASURE.DEPTH](\ref MEASURE) with \ref Camera.retrieve_measure() to get depth values. |
+# | CONFIDENCE | Color rendering of the depth confidence. Each pixel contains 4 unsigned char (B,G,R,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
+# | NORMALS | Color rendering of the normals. Each pixel contains 4 unsigned char (B,G,R,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
 # | DEPTH_RIGHT | Color rendering of the right depth mapped on right sensor, [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
-# | NORMALS_RIGHT | Color rendering of the normals mapped on right sensor. Each pixel contains 4 usigned char (R,G,B,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
+# | NORMALS_RIGHT | Color rendering of the normals mapped on right sensor. Each pixel contains 4 unsigned char (B,G,R,A). [sl.MAT_TYPE.U8_C4] (\ref sl.MAT_TYPE)|
 class VIEW(enum.Enum):
     LEFT = <int>c_VIEW.LEFT
     RIGHT = <int>c_VIEW.RIGHT
@@ -2551,8 +2554,8 @@ cdef class ObjectDetectionRuntimeParameters:
         return self.object_detection_rt.detection_confidence_threshold
 
     @detection_confidence_threshold.setter
-    def detection_confidence_threshold(self, int detection_confidence_threshold):
-        self.object_detection_rt.detection_confidence_threshold = detection_confidence_threshold
+    def detection_confidence_threshold(self, float detection_confidence_threshold_):
+        self.object_detection_rt.detection_confidence_threshold = detection_confidence_threshold_
  
     ##
     # Selects which object types to detect and track. By default all classes are tracked.
@@ -2603,7 +2606,6 @@ cdef class ObjectDetectionRuntimeParameters:
         self.object_detection_rt.object_class_detection_confidence_threshold.clear()
         for k,v in object_class_detection_confidence_threshold_dict.items():
             self.object_detection_rt.object_class_detection_confidence_threshold[<c_OBJECT_CLASS>(<unsigned int>k.value)] = v
-
 
 # Returns the current timestamp at the time the function is called.
 # \ingroup Core_group
@@ -3158,6 +3160,7 @@ cdef class SensorsConfiguration:
 # \ingroup Core_group
 # That information about the camera is available in the CameraInformation struct returned by Camera::getCameraInformation()
 # \note This object is meant to be used as a read-only container, editing any of its fields won't impact the SDK. 
+# \note The returned py_calib and py_calib_raw values might vary between two execution due to the \ref InitParameters.camera_disable_self_calib "self-calibration" being ran in the \ref open() method.
 cdef class CameraConfiguration:
     cdef CalibrationParameters py_calib
     cdef CalibrationParameters py_calib_raw
@@ -3681,12 +3684,18 @@ cdef class Mat:
         return MEM(<int>self.mat.getMemoryType())
 
     ##
-    # Copies the data of the \ref Mat in a Numpy array.
+    # Cast the data of the \ref Mat in a Numpy array (with or without copy).
     # \param memory_type : defines which memory should be read. Default: [MEM.CPU](\ref MEM) (you cannot change the default value)
+    # \param deep_copy : defines if the memory of the Mat need to be duplicated or not. The fastest is deep_copy at False but the sl::Mat memory must not be released to use the numpy array.
     # \return A Numpy array containing the \ref Mat data.
-    # \warning not efficient for GPU, use it on sparse data.
-    def get_data(self, memory_type=MEM.CPU):
+    def get_data(self, memory_type=MEM.CPU, deep_copy=False):
+        
         shape = None
+        cdef np.npy_intp cython_shape[3]
+        cython_shape[0] = <np.npy_intp> self.mat.getHeight()
+        cython_shape[1] = <np.npy_intp> self.mat.getWidth()
+        cython_shape[2] = <np.npy_intp> self.mat.getChannels()
+
         if self.mat.getChannels() == 1:
             shape = (self.mat.getHeight(), self.mat.getWidth())
         else:
@@ -3694,38 +3703,52 @@ cdef class Mat:
 
         cdef size_t size = 0
         dtype = None
+        nptype = None
+        npdim = None
         if self.mat.getDataType() in (c_MAT_TYPE.U8_C1, c_MAT_TYPE.U8_C2, c_MAT_TYPE.U8_C3, c_MAT_TYPE.U8_C4):
             size = self.mat.getHeight()*self.mat.getWidth()*self.mat.getChannels()
             dtype = np.uint8
+            nptype = np.NPY_UINT8
         elif self.mat.getDataType() in (c_MAT_TYPE.F32_C1, c_MAT_TYPE.F32_C2, c_MAT_TYPE.F32_C3, c_MAT_TYPE.F32_C4):
             size = self.mat.getHeight()*self.mat.getWidth()*self.mat.getChannels()*sizeof(float)
             dtype = np.float32
+            nptype = np.NPY_FLOAT32
         elif self.mat.getDataType() == c_MAT_TYPE.U16_C1:
             size = self.mat.getHeight()*self.mat.getWidth()*self.mat.getChannels()*sizeof(ushort)
             dtype = np.ushort
+            nptype = np.NPY_UINT16
         else:
             raise RuntimeError("Unknown Mat data_type value: {0}".format(<int>self.mat.getDataType()))
 
-        cdef np.ndarray arr = np.zeros(shape, dtype=dtype)
+        if self.mat.getDataType() in (c_MAT_TYPE.U8_C1, c_MAT_TYPE.F32_C1, c_MAT_TYPE.U16_C1):
+            npdim = 2
+        else:
+            npdim = 3
+
+        cdef np.ndarray arr = np.empty(shape, dtype=dtype)
+
         if isinstance(memory_type, MEM):
-            if self.mat.getDataType() == c_MAT_TYPE.U8_C1:
-                memcpy(<void*>arr.data, <void*>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-            elif self.mat.getDataType() == c_MAT_TYPE.U8_C2:
-                memcpy(<void*>arr.data, <void*>getPointerUchar2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-            elif self.mat.getDataType() == c_MAT_TYPE.U8_C3:
-                memcpy(<void*>arr.data, <void*>getPointerUchar3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-            elif self.mat.getDataType() == c_MAT_TYPE.U8_C4:
-                memcpy(<void*>arr.data, <void*>getPointerUchar4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-            elif self.mat.getDataType() == c_MAT_TYPE.U16_C1:
-                memcpy(<void*>arr.data, <void*>getPointerUshort1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-            elif self.mat.getDataType() == c_MAT_TYPE.F32_C1:
-                memcpy(<void*>arr.data, <void*>getPointerFloat1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-            elif self.mat.getDataType() == c_MAT_TYPE.F32_C2:
-                memcpy(<void*>arr.data, <void*>getPointerFloat2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-            elif self.mat.getDataType() == c_MAT_TYPE.F32_C3:
-                memcpy(<void*>arr.data, <void*>getPointerFloat3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-            elif self.mat.getDataType() == c_MAT_TYPE.F32_C4:
-                memcpy(<void*>arr.data, <void*>getPointerFloat4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            if deep_copy:
+                if self.mat.getDataType() == c_MAT_TYPE.U8_C1:
+                    memcpy(<void*>arr.data, <void*>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                elif self.mat.getDataType() == c_MAT_TYPE.U8_C2:
+                    memcpy(<void*>arr.data, <void*>getPointerUchar2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                elif self.mat.getDataType() == c_MAT_TYPE.U8_C3:
+                    memcpy(<void*>arr.data, <void*>getPointerUchar3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                elif self.mat.getDataType() == c_MAT_TYPE.U8_C4:
+                    memcpy(<void*>arr.data, <void*>getPointerUchar4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                elif self.mat.getDataType() == c_MAT_TYPE.U16_C1:
+                    memcpy(<void*>arr.data, <void*>getPointerUshort1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                elif self.mat.getDataType() == c_MAT_TYPE.F32_C1:
+                    memcpy(<void*>arr.data, <void*>getPointerFloat1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                elif self.mat.getDataType() == c_MAT_TYPE.F32_C2:
+                    memcpy(<void*>arr.data, <void*>getPointerFloat2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                elif self.mat.getDataType() == c_MAT_TYPE.F32_C3:
+                    memcpy(<void*>arr.data, <void*>getPointerFloat3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                elif self.mat.getDataType() == c_MAT_TYPE.F32_C4:
+                    memcpy(<void*>arr.data, <void*>getPointerFloat4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            else: # Thanks to BDO for the initial implementation!
+                arr = np.PyArray_SimpleNewFromData(npdim, cython_shape, nptype, <void*>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value)))
         else:
             raise TypeError("Argument is not of MEM type.")
 
@@ -3833,6 +3856,18 @@ cdef class Mat:
     @name.setter
     def name(self, str name_):
         self.mat.name.set(name_.encode())
+
+    ##
+    # The timestamp of the \ref Mat.
+    @property
+    def timestamp(self):
+        ts = Timestamp()
+        ts.timestamp = self.mat.timestamp
+        return ts
+
+    @timestamp.setter
+    def timestamp(self, timestamp : Timestamp):
+        self.mat.timestamp.data_ns = timestamp.get_nanoseconds()
 
     ##
     # Whether the \ref Mat can display information or not.
@@ -5288,8 +5323,8 @@ cdef class InitParameters:
 
     ##
     # At initialization, the \ref Camera runs a self-calibration process that corrects small offsets from the device's factory calibration.
-    # A drawback is that calibration parameters will sligtly change from one run to another, which can be an issue for repeatability.
-    # If set to true, self-calibration will be disabled and calibration parameters won't be optimized.
+    # A drawback is that calibration parameters will sligtly change from one (live) run to another, which can be an issue for repeatability.
+    # If set to true, self-calibration will be disabled and calibration parameters won't be optimized (using the parameters of the conf file).
     # default : false
     # \note In most situations, self calibration should remain enabled.
     @property
@@ -8323,14 +8358,14 @@ cdef class Camera:
     ##
     # Performs an hardware reset of the ZED 2.
     # 
-    # \param sn (int) : Serial number of the camera to reset, or 0 to reset the first camera detected.
-    # \param fullReboot (bool) : If set to True, performs a full reboot (Sensors and Video modules). Default: True
+    # \param sn : Serial number of the camera to reset, or 0 to reset the first camera detected.
+    # \param fullReboot : If set to True, performs a full reboot (Sensors and Video modules). Default: True
     # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if everything went fine, \ref ERROR_CODE "ERROR_CODE.CAMERA_NOT_DETECTED" if no camera was detected, \ref ERROR_CODE "ERROR_CODE.FAILURE"  otherwise.
     #
     # \note This function only works for ZED2 and ZED2i cameras.
     # 
     # \warning This function will invalidate any sl.Camera object, since the device is rebooting.
     @staticmethod
-    def reboot(int sn, bool fullReboot=True):
+    def reboot(sn : int, fullReboot: bool =True):
         cls = Camera()
         return ERROR_CODE(<int>cls.camera.reboot(sn, fullReboot))
