@@ -319,6 +319,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         VIEW_NORMALS 'sl::VIEW::NORMALS'
         VIEW_DEPTH_RIGHT 'sl::VIEW::DEPTH_RIGHT'
         VIEW_NORMALS_RIGHT 'sl::VIEW::NORMALS_RIGHT'
+        VIEW_LEFT_SIGNED 'sl::VIEW::LEFT_SIGNED'
+        VIEW_RIGHT_SIGNED 'sl::VIEW::RIGHT_SIGNED'
         VIEW_LAST 'sl::VIEW::LAST'
 
     String toString(VIEW o)
@@ -335,6 +337,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         OK 'sl::POSITIONAL_TRACKING_STATE::OK'
         OFF 'sl::POSITIONAL_TRACKING_STATE::OFF'
         FPS_TOO_LOW 'sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW'
+        SEARCHING_FLOOR_PLANE 'sl::POSITIONAL_TRACKING_STATE::SEARCHING_FLOOR_PLANE'
         POSITIONAL_TRACKING_STATE_LAST 'sl::POSITIONAL_TRACKING_STATE::LAST'
 
     String toString(POSITIONAL_TRACKING_STATE o)
@@ -404,6 +407,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         MULTI_CLASS_BOX_MEDIUM 'sl::DETECTION_MODEL::MULTI_CLASS_BOX_MEDIUM'
         HUMAN_BODY_MEDIUM 'sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM'
         PERSON_HEAD_BOX 'sl::DETECTION_MODEL::PERSON_HEAD_BOX'
+        PERSON_HEAD_BOX_ACCURATE 'sl::DETECTION_MODEL::PERSON_HEAD_BOX_ACCURATE'
         CUSTOM_BOX_OBJECTS 'sl::DETECTION_MODEL::CUSTOM_BOX_OBJECTS'
         LAST 'sl::DETECTION_MODEL::LAST'
 
@@ -529,6 +533,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         U8_C3 'sl::MAT_TYPE::U8_C3'
         U8_C4 'sl::MAT_TYPE::U8_C4'
         U16_C1 'sl::MAT_TYPE::U16_C1'
+        S8_C4 'sl::MAT_TYPE::S8_C4'
 
     ctypedef enum OBJECT_CLASS 'sl::OBJECT_CLASS':
         PERSON 'sl::OBJECT_CLASS::PERSON' = 0
@@ -1106,8 +1111,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         bool save(String filename)
         bool load(String filename)
-
-
+    
     cdef cppclass PositionalTrackingParameters 'sl::PositionalTrackingParameters':
         Transform initial_world_transform
         bool enable_area_memory
@@ -1116,6 +1120,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         String area_file_path
         bool enable_imu_fusion
         bool set_as_static
+        float depth_min_range
+        bool set_gravity_as_origin
 
         PositionalTrackingParameters(Transform init_pos,
                            bool _enable_memory,
@@ -1123,7 +1129,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                            String _area_path,
                            bool _set_floor_as_origin,
                            bool _enable_imu_fusion,
-                           bool _set_as_static)
+                           bool _set_as_static,
+                           float _depth_min_range,
+                           bool _set_gravity_as_origin)
 
         bool save(String filename)
         bool load(String filename)
@@ -1209,13 +1217,16 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         BatchParameters batch_parameters
         BODY_FORMAT body_format
         OBJECT_FILTERING_MODE filtering_mode
-        ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output, DETECTION_MODEL detection_model, bool enable_body_fitting, float max_range, BatchParameters batch_trajectories_parameters, BODY_FORMAT body_format, OBJECT_FILTERING_MODE filtering_mode)
+        float prediction_timeout_s
+        bool allow_reduced_precision_inference
+        ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output, DETECTION_MODEL detection_model, bool enable_body_fitting, float max_range, BatchParameters batch_trajectories_parameters, BODY_FORMAT body_format, OBJECT_FILTERING_MODE filtering_mode, float prediction_timeout_s, bool allow_reduced_precision_inference)
 
     cdef cppclass ObjectDetectionRuntimeParameters:
         float detection_confidence_threshold
         vector[OBJECT_CLASS] object_class_filter
         map[OBJECT_CLASS,float] object_class_detection_confidence_threshold
-        ObjectDetectionRuntimeParameters(float detection_confidence_threshold, vector[OBJECT_CLASS] object_class_filter, map[OBJECT_CLASS,float] object_class_detection_confidence_threshold)
+        int minimum_keypoints_threshold
+        ObjectDetectionRuntimeParameters(float detection_confidence_threshold, vector[OBJECT_CLASS] object_class_filter, map[OBJECT_CLASS,float] object_class_detection_confidence_threshold, int minimum_keypoints_threshold)
 
     cdef cppclass Pose:
         Pose()
@@ -1336,6 +1347,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE retrieveMeasure(Mat &mat, MEASURE measure, MEM type, Resolution resolution)
         ERROR_CODE getCurrentMinMaxDepth(float& min, float& max)
 
+        ERROR_CODE setRegionOfInterest(Mat &mat)
+
         void setSVOPosition(int frame_number)
         int getSVOPosition()
         int getSVONumberOfFrames()
@@ -1414,4 +1427,4 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE reboot(int sn, bool fullReboot)
 
 cdef extern from "Utils.cpp" namespace "sl":
-    ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector, map[int,float] object_confidence_map)
+    ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector, map[int,float] object_confidence_map, int minimum_keypoints_threshold)

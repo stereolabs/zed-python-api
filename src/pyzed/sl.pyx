@@ -11,7 +11,7 @@
 # OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
 # SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
 # LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# DATA, OR PROFITS;POSITIONAL_TRACKING_STATE OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 # THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -286,6 +286,7 @@ class INPUT_TYPE(enum.Enum):
 # | MULTI_CLASS_BOX_MEDIUM   | Any object, bounding box based, compromise between accuracy and speed  |
 # | HUMAN_BODY_MEDIUM        | Keypoints based, specific to human skeleton, compromise between accuracy and speed  |
 # | PERSON_HEAD_BOX          | Bounding Box detector specialized in person heads, particulary well suited for crowded environments, the person localization is also improved  |
+# | PERSON_HEAD_BOX_ACCURATE | Bounding Box detector specialized in person heads, particulary well suited for crowded environments, the person localization is also improved, state of the art accuracy  |
 # | CUSTOM_BOX_OBJECTS          | For external inference, using your own custom model and/or frameworks. This mode disables the internal inference engine, the 2D bounding box detection must be provided  |
 class DETECTION_MODEL(enum.Enum):
     MULTI_CLASS_BOX = <int>c_DETECTION_MODEL.MULTI_CLASS_BOX
@@ -295,6 +296,7 @@ class DETECTION_MODEL(enum.Enum):
     MULTI_CLASS_BOX_MEDIUM = <int>c_DETECTION_MODEL.MULTI_CLASS_BOX_MEDIUM
     HUMAN_BODY_MEDIUM = <int>c_DETECTION_MODEL.HUMAN_BODY_MEDIUM
     PERSON_HEAD_BOX = <int>c_DETECTION_MODEL.PERSON_HEAD_BOX
+    PERSON_HEAD_BOX_ACCURATE = <int>c_DETECTION_MODEL.PERSON_HEAD_BOX_ACCURATE
     CUSTOM_BOX_OBJECTS = <int>c_DETECTION_MODEL.CUSTOM_BOX_OBJECTS
     LAST = <int>c_DETECTION_MODEL.LAST
 
@@ -1057,11 +1059,13 @@ class VIEW(enum.Enum):
 # | OK | Positional tracking is working normally. |
 # | OFF | Positional tracking is not enabled. |
 # | FPS_TOO_LOW | Effective FPS is too low to give proper results for motion tracking. Consider using PERFORMANCE parameters ([DEPTH_MODE.PERFORMANCE](\ref DEPTH_MODE), low camera resolution (VGA,HD720)) |
+# | SEARCHING_FLOOR_PLANE | The camera is searching for the floor plane to locate itself related to it, the REFERENCE_FRAME::WORLD will be set afterward.|
 class POSITIONAL_TRACKING_STATE(enum.Enum):
     SEARCHING = <int>c_POSITIONAL_TRACKING_STATE.SEARCHING
     OK = <int>c_POSITIONAL_TRACKING_STATE.OK
     OFF = <int>c_POSITIONAL_TRACKING_STATE.OFF
     FPS_TOO_LOW = <int>c_POSITIONAL_TRACKING_STATE.FPS_TOO_LOW
+    SEARCHING_FLOOR_PLANE = <int>c_POSITIONAL_TRACKING_STATE.SEARCHING_FLOOR_PLANE
     LAST = <int>c_POSITIONAL_TRACKING_STATE.POSITIONAL_TRACKING_STATE_LAST
 
     def __str__(self):
@@ -1214,6 +1218,7 @@ class COPY_TYPE(enum.Enum):
 # | U8_C3 | unsigned char 3 channels. |
 # | U8_C4 | unsigned char 4 channels. |
 # | U16_C1 | unsigned short 1 channel. |
+# | S8_C4 | signed char 4 channels. |
 class MAT_TYPE(enum.Enum):
     F32_C1 = <int>c_MAT_TYPE.F32_C1
     F32_C2 = <int>c_MAT_TYPE.F32_C2
@@ -1224,6 +1229,7 @@ class MAT_TYPE(enum.Enum):
     U8_C3 = <int>c_MAT_TYPE.U8_C3
     U8_C4 = <int>c_MAT_TYPE.U8_C4
     U16_C1 = <int>c_MAT_TYPE.U16_C1
+    S8_C4 = <int>c_MAT_TYPE.S8_C4
 
 ##
 # Lists available sensor types
@@ -2405,13 +2411,17 @@ cdef class ObjectDetectionParameters:
                 , enable_body_fitting=False, max_range=-1.0
                 , batch_trajectories_parameters=BatchParameters()
                 , body_format=BODY_FORMAT.POSE_18
-                , filtering_mode = OBJECT_FILTERING_MODE.NMS3D):
+                , filtering_mode = OBJECT_FILTERING_MODE.NMS3D
+                , prediction_timeout_s = 0.2
+                , allow_reduced_precision_inference = False):
         self.object_detection = new c_ObjectDetectionParameters(image_sync, enable_tracking
                                                                 , enable_mask_output, <c_DETECTION_MODEL>(<unsigned int>detection_model.value)
                                                                 , enable_body_fitting, max_range
                                                                 , (<BatchParameters>batch_trajectories_parameters).batch_params[0]
                                                                 , <c_BODY_FORMAT>(<unsigned int>body_format.value)
-                                                                , <c_OBJECT_FILTERING_MODE>(<unsigned int>filtering_mode.value))
+                                                                , <c_OBJECT_FILTERING_MODE>(<unsigned int>filtering_mode.value)
+                                                                , prediction_timeout_s
+                                                                , allow_reduced_precision_inference)
 
     def __dealloc__(self):
         del self.object_detection
@@ -2522,6 +2532,26 @@ cdef class ObjectDetectionParameters:
         else :
             raise TypeError()
 
+    ##
+    # When an object is not detected anymore, the SDK will predict its positions during a short period of time before its state switched to SEARCHING.
+    @property
+    def prediction_timeout_s(self):
+        return self.object_detection.prediction_timeout_s
+
+    @prediction_timeout_s.setter
+    def prediction_timeout_s(self, float prediction_timeout_s):
+        self.object_detection.prediction_timeout_s = prediction_timeout_s
+        
+    ##
+    # Allow inference to run at a lower precision to improve runtime and memory usage, 
+    # it might increase the initial optimization time and could include downloading calibration data or calibration cache and slightly reduce the accuracy
+    @property
+    def allow_reduced_precision_inference(self):
+        return self.object_detection.allow_reduced_precision_inference
+
+    @allow_reduced_precision_inference.setter
+    def allow_reduced_precision_inference(self, bool allow_reduced_precision_inference):
+        self.object_detection.allow_reduced_precision_inference = allow_reduced_precision_inference
 
 ##
 # Sets the object detection runtime parameters.
@@ -2534,14 +2564,15 @@ cdef class ObjectDetectionRuntimeParameters:
     # \param detection_confidence_threshold : sets \ref detection_confidence_threshold. Default: 50
     # \param object_class_filter : sets \ref object_class_filter. Default: empty list (all classes are tracked)
     # \param object_class_detection_confidence_threshold : sets \ref object_class_detection_confidence_threshold. Default: empty dict (detection_confidence_threshold value will be taken for each class)
-    def __cinit__(self, detection_confidence_threshold=50, object_class_filter=[], object_class_detection_confidence_threshold={}):
+    # \param minimum_keypoints_threshold: sets \ref minimum_keypoints_threshold. Default: 0 (all skeletons are retrieved)
+    def __cinit__(self, detection_confidence_threshold=50, object_class_filter=[], object_class_detection_confidence_threshold={}, minimum_keypoints_threshold=0):
         cdef vector[int] vec_cpy
         cdef map[int,float] map_cpy
         for object_class in object_class_filter:
             vec_cpy.push_back(<int>object_class.value)
         for k,v in object_class_detection_confidence_threshold.items():
             map_cpy[<int>k.value] = v
-        self.object_detection_rt = create_object_detection_runtime_parameters(detection_confidence_threshold, vec_cpy, map_cpy)
+        self.object_detection_rt = create_object_detection_runtime_parameters(detection_confidence_threshold, vec_cpy, map_cpy, minimum_keypoints_threshold)
 
     def __dealloc__(self):
         del self.object_detection_rt
@@ -2606,6 +2637,18 @@ cdef class ObjectDetectionRuntimeParameters:
         self.object_detection_rt.object_class_detection_confidence_threshold.clear()
         for k,v in object_class_detection_confidence_threshold_dict.items():
             self.object_detection_rt.object_class_detection_confidence_threshold[<c_OBJECT_CLASS>(<unsigned int>k.value)] = v
+
+    ##
+    # Defines minimal number of keypoints per skeleton to be retrieved:
+    # the SDK will outputs skeleton with more keypoints than this threshold.
+    # it is useful for example to remove unstable fitting results when a skeleton is partially occluded.
+    @property
+    def minimum_keypoints_threshold(self):
+        return self.object_detection_rt.minimum_keypoints_threshold
+
+    @minimum_keypoints_threshold.setter
+    def minimum_keypoints_threshold(self, int minimum_keypoints_threshold_):
+        self.object_detection_rt.minimum_keypoints_threshold = minimum_keypoints_threshold_
 
 # Returns the current timestamp at the time the function is called.
 # \ingroup Core_group
@@ -5380,18 +5423,15 @@ cdef class InitParameters:
         self.init.sdk_verbose_log_file.set(<char*>value_filename)
 
     ##
-    # Regions of the generated depth map can oscillate from one frame to another. These oscillations result from a lack of texture (too homogeneous) on an object and by image noise.
-    # This parameter enables a stabilization filter that reduces these oscillations.
-    # default : true
-    # \note The stabilization uses the positional tracking to increase its accuracy, so the Tracking module will be enabled automatically when set to true.
-    #
-    # Notice that calling \ref Camera.enable_tracking() with your own parameters afterwards is still possible.
+	# Regions of the generated depth map can oscillate from one frame to another. These oscillations result from a lack of texture (too homogeneous) on an object and by image noise.
+	# This parameter control a stabilization filter that reduces these oscillations. In the range [0-100], 0 is disable (raw depth), smoothness is linear from 1 to 100.
+    # \note The stabilization uses the positional tracking to increase its accuracy, so the Positional Tracking module will be enabled automatically when set to a value different from 0
     @property
     def depth_stabilization(self):
         return self.init.depth_stabilization
 
     @depth_stabilization.setter
-    def depth_stabilization(self, value: bool):
+    def depth_stabilization(self, value: int):
         self.init.depth_stabilization = value
 
     ##
@@ -5699,17 +5739,18 @@ cdef class PositionalTrackingParameters:
     # \param _set_floor_as_origin : activates \ref set_floor_as_origin
     # \param _enable_imu_fusion : activates \ref enable_imu_fusion
     # \param _set_as_static : activates \ref set_as_static
-    #
+    # \param _depth_min_range : activates \ref depth_min_range
+    # \param _set_gravity_as_origin : This setting allows you to set the odometry world using sensors data.
     # \code
     # params = sl.PositionalTrackingParameters(init_pos=Transform(), _enable_pose_smoothing=True)
     # \endcode
     def __cinit__(self, _init_pos=Transform(), _enable_memory=True, _enable_pose_smoothing=False, _area_path=None,
-                  _set_floor_as_origin=False, _enable_imu_fusion=True, _set_as_static=False):
+                  _set_floor_as_origin=False, _enable_imu_fusion=True, _set_as_static=False, _depth_min_range=-1, _set_gravity_as_origin=True):
         if _area_path is None:
-            self.tracking = new c_PositionalTrackingParameters((<Transform>_init_pos).transform[0], _enable_memory, _enable_pose_smoothing, String(), _set_floor_as_origin, _enable_imu_fusion, _set_as_static)
+            self.tracking = new c_PositionalTrackingParameters((<Transform>_init_pos).transform[0], _enable_memory, _enable_pose_smoothing, String(), _set_floor_as_origin, _enable_imu_fusion, _set_as_static, _depth_min_range, _set_gravity_as_origin)
         else :
             area_path = _area_path.encode()
-            self.tracking = new c_PositionalTrackingParameters((<Transform>_init_pos).transform[0], _enable_memory, _enable_pose_smoothing, String(<char*> area_path), _set_floor_as_origin, _enable_imu_fusion, _set_as_static)
+            self.tracking = new c_PositionalTrackingParameters((<Transform>_init_pos).transform[0], _enable_memory, _enable_pose_smoothing, String(<char*> area_path), _set_floor_as_origin, _enable_imu_fusion, _set_as_static, _depth_min_range, _set_gravity_as_origin)
     
     def __dealloc__(self):
         del self.tracking
@@ -5824,6 +5865,28 @@ cdef class PositionalTrackingParameters:
     @set_as_static.setter
     def set_as_static(self, value: bool):
         self.tracking.set_as_static = value
+    
+    ##
+    # This setting allows you to change the minimum depth used by the SDK for Positional Tracking.
+    # It may be useful for example if any steady objects are in front of the camera and may perturbate the positional tracking algorithm.
+    # default : -1, no minimum depth
+    @property
+    def depth_min_range(self):
+        return self.tracking.depth_min_range
+
+    @depth_min_range.setter
+    def depth_min_range(self, value):
+        self.tracking.depth_min_range = value
+
+    ##
+    # This setting allows you to override 2 of the 3 rotations from initial_world_transform using the IMU gravity
+    @property
+    def set_gravity_as_origin(self):
+        return self.tracking.set_gravity_as_origin
+
+    @set_gravity_as_origin.setter
+    def set_gravity_as_origin(self, value: bool):
+        self.tracking.set_gravity_as_origin = value
 
 ##
 # List of possible camera states.
@@ -7215,6 +7278,14 @@ cdef class Camera:
             raise TypeError("Arguments must be of MEASURE, MEM and integer types.")
 
     ##
+    # Defines a region of interest to focus on for all the SDK, discarding other parts.
+    # \param roi_mask: the \ref Mat defining the requested region of interest, all pixel set to 0 will be discard. If empty, set all pixels as valid, 
+    # otherwise should fit the resolution of the current instance and its type should be U8_C1.
+    # \return An ERROR_CODE if something went wrong.
+    def set_region_of_interest(self, py_mat: Mat):
+        return ERROR_CODE(<int>self.camera.setRegionOfInterest(py_mat.mat))
+
+    ##
     # Sets the playback cursor to the desired frame number in the SVO file.
     #
     # This function allows you to move around within a played-back SVO file. After calling, the next call to \ref grab() will read the provided frame number.
@@ -7499,6 +7570,8 @@ cdef class Camera:
         tracking.tracking.area_file_path = self.camera.getPositionalTrackingParameters().area_file_path
         tracking.tracking.enable_imu_fusion  = self.camera.getPositionalTrackingParameters().enable_imu_fusion
         tracking.tracking.set_as_static = self.camera.getPositionalTrackingParameters().set_as_static
+        tracking.tracking.depth_min_range = self.camera.getPositionalTrackingParameters().depth_min_range
+        tracking.tracking.set_gravity_as_origin = self.camera.getPositionalTrackingParameters().set_gravity_as_origin
         return tracking
 
     ## 
@@ -7524,6 +7597,8 @@ cdef class Camera:
         object_detection = ObjectDetectionParameters()
         object_detection.object_detection.image_sync = self.camera.getObjectDetectionParameters().image_sync
         object_detection.object_detection.enable_tracking = self.camera.getObjectDetectionParameters().enable_tracking
+        object_detection.object_detection.max_range = self.camera.getObjectDetectionParameters().max_range
+        object_detection.object_detection.prediction_timeout_s = self.camera.getObjectDetectionParameters().prediction_timeout_s
         return object_detection
 
     ##
