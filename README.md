@@ -11,7 +11,10 @@ This package lets you use the ZED stereo camera in Python 3. The Python API is a
 
 To start using the ZED SDK in Python, you will need to install the following dependencies on your system:  
 
-- [ZED SDK 3.8](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ZED SDK 4.0](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+
+For the ZED SDK 3.8 compatible version, use the [zedsdk_3.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_3.X) or the [3.8 release tag](https://github.com/stereolabs/zed-python-api/releases/tag/v3.8)
+
 - Python 3.7+ x64  ([Windows installer](https://www.python.org/ftp/python/3.7.6/python-3.7.6-amd64.exe))
 - [Cython 0.28](http://cython.org/#download)
 - [Numpy 1.13](https://www.scipy.org/scipylib/download.html)
@@ -58,29 +61,23 @@ Run the script:
 ```bash
 $ cd "/usr/local/zed/"
 $ python get_python_api.py
-
     # The script displays the detected platform versions
-    CUDA 10.0
-    Platform ubuntu18
-    ZED 3.1
-    Python 3.7
-    # Downloads the whl package
-    Downloading python package from https://download.stereolabs.com/zedsdk/3.1/ubuntu18/cu100/py37 ...
-
-    # Gives instruction on how to install the downloaded package
-    File saved into pyzed-3.1-cp37-cp37m-linux_x86_64.whl
-    To install it run :
-      python3 -m pip install pyzed-3.1-cp37-cp37m-linux_x86_64.whl
+    Detected platform: 
+        linux_x86_64
+        Python 3.11
+        ZED SDK 4.0
+    # Downloads and install the whl package
+    -> Checking if https://download.stereolabs.com/zedsdk/4.0/whl/linux_x86_64/pyzed-4.0-cp311-cp311-linux_x86_64.whl exists and is available
+    -> Found ! Downloading python package into /home/user/pyzed-4.0-cp311-cp311-linux_x86_64.whl
+    -> Installing necessary dependencies
+    ...
+    Successfully installed pyzed-4.0
 ```
 
-Now install the downloaded package with pip:
+To install it later or on a different environment run : 
 
 ```bash
-$ python3 -m pip install pyzed-3.1-cp37-cp37m-linux_x86_64.whl
-
-    Processing ./pyzed-3.1-cp37-cp37m-linux_x86_64.whl
-    Installing collected packages: pyzed
-    Successfully installed pyzed-3.1
+$ python -m pip install --ignore-installed /home/user/pyzed-4.0-cp311-cp311-linux_x86_64.wh
 ```
 
 That's it ! The Python API is now installed.

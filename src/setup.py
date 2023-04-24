@@ -36,7 +36,7 @@ libDirs = ""
 libs = ""
 cflags = ""
 
-ZED_SDK_MAJOR = "3"
+ZED_SDK_MAJOR = "4"
 ZED_SDK_MINOR = "0"
 
 cuda_path = "/usr/local/cuda"
@@ -184,8 +184,7 @@ extensions = list()
 
 py_packages = ["pyzed"]
 
-GPUmodulesTable = [("pyzed.sl", ["pyzed/sl.pyx"])
-                   ]
+GPUmodulesTable = [("pyzed.sl", ["pyzed/sl.pyx"])]      # Provide source files
 
 for mod in GPUmodulesTable:
     print ("Building module:", mod)

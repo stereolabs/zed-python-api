@@ -196,8 +196,7 @@ namespace sl {
 
     sl::ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, 
                                         std::vector<int> object_vector,
-                                        std::map<int,float> object_class_confidence_map,
-                                        int minimum_keypoints_threshold) {
+                                        std::map<int,float> object_class_confidence_map) {
 
         std::vector<sl::OBJECT_CLASS> object_vector_cpy;
         for (unsigned int i = 0; i < object_vector.size(); i++)
@@ -209,6 +208,6 @@ namespace sl {
                 object_class_confidence_map_cpy[static_cast<sl::OBJECT_CLASS>(map_elem.first)] = map_elem.second;
             }
         }
-        return new ObjectDetectionRuntimeParameters(confidence_threshold, object_vector_cpy, object_class_confidence_map_cpy, minimum_keypoints_threshold);
+        return new ObjectDetectionRuntimeParameters(confidence_threshold, object_vector_cpy, object_class_confidence_map_cpy);
     }
 }

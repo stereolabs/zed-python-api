@@ -32,6 +32,11 @@ cdef extern from "<array>" namespace "std" nogil:
     array6() except+
     int& operator[](size_t)
 
+cdef extern from "<array>" namespace "std" nogil:
+  cdef cppclass array9 "std::array<double, 9>":
+    array9() except+
+    int& operator[](size_t)
+
 cdef extern from "Utils.cpp" namespace "sl":
     string to_str(String sl_str)
 
@@ -54,6 +59,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
 
     ctypedef enum ERROR_CODE "sl::ERROR_CODE" :
+        CAMERA_REBOOTING 'sl::ERROR_CODE::CAMERA_REBOOTING',
         SUCCESS 'sl::ERROR_CODE::SUCCESS',
         FAILURE 'sl::ERROR_CODE::FAILURE',
         NO_GPU_COMPATIBLE 'sl::ERROR_CODE::NO_GPU_COMPATIBLE',
@@ -104,6 +110,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         ZED_M 'sl::MODEL::ZED_M',
         ZED2 'sl::MODEL::ZED2',
         ZED2i 'sl::MODEL::ZED2i',
+        ZED_X 'sl::MODEL::ZED_X',
+        ZED_XM 'sl::MODEL::ZED_XM',
         MODEL_LAST 'sl::MODEL::LAST'
 
     String toString(MODEL o)
@@ -130,6 +138,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         String path
         MODEL camera_model
         unsigned int serial_number
+        INPUT_TYPE input_type
 
     String toString(DeviceProperties o)
 
@@ -239,9 +248,12 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
     ctypedef enum RESOLUTION 'sl::RESOLUTION':
         HD2K 'sl::RESOLUTION::HD2K'
         HD1080 'sl::RESOLUTION::HD1080'
+        HD1200 'sl::RESOLUTION::HD1200'
         HD720 'sl::RESOLUTION::HD720'
+        SVGA 'sl::RESOLUTION::SVGA'
         VGA 'sl::RESOLUTION::VGA'
-        RESOLUTION_LAST 'sl::RESOLUTION::LAST'
+        AUTO 'sl::RESOLUTION::AUTO'
+        LAST 'sl::RESOLUTION::LAST'
 
     String toString(RESOLUTION o)
 
@@ -259,7 +271,15 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         WHITEBALANCE_TEMPERATURE 'sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE'
         WHITEBALANCE_AUTO 'sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO'
         LED_STATUS 'sl::VIDEO_SETTINGS::LED_STATUS'
-        VIDEO_SETTINGS_LAST 'sl::VIDEO_SETTINGS::LAST'
+        EXPOSURE_TIME 'sl::VIDEO_SETTINGS::EXPOSURE_TIME'
+        ANALOG_GAIN 'sl::VIDEO_SETTINGS::ANALOG_GAIN'
+        DIGITAL_GAIN 'sl::VIDEO_SETTINGS::DIGITAL_GAIN'
+        AUTO_EXPOSURE_TIME_RANGE 'sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE'
+        AUTO_ANALOG_GAIN_RANGE 'sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE'
+        AUTO_DIGITAL_GAIN_RANGE 'sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE'
+        EXPOSURE_COMPENSATION 'sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION'
+        DENOISING 'sl::VIDEO_SETTINGS::DENOISING'
+        LAST 'sl::VIDEO_SETTINGS::LAST'
 
     String toString(VIDEO_SETTINGS o)
 
@@ -272,13 +292,6 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         DEPTH_MODE_LAST 'sl::DEPTH_MODE::LAST'
 
     String toString(DEPTH_MODE o)
-
-    ctypedef enum SENSING_MODE 'sl::SENSING_MODE':
-        STANDARD 'sl::SENSING_MODE::STANDARD'
-        FILL 'sl::SENSING_MODE::FILL'
-        SENSING_MODE_LAST 'sl::SENSING_MODE::LAST'
-
-    String toString(SENSING_MODE o)
 
     ctypedef enum MEASURE 'sl::MEASURE':
         DISPARITY 'sl::MEASURE::DISPARITY'
@@ -398,18 +411,25 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         USB 'sl::INPUT_TYPE::USB'
         SVO 'sl::INPUT_TYPE::SVO'
         STREAM 'sl::INPUT_TYPE::STREAM'
+        GMSL 'sl::INPUT_TYPE::GMSL'
+        LAST 'sl::INPUT_TYPE::LAST'
 
-    ctypedef enum DETECTION_MODEL 'sl::DETECTION_MODEL':
-        MULTI_CLASS_BOX 'sl::DETECTION_MODEL::MULTI_CLASS_BOX'
-        HUMAN_BODY_FAST 'sl::DETECTION_MODEL::HUMAN_BODY_FAST'
-        HUMAN_BODY_ACCURATE 'sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE'
-        MULTI_CLASS_BOX_ACCURATE 'sl::DETECTION_MODEL::MULTI_CLASS_BOX_ACCURATE'
-        MULTI_CLASS_BOX_MEDIUM 'sl::DETECTION_MODEL::MULTI_CLASS_BOX_MEDIUM'
-        HUMAN_BODY_MEDIUM 'sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM'
-        PERSON_HEAD_BOX 'sl::DETECTION_MODEL::PERSON_HEAD_BOX'
-        PERSON_HEAD_BOX_ACCURATE 'sl::DETECTION_MODEL::PERSON_HEAD_BOX_ACCURATE'
-        CUSTOM_BOX_OBJECTS 'sl::DETECTION_MODEL::CUSTOM_BOX_OBJECTS'
-        LAST 'sl::DETECTION_MODEL::LAST'
+    ctypedef enum OBJECT_DETECTION_MODEL 'sl::OBJECT_DETECTION_MODEL':
+        MULTI_CLASS_BOX_FAST 'sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST'
+        MULTI_CLASS_BOX_ACCURATE 'sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_ACCURATE'
+        MULTI_CLASS_BOX_MEDIUM 'sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_MEDIUM'
+        PERSON_HEAD_BOX_FAST 'sl::OBJECT_DETECTION_MODEL::PERSON_HEAD_BOX_FAST'
+        PERSON_HEAD_BOX_ACCURATE 'sl::OBJECT_DETECTION_MODEL::PERSON_HEAD_BOX_ACCURATE'
+        CUSTOM_BOX_OBJECTS 'sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS'
+        LAST 'sl::OBJECT_DETECTION_MODEL::LAST'
+
+    ctypedef enum BODY_TRACKING_MODEL 'sl::BODY_TRACKING_MODEL':
+        HUMAN_BODY_FAST 'sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST'
+        HUMAN_BODY_ACCURATE 'sl::BODY_TRACKING_MODEL::HUMAN_BODY_ACCURATE'
+        HUMAN_BODY_MEDIUM 'sl::BODY_TRACKING_MODEL::HUMAN_BODY_MEDIUM'
+        PERSON_HEAD_BOX 'sl::BODY_TRACKING_MODEL::PERSON_HEAD_BOX'
+        PERSON_HEAD_BOX_ACCURATE 'sl::BODY_TRACKING_MODEL::PERSON_HEAD_BOX_ACCURATE'
+        LAST 'sl::BODY_TRACKING_MODEL::LAST'
 
     ctypedef enum OBJECT_FILTERING_MODE 'sl::OBJECT_FILTERING_MODE':
         NONE 'sl::OBJECT_FILTERING_MODE::NONE'
@@ -451,7 +471,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         float h_fov
         float d_fov
         Resolution image_size
-
+        CameraParameters scale(Resolution output_resolution) 
         void SetUp(float focal_x, float focal_y, float center_x, float center_y)
 
 
@@ -461,11 +481,6 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         Transform stereo_transform
 
         float getCameraBaseline()
-        
-        # Deprecated
-        Vector3[float] R
-        Vector3[float] T
-
 
     cdef struct SensorParameters:
         SENSOR_TYPE type
@@ -493,8 +508,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         CalibrationParameters calibration_parameters
         CalibrationParameters calibration_parameters_raw
         unsigned int firmware_version
-        float camera_fps
-        Resolution camera_resolution
+        float fps
+        Resolution resolution
 
 
     cdef struct CameraInformation:
@@ -503,16 +518,6 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         INPUT_TYPE input_type
         CameraConfiguration camera_configuration
         SensorsConfiguration sensors_configuration
-
-        # Deprecated
-        CalibrationParameters calibration_parameters
-        CalibrationParameters calibration_parameters_raw
-        Transform camera_imu_transform
-        unsigned int camera_firmware_version
-        unsigned int sensors_firmware_version
-        float camera_fps
-        Resolution camera_resolution
-
 
     ctypedef enum MEM 'sl::MEM':
         CPU 'sl::MEM::CPU'
@@ -600,19 +605,38 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         OBJECT_SUBCLASS sublabel
         OBJECT_TRACKING_STATE tracking_state
         OBJECT_ACTION_STATE action_state
-        Mat mask
         Vector3[float] position
         Vector3[float] velocity
-        Vector3[float] dimensions
-        vector[Vector3[float]] bounding_box
+        vector[array6] position_covariance
         vector[Vector2[uint]] bounding_box_2d
+        Mat mask
         float confidence
-        vector[Vector3[float]] keypoint
-        vector[Vector2[float]] keypoint_2d
-        vector[Vector3[float]] head_bounding_box
+        vector[Vector3[float]] bounding_box
+        Vector3[float] dimensions
         vector[Vector2[uint]] head_bounding_box_2d
+        vector[Vector3[float]] head_bounding_box
+        Vector3[float] head_position
+
+    cdef cppclass BodyData 'sl::BodyData':
+        int id
+        String unique_object_id
+        OBJECT_TRACKING_STATE tracking_state
+        OBJECT_ACTION_STATE action_state
+        Vector3[float] position
+        Vector3[float] velocity
+        vector[array6] position_covariance
+        vector[Vector2[uint]] bounding_box_2d
+        Mat mask
+        float confidence
+        vector[Vector3[float]] bounding_box
+        Vector3[float] dimensions
+        vector[Vector2[float]] keypoint_2d
+        vector[Vector3[float]] keypoint
+        vector[Vector2[uint]] head_bounding_box_2d
+        vector[Vector3[float]] head_bounding_box
         Vector3[float] head_position
         vector[float] keypoint_confidence
+        vector[array6] keypoint_covariances
         vector[Vector3[float]] local_position_per_joint
         vector[Vector4[float]] local_orientation_per_joint
         Vector4[float] global_root_orientation
@@ -639,6 +663,22 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         vector[vector[Vector2[uint]]] bounding_boxes_2d
         vector[float] confidences
         vector[OBJECT_ACTION_STATE] action_states
+        vector[vector[Vector2[uint]]] head_bounding_boxes_2d
+        vector[vector[Vector3[float]]] head_bounding_boxes
+        vector[Vector3[float]] head_positions
+        vector[vector[float]] keypoint_confidences
+
+    cdef cppclass BodiesBatch 'sl::BodiesBatch':
+        int id
+        OBJECT_TRACKING_STATE tracking_state
+        vector[Vector3[float]] positions
+        vector[array6] position_covariances
+        vector[Vector3[float]] velocities
+        vector[Timestamp] timestamps
+        vector[vector[Vector3[float]]] bounding_boxes
+        vector[vector[Vector2[uint]]] bounding_boxes_2d
+        vector[float] confidences
+        vector[OBJECT_ACTION_STATE] action_states
         vector[vector[Vector2[float]]] keypoints_2d
         vector[vector[Vector3[float]]] keypoints
         vector[vector[Vector2[uint]]] head_bounding_boxes_2d
@@ -653,72 +693,202 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         bool is_tracked
         bool getObjectDataFromId(ObjectData &objectData, int objectDataId)
 
+    cdef cppclass Bodies 'sl::Bodies':
+        Timestamp timestamp
+        vector[BodyData] body_list
+        bool is_new
+        bool is_tracked
+        bool getBodyDataFromId(BodyData &bodyData, int bodyDataId)
 
-    ctypedef enum BODY_PARTS 'sl::BODY_PARTS':
-        NOSE 'sl::BODY_PARTS::NOSE'
-        NECK 'sl::BODY_PARTS::NECK'
-        RIGHT_SHOULDER 'sl::BODY_PARTS::RIGHT_SHOULDER'
-        RIGHT_ELBOW 'sl::BODY_PARTS::RIGHT_ELBOW'
-        RIGHT_WRIST 'sl::BODY_PARTS::RIGHT_WRIST'
-        LEFT_SHOULDER 'sl::BODY_PARTS::LEFT_SHOULDER'
-        LEFT_ELBOW 'sl::BODY_PARTS::LEFT_ELBOW'
-        LEFT_WRIST 'sl::BODY_PARTS::LEFT_WRIST'
-        RIGHT_HIP 'sl::BODY_PARTS::RIGHT_HIP'
-        RIGHT_KNEE 'sl::BODY_PARTS::RIGHT_KNEE'
-        RIGHT_ANKLE 'sl::BODY_PARTS::RIGHT_ANKLE'
-        LEFT_HIP 'sl::BODY_PARTS::LEFT_HIP'
-        LEFT_KNEE 'sl::BODY_PARTS::LEFT_KNEE'
-        LEFT_ANKLE 'sl::BODY_PARTS::LEFT_ANKLE'
-        RIGHT_EYE 'sl::BODY_PARTS::RIGHT_EYE'
-        LEFT_EYE 'sl::BODY_PARTS::LEFT_EYE'
-        RIGHT_EAR 'sl::BODY_PARTS::RIGHT_EAR'
-        LEFT_EAR 'sl::BODY_PARTS::LEFT_EAR'
-        LAST 'sl::BODY_PARTS::LAST'
+    ctypedef enum BODY_18_PARTS 'sl::BODY_18_PARTS':
+        NOSE 'sl::BODY_18_PARTS::NOSE'
+        NECK 'sl::BODY_18_PARTS::NECK'
+        RIGHT_SHOULDER 'sl::BODY_18_PARTS::RIGHT_SHOULDER'
+        RIGHT_ELBOW 'sl::BODY_18_PARTS::RIGHT_ELBOW'
+        RIGHT_WRIST 'sl::BODY_18_PARTS::RIGHT_WRIST'
+        LEFT_SHOULDER 'sl::BODY_18_PARTS::LEFT_SHOULDER'
+        LEFT_ELBOW 'sl::BODY_18_PARTS::LEFT_ELBOW'
+        LEFT_WRIST 'sl::BODY_18_PARTS::LEFT_WRIST'
+        RIGHT_HIP 'sl::BODY_18_PARTS::RIGHT_HIP'
+        RIGHT_KNEE 'sl::BODY_18_PARTS::RIGHT_KNEE'
+        RIGHT_ANKLE 'sl::BODY_18_PARTS::RIGHT_ANKLE'
+        LEFT_HIP 'sl::BODY_18_PARTS::LEFT_HIP'
+        LEFT_KNEE 'sl::BODY_18_PARTS::LEFT_KNEE'
+        LEFT_ANKLE 'sl::BODY_18_PARTS::LEFT_ANKLE'
+        RIGHT_EYE 'sl::BODY_18_PARTS::RIGHT_EYE'
+        LEFT_EYE 'sl::BODY_18_PARTS::LEFT_EYE'
+        RIGHT_EAR 'sl::BODY_18_PARTS::RIGHT_EAR'
+        LEFT_EAR 'sl::BODY_18_PARTS::LEFT_EAR'
+        LAST 'sl::BODY_18_PARTS::LAST'
 
-    ctypedef enum BODY_PARTS_POSE_34 'sl::BODY_PARTS_POSE_34':
-        PELVIS 'sl::BODY_PARTS_POSE_34::PELVIS' 
-        NAVAL_SPINE 'sl::BODY_PARTS_POSE_34::NAVAL_SPINE' 
-        CHEST_SPINE 'sl::BODY_PARTS_POSE_34::CHEST_SPINE' 
-        NECK 'sl::BODY_PARTS_POSE_34::NECK' 
-        LEFT_CLAVICLE 'sl::BODY_PARTS_POSE_34::LEFT_CLAVICLE' 
-        LEFT_SHOULDER 'sl::BODY_PARTS_POSE_34::LEFT_SHOULDER' 
-        LEFT_ELBOW 'sl::BODY_PARTS_POSE_34::LEFT_ELBOW' 
-        LEFT_WRIST 'sl::BODY_PARTS_POSE_34::LEFT_WRIST' 
-        LEFT_HAND 'sl::BODY_PARTS_POSE_34::LEFT_HAND' 
-        LEFT_HANDTIP 'sl::BODY_PARTS_POSE_34::LEFT_HANDTIP' 
-        LEFT_THUMB 'sl::BODY_PARTS_POSE_34::LEFT_THUMB' 
-        RIGHT_CLAVICLE 'sl::BODY_PARTS_POSE_34::RIGHT_CLAVICLE'  
-        RIGHT_SHOULDER 'sl::BODY_PARTS_POSE_34::RIGHT_SHOULDER' 
-        RIGHT_ELBOW 'sl::BODY_PARTS_POSE_34::RIGHT_ELBOW' 
-        RIGHT_WRIST 'sl::BODY_PARTS_POSE_34::RIGHT_WRIST' 
-        RIGHT_HAND 'sl::BODY_PARTS_POSE_34::RIGHT_HAND' 
-        RIGHT_HANDTIP 'sl::BODY_PARTS_POSE_34::RIGHT_HANDTIP' 
-        RIGHT_THUMB 'sl::BODY_PARTS_POSE_34::RIGHT_THUMB' 
-        LEFT_HIP 'sl::BODY_PARTS_POSE_34::LEFT_HIP' 
-        LEFT_KNEE 'sl::BODY_PARTS_POSE_34::LEFT_KNEE' 
-        LEFT_ANKLE 'sl::BODY_PARTS_POSE_34::LEFT_ANKLE' 
-        LEFT_FOOT 'sl::BODY_PARTS_POSE_34::LEFT_FOOT' 
-        RIGHT_HIP 'sl::BODY_PARTS_POSE_34::RIGHT_HIP' 
-        RIGHT_KNEE 'sl::BODY_PARTS_POSE_34::RIGHT_KNEE' 
-        RIGHT_ANKLE 'sl::BODY_PARTS_POSE_34::RIGHT_ANKLE' 
-        RIGHT_FOOT 'sl::BODY_PARTS_POSE_34::RIGHT_FOOT' 
-        HEAD 'sl::BODY_PARTS_POSE_34::HEAD' 
-        NOSE 'sl::BODY_PARTS_POSE_34::NOSE' 
-        LEFT_EYE 'sl::BODY_PARTS_POSE_34::LEFT_EYE' 
-        LEFT_EAR 'sl::BODY_PARTS_POSE_34::LEFT_EAR' 
-        RIGHT_EYE 'sl::BODY_PARTS_POSE_34::RIGHT_EYE' 
-        RIGHT_EAR 'sl::BODY_PARTS_POSE_34::RIGHT_EAR' 
-        LEFT_HEEL 'sl::BODY_PARTS_POSE_34::LEFT_HEEL' 
-        RIGHT_HEEL 'sl::BODY_PARTS_POSE_34::RIGHT_HEEL' 
-        LAST 'sl::BODY_PARTS_POSE_34::LAST'
+    ctypedef enum BODY_34_PARTS 'sl::BODY_34_PARTS':
+        PELVIS 'sl::BODY_34_PARTS::PELVIS' 
+        NAVAL_SPINE 'sl::BODY_34_PARTS::NAVAL_SPINE' 
+        CHEST_SPINE 'sl::BODY_34_PARTS::CHEST_SPINE' 
+        NECK 'sl::BODY_34_PARTS::NECK' 
+        LEFT_CLAVICLE 'sl::BODY_34_PARTS::LEFT_CLAVICLE' 
+        LEFT_SHOULDER 'sl::BODY_34_PARTS::LEFT_SHOULDER' 
+        LEFT_ELBOW 'sl::BODY_34_PARTS::LEFT_ELBOW' 
+        LEFT_WRIST 'sl::BODY_34_PARTS::LEFT_WRIST' 
+        LEFT_HAND 'sl::BODY_34_PARTS::LEFT_HAND' 
+        LEFT_HANDTIP 'sl::BODY_34_PARTS::LEFT_HANDTIP' 
+        LEFT_THUMB 'sl::BODY_34_PARTS::LEFT_THUMB' 
+        RIGHT_CLAVICLE 'sl::BODY_34_PARTS::RIGHT_CLAVICLE'  
+        RIGHT_SHOULDER 'sl::BODY_34_PARTS::RIGHT_SHOULDER' 
+        RIGHT_ELBOW 'sl::BODY_34_PARTS::RIGHT_ELBOW' 
+        RIGHT_WRIST 'sl::BODY_34_PARTS::RIGHT_WRIST' 
+        RIGHT_HAND 'sl::BODY_34_PARTS::RIGHT_HAND' 
+        RIGHT_HANDTIP 'sl::BODY_34_PARTS::RIGHT_HANDTIP' 
+        RIGHT_THUMB 'sl::BODY_34_PARTS::RIGHT_THUMB' 
+        LEFT_HIP 'sl::BODY_34_PARTS::LEFT_HIP' 
+        LEFT_KNEE 'sl::BODY_34_PARTS::LEFT_KNEE' 
+        LEFT_ANKLE 'sl::BODY_34_PARTS::LEFT_ANKLE' 
+        LEFT_FOOT 'sl::BODY_34_PARTS::LEFT_FOOT' 
+        RIGHT_HIP 'sl::BODY_34_PARTS::RIGHT_HIP' 
+        RIGHT_KNEE 'sl::BODY_34_PARTS::RIGHT_KNEE' 
+        RIGHT_ANKLE 'sl::BODY_34_PARTS::RIGHT_ANKLE' 
+        RIGHT_FOOT 'sl::BODY_34_PARTS::RIGHT_FOOT' 
+        HEAD 'sl::BODY_34_PARTS::HEAD' 
+        NOSE 'sl::BODY_34_PARTS::NOSE' 
+        LEFT_EYE 'sl::BODY_34_PARTS::LEFT_EYE' 
+        LEFT_EAR 'sl::BODY_34_PARTS::LEFT_EAR' 
+        RIGHT_EYE 'sl::BODY_34_PARTS::RIGHT_EYE' 
+        RIGHT_EAR 'sl::BODY_34_PARTS::RIGHT_EAR' 
+        LEFT_HEEL 'sl::BODY_34_PARTS::LEFT_HEEL' 
+        RIGHT_HEEL 'sl::BODY_34_PARTS::RIGHT_HEEL' 
+        LAST 'sl::BODY_34_PARTS::LAST'
+
+    ctypedef enum BODY_38_PARTS 'sl::BODY_38_PARTS':
+        PELVIS 'sl::BODY_38_PARTS::PELVIS' 
+        SPINE_1 'sl::BODY_38_PARTS::SPINE_1' 
+        SPINE_2 'sl::BODY_38_PARTS::SPINE_2' 
+        SPINE_3 'sl::BODY_38_PARTS::SPINE_3' 
+        NECK 'sl::BODY_38_PARTS::NECK' 
+        NOSE 'sl::BODY_38_PARTS::NOSE' 
+        LEFT_EYE 'sl::BODY_38_PARTS::LEFT_EYE' 
+        RIGHT_EYE 'sl::BODY_38_PARTS::RIGHT_EYE' 
+        LEFT_EAR 'sl::BODY_38_PARTS::LEFT_EAR'         
+        RIGHT_EAR 'sl::BODY_38_PARTS::RIGHT_EAR'         
+        LEFT_CLAVICLE 'sl::BODY_38_PARTS::LEFT_CLAVICLE' 
+        RIGHT_CLAVICLE 'sl::BODY_38_PARTS::RIGHT_CLAVICLE'  
+        LEFT_SHOULDER 'sl::BODY_38_PARTS::LEFT_SHOULDER' 
+        RIGHT_SHOULDER 'sl::BODY_38_PARTS::RIGHT_SHOULDER' 
+        LEFT_ELBOW 'sl::BODY_38_PARTS::LEFT_ELBOW' 
+        RIGHT_ELBOW 'sl::BODY_38_PARTS::RIGHT_ELBOW' 
+        LEFT_WRIST 'sl::BODY_38_PARTS::LEFT_WRIST' 
+        RIGHT_WRIST 'sl::BODY_38_PARTS::RIGHT_WRIST'
+        LEFT_HIP 'sl::BODY_38_PARTS::LEFT_HIP' 
+        RIGHT_HIP 'sl::BODY_38_PARTS::RIGHT_HIP' 
+        LEFT_KNEE 'sl::BODY_38_PARTS::LEFT_KNEE' 
+        RIGHT_KNEE 'sl::BODY_38_PARTS::RIGHT_KNEE' 
+        LEFT_ANKLE 'sl::BODY_38_PARTS::LEFT_ANKLE' 
+        RIGHT_ANKLE 'sl::BODY_38_PARTS::RIGHT_ANKLE' 
+        LEFT_BIG_TOE 'sl::BODY_38_PARTS::LEFT_BIG_TOE' 
+        RIGHT_BIG_TOE 'sl::BODY_38_PARTS::RIGHT_BIG_TOE' 
+        LEFT_SMALL_TOE 'sl::BODY_38_PARTS::LEFT_SMALL_TOE' 
+        RIGHT_SMALL_TOE 'sl::BODY_38_PARTS::RIGHT_SMALL_TOE' 
+        LEFT_HEEL 'sl::BODY_38_PARTS::LEFT_HEEL' 
+        RIGHT_HEEL 'sl::BODY_38_PARTS::RIGHT_HEEL'    
+        LEFT_HAND_THUMB_4 'sl::BODY_38_PARTS::LEFT_HAND_THUMB_4' 
+        RIGHT_HAND_THUMB_4 'sl::BODY_38_PARTS::RIGHT_HAND_THUMB_4' 
+        LEFT_HAND_INDEX_1 'sl::BODY_38_PARTS::LEFT_HAND_INDEX_1' 
+        RIGHT_HAND_INDEX_1 'sl::BODY_38_PARTS::RIGHT_HAND_INDEX_1' 
+        LEFT_HAND_MIDDLE_4 'sl::BODY_38_PARTS::LEFT_HAND_MIDDLE_4' 
+        RIGHT_HAND_MIDDLE_4 'sl::BODY_38_PARTS::RIGHT_HAND_MIDDLE_4' 
+        LEFT_HAND_PINKY_1 'sl::BODY_38_PARTS::LEFT_HAND_PINKY_1' 
+        RIGHT_HAND_PINKY_1 'sl::BODY_38_PARTS::RIGHT_HAND_PINKY_1' 
+        LAST 'sl::BODY_38_PARTS::LAST'
+
+    ctypedef enum BODY_70_PARTS 'sl::BODY_70_PARTS':
+        PELVIS 'sl::BODY_70_PARTS::PELVIS' 
+        SPINE_1 'sl::BODY_70_PARTS::SPINE_1' 
+        SPINE_2 'sl::BODY_70_PARTS::SPINE_2' 
+        SPINE_3 'sl::BODY_70_PARTS::SPINE_3' 
+        NECK 'sl::BODY_70_PARTS::NECK' 
+        NOSE 'sl::BODY_70_PARTS::NOSE' 
+        LEFT_EYE 'sl::BODY_70_PARTS::LEFT_EYE' 
+        RIGHT_EYE 'sl::BODY_70_PARTS::RIGHT_EYE' 
+        LEFT_EAR 'sl::BODY_70_PARTS::LEFT_EAR'         
+        RIGHT_EAR 'sl::BODY_70_PARTS::RIGHT_EAR'         
+        LEFT_CLAVICLE 'sl::BODY_70_PARTS::LEFT_CLAVICLE' 
+        RIGHT_CLAVICLE 'sl::BODY_70_PARTS::RIGHT_CLAVICLE'  
+        LEFT_SHOULDER 'sl::BODY_70_PARTS::LEFT_SHOULDER' 
+        RIGHT_SHOULDER 'sl::BODY_70_PARTS::RIGHT_SHOULDER' 
+        LEFT_ELBOW 'sl::BODY_70_PARTS::LEFT_ELBOW' 
+        RIGHT_ELBOW 'sl::BODY_70_PARTS::RIGHT_ELBOW' 
+        LEFT_WRIST 'sl::BODY_70_PARTS::LEFT_WRIST' 
+        RIGHT_WRIST 'sl::BODY_70_PARTS::RIGHT_WRIST'
+        LEFT_HIP 'sl::BODY_70_PARTS::LEFT_HIP' 
+        RIGHT_HIP 'sl::BODY_70_PARTS::RIGHT_HIP' 
+        LEFT_KNEE 'sl::BODY_70_PARTS::LEFT_KNEE' 
+        RIGHT_KNEE 'sl::BODY_70_PARTS::RIGHT_KNEE' 
+        LEFT_ANKLE 'sl::BODY_70_PARTS::LEFT_ANKLE' 
+        RIGHT_ANKLE 'sl::BODY_70_PARTS::RIGHT_ANKLE' 
+        LEFT_BIG_TOE 'sl::BODY_70_PARTS::LEFT_BIG_TOE' 
+        RIGHT_BIG_TOE 'sl::BODY_70_PARTS::RIGHT_BIG_TOE' 
+        LEFT_SMALL_TOE 'sl::BODY_70_PARTS::LEFT_SMALL_TOE' 
+        RIGHT_SMALL_TOE 'sl::BODY_70_PARTS::RIGHT_SMALL_TOE' 
+        LEFT_HEEL 'sl::BODY_70_PARTS::LEFT_HEEL' 
+        RIGHT_HEEL 'sl::BODY_70_PARTS::RIGHT_HEEL'    
+
+        LEFT_HAND_THUMB_1 'sl::BODY_70_PARTS::LEFT_HAND_THUMB_1' 
+        LEFT_HAND_THUMB_2 'sl::BODY_70_PARTS::LEFT_HAND_THUMB_2' 
+        LEFT_HAND_THUMB_3 'sl::BODY_70_PARTS::LEFT_HAND_THUMB_3' 
+        LEFT_HAND_THUMB_4 'sl::BODY_70_PARTS::LEFT_HAND_THUMB_4' 
+        LEFT_HAND_INDEX_1 'sl::BODY_70_PARTS::LEFT_HAND_INDEX_1' 
+        LEFT_HAND_INDEX_2 'sl::BODY_70_PARTS::LEFT_HAND_INDEX_2' 
+        LEFT_HAND_INDEX_3 'sl::BODY_70_PARTS::LEFT_HAND_INDEX_3' 
+        LEFT_HAND_INDEX_4 'sl::BODY_70_PARTS::LEFT_HAND_INDEX_4' 
+        LEFT_HAND_MIDDLE_1 'sl::BODY_70_PARTS::LEFT_HAND_MIDDLE_1' 
+        LEFT_HAND_MIDDLE_2 'sl::BODY_70_PARTS::LEFT_HAND_MIDDLE_2' 
+        LEFT_HAND_MIDDLE_3 'sl::BODY_70_PARTS::LEFT_HAND_MIDDLE_3' 
+        LEFT_HAND_MIDDLE_4 'sl::BODY_70_PARTS::LEFT_HAND_MIDDLE_4' 
+        LEFT_HAND_RING_1 'sl::BODY_70_PARTS::LEFT_HAND_RING_1' 
+        LEFT_HAND_RING_2 'sl::BODY_70_PARTS::LEFT_HAND_RING_2' 
+        LEFT_HAND_RING_3 'sl::BODY_70_PARTS::LEFT_HAND_RING_3' 
+        LEFT_HAND_RING_4 'sl::BODY_70_PARTS::LEFT_HAND_RING_4' 
+        LEFT_HAND_PINKY_1 'sl::BODY_70_PARTS::LEFT_HAND_PINKY_1' 
+        LEFT_HAND_PINKY_2 'sl::BODY_70_PARTS::LEFT_HAND_PINKY_2' 
+        LEFT_HAND_PINKY_3 'sl::BODY_70_PARTS::LEFT_HAND_PINKY_3' 
+        LEFT_HAND_PINKY_4 'sl::BODY_70_PARTS::LEFT_HAND_PINKY_4' 
+
+        RIGHT_HAND_THUMB_1 'sl::BODY_70_PARTS::RIGHT_HAND_THUMB_1' 
+        RIGHT_HAND_THUMB_2 'sl::BODY_70_PARTS::RIGHT_HAND_THUMB_2' 
+        RIGHT_HAND_THUMB_3 'sl::BODY_70_PARTS::RIGHT_HAND_THUMB_3' 
+        RIGHT_HAND_THUMB_4 'sl::BODY_70_PARTS::RIGHT_HAND_THUMB_4' 
+        RIGHT_HAND_INDEX_1 'sl::BODY_70_PARTS::RIGHT_HAND_INDEX_1' 
+        RIGHT_HAND_INDEX_2 'sl::BODY_70_PARTS::RIGHT_HAND_INDEX_2' 
+        RIGHT_HAND_INDEX_3 'sl::BODY_70_PARTS::RIGHT_HAND_INDEX_3' 
+        RIGHT_HAND_INDEX_4 'sl::BODY_70_PARTS::RIGHT_HAND_INDEX_4' 
+        RIGHT_HAND_MIDDLE_1 'sl::BODY_70_PARTS::RIGHT_HAND_MIDDLE_1' 
+        RIGHT_HAND_MIDDLE_2 'sl::BODY_70_PARTS::RIGHT_HAND_MIDDLE_2' 
+        RIGHT_HAND_MIDDLE_3 'sl::BODY_70_PARTS::RIGHT_HAND_MIDDLE_3' 
+        RIGHT_HAND_MIDDLE_4 'sl::BODY_70_PARTS::RIGHT_HAND_MIDDLE_4' 
+        RIGHT_HAND_RING_1 'sl::BODY_70_PARTS::RIGHT_HAND_RING_1' 
+        RIGHT_HAND_RING_2 'sl::BODY_70_PARTS::RIGHT_HAND_RING_2' 
+        RIGHT_HAND_RING_3 'sl::BODY_70_PARTS::RIGHT_HAND_RING_3' 
+        RIGHT_HAND_RING_4 'sl::BODY_70_PARTS::RIGHT_HAND_RING_4' 
+        RIGHT_HAND_PINKY_1 'sl::BODY_70_PARTS::RIGHT_HAND_PINKY_1' 
+        RIGHT_HAND_PINKY_2 'sl::BODY_70_PARTS::RIGHT_HAND_PINKY_2' 
+        RIGHT_HAND_PINKY_3 'sl::BODY_70_PARTS::RIGHT_HAND_PINKY_3' 
+        RIGHT_HAND_PINKY_4 'sl::BODY_70_PARTS::RIGHT_HAND_PINKY_4' 
+
+        LAST 'sl::BODY_70_PARTS::LAST'
 
     ctypedef enum BODY_FORMAT 'sl::BODY_FORMAT':
-        POSE_18 'sl::BODY_FORMAT::POSE_18'
-        POSE_34 'sl::BODY_FORMAT::POSE_34'
+        BODY_18 'sl::BODY_FORMAT::BODY_18'
+        BODY_34 'sl::BODY_FORMAT::BODY_34'
+        BODY_38 'sl::BODY_FORMAT::BODY_38'
+        BODY_70 'sl::BODY_FORMAT::BODY_70'
         LAST 'sl::BODY_FORMAT::LAST'
 
-    int getIdx(BODY_PARTS part)
-    int getIdx(BODY_PARTS_POSE_34 part)
+    ctypedef enum BODY_KEYPOINTS_SELECTION 'sl::BODY_KEYPOINTS_SELECTION':
+        FULL 'sl::BODY_KEYPOINTS_SELECTION::FULL'
+        UPPER_BODY 'sl::BODY_KEYPOINTS_SELECTION::UPPER_BODY'
+        LAST 'sl::BODY_KEYPOINTS_SELECTION::LAST'
+
+    int getIdx(BODY_18_PARTS part)
+    int getIdx(BODY_34_PARTS part)
 
     cdef cppclass Mat 'sl::Mat':
         String name
@@ -1018,14 +1188,26 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         LONG 'sl::SpatialMappingParameters::MAPPING_RANGE::LONG'
         AUTO 'sl::SpatialMappingParameters::MAPPING_RANGE::AUTO'
 
+
+    ctypedef enum BUS_TYPE 'sl::BUS_TYPE':
+        USB 'sl::BUS_TYPE::USB'
+        GMSL 'sl::BUS_TYPE::GMSL'
+        AUTO 'sl::BUS_TYPE::AUTO'
+        LAST 'sl::BUS_TYPE::LAST'
+
+    String toString(BUS_TYPE o)
+
     cdef cppclass InputType 'sl::InputType':
         InputType()
         InputType(InputType &type)
 
-        void setFromCameraID(unsigned int id)
-        void setFromSerialNumber(unsigned int serial_number)
+        void setFromCameraID(unsigned int id, BUS_TYPE bus_type)
+        void setFromSerialNumber(unsigned int serial_number, BUS_TYPE bus_type)
         void setFromSVOFile(String svo_input_filename)
         void setFromStream(String senderIP, unsigned short port)
+        INPUT_TYPE getType()
+        String getConfiguration()
+        bool isInit() 
 
     cdef cppclass InitParameters 'sl::InitParameters':
         RESOLUTION camera_resolution
@@ -1052,6 +1234,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool enable_image_enhancement
         String optional_opencv_calibration_file
         float open_timeout_sec
+        bool async_grab_camera_recovery
 
         InitParameters(RESOLUTION camera_resolution,
                        int camera_fps,
@@ -1074,7 +1257,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        bool sensors_required,
                        bool enable_image_enhancement,
                        String optional_opencv_calibration_file,
-                       float open_timeout_sec)
+                       float open_timeout_sec,
+                       bool async_grab_camera_recovery)
 
         bool save(String filename)
         bool load(String filename)
@@ -1094,16 +1278,15 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                             )
 
     cdef cppclass RuntimeParameters 'sl::RuntimeParameters':
-        SENSING_MODE sensing_mode
         bool enable_depth
+        bool enable_fill_mode
         int confidence_threshold
-        int textureness_confidence_threshold
         int texture_confidence_threshold
         REFERENCE_FRAME measure3D_reference_frame
         bool remove_saturated_areas
 
-        RuntimeParameters(SENSING_MODE sensing_mode,
-                          bool enable_depth,
+        RuntimeParameters(bool enable_depth,
+                          bool enable_fill_mode,
                           int confidence_threshold,
                           int texture_confidence_threshold,
                           REFERENCE_FRAME measure3D_reference_frame,
@@ -1210,23 +1393,61 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
     cdef cppclass ObjectDetectionParameters:
         bool image_sync
         bool enable_tracking
-        bool enable_mask_output
-        DETECTION_MODEL detection_model
-        bool enable_body_fitting
+        bool enable_segmentation
+        OBJECT_DETECTION_MODEL detection_model
         float max_range
         BatchParameters batch_parameters
-        BODY_FORMAT body_format
         OBJECT_FILTERING_MODE filtering_mode
         float prediction_timeout_s
         bool allow_reduced_precision_inference
-        ObjectDetectionParameters(bool image_sync, bool enable_tracking, bool enable_mask_output, DETECTION_MODEL detection_model, bool enable_body_fitting, float max_range, BatchParameters batch_trajectories_parameters, BODY_FORMAT body_format, OBJECT_FILTERING_MODE filtering_mode, float prediction_timeout_s, bool allow_reduced_precision_inference)
+        unsigned int instance_module_id
+        ObjectDetectionParameters(bool image_sync, 
+                bool enable_tracking, 
+                bool enable_segmentation, 
+                OBJECT_DETECTION_MODEL detection_model, 
+                float max_range, 
+                BatchParameters batch_trajectories_parameters, 
+                OBJECT_FILTERING_MODE filtering_mode, 
+                float prediction_timeout_s, 
+                bool allow_reduced_precision_inference,
+                unsigned int instance_module_id
+            )
 
     cdef cppclass ObjectDetectionRuntimeParameters:
         float detection_confidence_threshold
         vector[OBJECT_CLASS] object_class_filter
         map[OBJECT_CLASS,float] object_class_detection_confidence_threshold
+        ObjectDetectionRuntimeParameters(float detection_confidence_threshold, vector[OBJECT_CLASS] object_class_filter, map[OBJECT_CLASS,float] object_class_detection_confidence_threshold)
+
+    cdef cppclass BodyTrackingParameters:
+        bool image_sync
+        bool enable_tracking
+        bool enable_segmentation
+        BODY_TRACKING_MODEL detection_model
+        bool enable_body_fitting
+        BODY_FORMAT body_format
+        BODY_KEYPOINTS_SELECTION body_selection
+        float max_range
+        float prediction_timeout_s
+        bool allow_reduced_precision_inference
+        unsigned int instance_module_id
+        BodyTrackingParameters(bool image_sync, 
+                    bool enable_tracking, 
+                    bool enable_segmentation, 
+                    BODY_TRACKING_MODEL detection_model, 
+                    bool enable_body_fitting, 
+                    float max_range, 
+                    BODY_FORMAT body_format, 
+                    BODY_KEYPOINTS_SELECTION body_selection, 
+                    float prediction_timeout_s, 
+                    bool allow_reduced_precision_inference, 
+                    unsigned int instance_module_id
+            )
+
+    cdef cppclass BodyTrackingRuntimeParameters:
+        float detection_confidence_threshold
         int minimum_keypoints_threshold
-        ObjectDetectionRuntimeParameters(float detection_confidence_threshold, vector[OBJECT_CLASS] object_class_filter, map[OBJECT_CLASS,float] object_class_detection_confidence_threshold, int minimum_keypoints_threshold)
+        BodyTrackingRuntimeParameters(float detection_confidence_threshold, int minimum_keypoints_threshold)
 
     cdef cppclass Pose:
         Pose()
@@ -1348,14 +1569,21 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE getCurrentMinMaxDepth(float& min, float& max)
 
         ERROR_CODE setRegionOfInterest(Mat &mat)
+        ERROR_CODE startPublishing(CommunicationParameters parameters)
 
         void setSVOPosition(int frame_number)
         int getSVOPosition()
         int getSVONumberOfFrames()
-        void setCameraSettings(VIDEO_SETTINGS settings, int value)
+        ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, int &value)
+        ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, int &min, int &max)
         ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, Rect roi, SIDE eye, bool reset)
-        int getCameraSettings(VIDEO_SETTINGS setting)
+
+        ERROR_CODE getCameraSettings(VIDEO_SETTINGS setting, int &settings)
+        ERROR_CODE getCameraSettings(VIDEO_SETTINGS setting, int &aec_min_val, int &aec_max_val)
         ERROR_CODE getCameraSettings(VIDEO_SETTINGS setting, Rect &roi, SIDE eye)
+
+        ERROR_CODE getCameraSettingsRange(VIDEO_SETTINGS settings, int &min, int &max)
+
         float getCurrentFPS()
         Timestamp getTimestamp(TIME_REFERENCE reference_time)
         unsigned int getFrameDroppedCount()
@@ -1406,13 +1634,20 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool isStreamingEnabled()
 
         ERROR_CODE enableObjectDetection(ObjectDetectionParameters object_detection_parameters)
-        void disableObjectDetection()
-        ERROR_CODE retrieveObjects(Objects &objects, ObjectDetectionRuntimeParameters parameters)
-        ERROR_CODE getObjectsBatch(vector[ObjectsBatch] &trajectories)
-        ERROR_CODE ingestCustomBoxObjects(vector[CustomBoxObjectData] &objects_in)
-        ObjectDetectionParameters getObjectDetectionParameters()
-        void pauseObjectDetection(bool status)
+        void disableObjectDetection(unsigned int instance_module_id)
+        ERROR_CODE retrieveObjects(Objects &objects, ObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id)
+        ERROR_CODE getObjectsBatch(vector[ObjectsBatch] &trajectories, unsigned int instance_module_id)
+        ERROR_CODE ingestCustomBoxObjects(vector[CustomBoxObjectData] &objects_in, unsigned int instance_module_id)
+        ObjectDetectionParameters getObjectDetectionParameters(unsigned int instance_module_id)
+        void pauseObjectDetection(bool status, unsigned int instance_module_id)
         void updateSelfCalibration()
+
+        ERROR_CODE enableBodyTracking(BodyTrackingParameters object_detection_parameters)
+        void pauseBodyTracking(bool status, unsigned int instance_id)
+        void disableBodyTracking(unsigned int instance_id, bool force_disable_all_instances)
+        ERROR_CODE retrieveBodies(Bodies &objects, BodyTrackingRuntimeParameters parameters, unsigned int instance_id)
+        bool isBodyTrackingEnabled(unsigned int instance_id)
+        BodyTrackingParameters getBodyTrackingParameters(unsigned int instance_id)
 
         @staticmethod
         String getSDKVersion()
@@ -1427,4 +1662,191 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE reboot(int sn, bool fullReboot)
 
 cdef extern from "Utils.cpp" namespace "sl":
-    ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector, map[int,float] object_confidence_map, int minimum_keypoints_threshold)
+    ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector, map[int,float] object_confidence_map)
+
+cdef extern from "sl/Fusion.hpp" namespace "sl":
+
+    cdef cppclass FusionConfiguration:
+        int serial_number
+        CommunicationParameters communication_parameters
+        Transform pose
+        InputType input_type
+   
+    cdef cppclass CommunicationParameters 'sl::CommunicationParameters':
+        CommunicationParameters()
+        void setForSharedMemory()
+        void setForLocalNetwork(int port)
+        void setForLocalNetwork(string ip_address, int port)
+        int getPort()
+        string getIpAddress()
+        COMM_TYPE getType()
+
+    ctypedef enum COMM_TYPE "sl::CommunicationParameters::COMM_TYPE":
+        LOCAL_NETWORK 'sl::CommunicationParameters::COMM_TYPE::LOCAL_NETWORK',
+        INTRA_PROCESS 'sl::CommunicationParameters::COMM_TYPE::INTRA_PROCESS',
+        LAST 'sl::CommunicationParameters::COMM_TYPE::LAST'    
+
+    FusionConfiguration readFusionConfigurationFile(string json_config_filename, int serial_number, COORDINATE_SYSTEM coord_system, UNIT unit)    
+    vector[FusionConfiguration] readFusionConfigurationFile2 "readFusionConfigurationFile"(string json_config_filename, COORDINATE_SYSTEM coord_sys, UNIT unit)
+    void writeConfigurationFile(string json_config_filename, vector[FusionConfiguration] &conf, COORDINATE_SYSTEM coord_sys, UNIT unit)
+
+    cdef cppclass InitFusionParameters 'sl::InitFusionParameters':
+        UNIT coordinate_units
+        COORDINATE_SYSTEM coordinate_system
+        bool output_performance_metrics
+        bool verbose
+        unsigned timeout_period_number
+        InitFusionParameters(
+            UNIT coordinate_units_,
+            COORDINATE_SYSTEM coordinate_system_,
+            bool output_performance_metrics, 
+            bool verbose_,
+            unsigned timeout_period_number
+            )
+
+    cdef cppclass CameraIdentifier 'sl::CameraIdentifier':
+        CameraIdentifier()
+        unsigned long long sn
+        CameraIdentifier(unsigned long long sn_)
+
+    ctypedef enum FUSION_ERROR_CODE "sl::FUSION_ERROR_CODE" :
+        WRONG_BODY_FORMAT 'sl::FUSION_ERROR_CODE::WRONG_BODY_FORMAT',
+        NOT_ENABLE 'sl::FUSION_ERROR_CODE::NOT_ENABLE',
+        INPUT_FEED_MISMATCH 'sl::FUSION_ERROR_CODE::INPUT_FEED_MISMATCH',
+        CONNECTION_TIMED_OUT 'sl::FUSION_ERROR_CODE::CONNECTION_TIMED_OUT',
+        MEMORY_ALREADY_USED 'sl::FUSION_ERROR_CODE::MEMORY_ALREADY_USED',
+        BAD_IP_ADDRESS 'sl::FUSION_ERROR_CODE::BAD_IP_ADDRESS',
+        FAILURE 'sl::FUSION_ERROR_CODE::FAILURE',
+        SUCCESS 'sl::FUSION_ERROR_CODE::SUCCESS',
+        FUSION_ERRATIC_FPS 'sl::FUSION_ERROR_CODE::FUSION_ERRATIC_FPS',
+        FUSION_FPS_TOO_LOW 'sl::FUSION_ERROR_CODE::FUSION_FPS_TOO_LOW',
+
+    String toString(FUSION_ERROR_CODE o)
+
+    ctypedef enum SENDER_ERROR_CODE "sl::SENDER_ERROR_CODE":
+        DISCONNECTED 'sl::SENDER_ERROR_CODE::DISCONNECTED',
+        SUCCESS 'sl::SENDER_ERROR_CODE::SUCCESS',
+        GRAB_ERROR 'sl::SENDER_ERROR_CODE::GRAB_ERROR',
+        ERRATIC_FPS 'sl::SENDER_ERROR_CODE::ERRATIC_FPS',
+        FPS_TOO_LOW 'sl::SENDER_ERROR_CODE::FPS_TOO_LOW',
+
+    String toString(SENDER_ERROR_CODE o)  
+
+    ctypedef enum POSITION_TYPE 'sl::POSITION_TYPE':
+        RAW 'sl::POSITION_TYPE::RAW',
+        FUSION 'sl::POSITION_TYPE::FUSION',
+        LAST 'sl::POSITION_TYPE::LAST'
+        
+
+    cdef struct PositionalTrackingFusionParameters 'sl::PositionalTrackingFusionParameters':
+        bool enable_GNSS_fusion
+        float gnss_initialisation_distance
+        float gnss_ignore_threshold
+
+    cdef struct BodyTrackingFusionParameters 'sl::BodyTrackingFusionParameters':
+        bool enable_tracking
+        bool enable_body_fitting
+
+    cdef struct BodyTrackingFusionRuntimeParameters 'sl::BodyTrackingFusionRuntimeParameters':
+        int skeleton_minimum_allowed_keypoints
+        int skeleton_minimum_allowed_camera
+        float skeleton_smoothing
+
+    cdef struct CameraMetrics 'sl::CameraMetrics':
+        CameraMetrics()
+        float received_fps
+        float received_latency
+        float synced_latency
+        bool is_present
+        float ratio_detection
+        float delta_ts
+
+    cdef struct FusionMetrics 'sl::FusionMetrics':
+        FusionMetrics()
+        void reset()
+        float mean_camera_fused
+        float mean_stdev_between_camera
+        map[CameraIdentifier, CameraMetrics] camera_individual_stats
+
+    cdef cppclass ECEF 'sl::ECEF':
+        double x
+        double y
+        double z
+
+    cdef cppclass LatLng:
+        void getCoordinates(double & latitude, double & longitude, double & altitude, bool in_radian)
+        void setCoordinates(double latitude, double longitude, double altitude, bool in_radian)
+        double getLatitude(bool in_radian)
+        double getLongitude(bool in_radian)
+        double getAltitude()
+
+    cdef cppclass UTM 'sl::UTM':
+        double northing
+        double easting
+        double gamma
+        string UTMZone
+
+    cdef cppclass GeoConverter 'sl::GeoConverter':
+
+        @staticmethod
+        void ecef2latlng(ECEF &input, LatLng& out)
+
+        @staticmethod
+        void ecef2utm(ECEF &input, UTM &out)
+
+        @staticmethod
+        void latlng2ecef(LatLng &input, ECEF &out)
+
+        @staticmethod
+        void latlng2utm(LatLng &input, UTM &out)
+
+        @staticmethod
+        void utm2ecef(UTM &input, ECEF &out)
+
+        @staticmethod
+        void utm2latlng(UTM &input, LatLng &out)
+
+    cdef cppclass GeoPose 'sl::GeoPose':
+        GeoPose()
+        GeoPose(GeoPose &geopose)
+
+        double getLatitude()
+        double getLongitude()
+        double getAltitude()
+
+        Transform pose_data
+        float pose_covariance[36]
+        double horizontal_accuracy
+        double vertical_accuracy
+        LatLng latlng_coordinates
+        double heading
+
+    cdef struct GNSSData 'sl::GNSSData':
+        void setCoordinates(double latitude, double longitude, double altitude, bool is_radian);
+        void getCoordinates(double &latitude, double &longitude, double &altitude, bool in_radian);
+        Timestamp ts
+        array9 position_covariance
+        double longitude_std
+        double latitude_std
+        double altitude_std
+
+    cdef cppclass Fusion 'sl::Fusion':
+        Fusion()
+        FUSION_ERROR_CODE init(InitFusionParameters init_parameters)
+        void close()
+        FUSION_ERROR_CODE subscribe(CameraIdentifier uuid, CommunicationParameters param, Transform pose)
+        FUSION_ERROR_CODE updatePose(CameraIdentifier uuid, Transform pose)
+        FUSION_ERROR_CODE getProcessMetrics(FusionMetrics &metrics)
+        map[CameraIdentifier, SENDER_ERROR_CODE] getSenderState()
+        FUSION_ERROR_CODE process()
+        FUSION_ERROR_CODE enableBodyTracking(BodyTrackingFusionParameters params)
+        FUSION_ERROR_CODE retrieveBodies(Bodies &objs, BodyTrackingFusionRuntimeParameters parameters, CameraIdentifier uuid)
+        void disableBodyTracking()
+        FUSION_ERROR_CODE enablePositionalTracking()
+        void ingestGNSSData(GNSSData &_gnss_data)
+        POSITIONAL_TRACKING_STATE getPosition(Pose &camera_pose, REFERENCE_FRAME reference_frame, CameraIdentifier uuid, POSITION_TYPE position_type)
+        POSITIONAL_TRACKING_STATE getCurrentGNSSData(GNSSData &out)
+        POSITIONAL_TRACKING_STATE getGeoPose(GeoPose &pose)
+        POSITIONAL_TRACKING_STATE Geo2Camera(LatLng &input, Pose &out)
+        POSITIONAL_TRACKING_STATE Camera2Geo(Pose &input, GeoPose &out)      
+        void disablePositionalTracking()

@@ -27,10 +27,10 @@ from libcpp.pair cimport pair
 from libcpp.map cimport map
 from sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CODE, toString
                     , InitParameters as c_InitParameters, INPUT_TYPE as c_INPUT_TYPE
-                    , InputType as c_InputType, RESOLUTION as c_RESOLUTION
+                    , InputType as c_InputType, RESOLUTION as c_RESOLUTION, BUS_TYPE as c_BUS_TYPE
                     , DEPTH_MODE as c_DEPTH_MODE, UNIT as c_UNIT
                     , COORDINATE_SYSTEM as c_COORDINATE_SYSTEM, CUcontext
-                    , RuntimeParameters as c_RuntimeParameters, SENSING_MODE as c_SENSING_MODE
+                    , RuntimeParameters as c_RuntimeParameters
                     , REFERENCE_FRAME as c_REFERENCE_FRAME, Mat as c_Mat, Resolution as c_Resolution
                     , MAT_TYPE as c_MAT_TYPE, MEM as c_MEM, VIEW as c_VIEW, MEASURE as c_MEASURE
                     , Timestamp as c_Timestamp, TIME_REFERENCE as c_TIME_REFERENCE
@@ -45,7 +45,8 @@ from sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CO
                     , RecordingParameters as c_RecordingParameters, SVO_COMPRESSION_MODE as c_SVO_COMPRESSION_MODE
                     , StreamingParameters as c_StreamingParameters, STREAMING_CODEC as c_STREAMING_CODEC
                     , RecordingStatus as c_RecordingStatus, ObjectDetectionParameters as c_ObjectDetectionParameters
-                    , DETECTION_MODEL as c_DETECTION_MODEL, Objects as c_Objects, create_object_detection_runtime_parameters
+                    , BodyTrackingParameters as c_BodyTrackingParameters, BodyTrackingRuntimeParameters as c_BodyTrackingRuntimeParameters
+                    , BODY_TRACKING_MODEL as c_BODY_TRACKING_MODEL, OBJECT_DETECTION_MODEL as c_OBJECT_DETECTION_MODEL, Objects as c_Objects, Bodies as c_Bodies, create_object_detection_runtime_parameters
                     , ObjectDetectionRuntimeParameters as c_ObjectDetectionRuntimeParameters 
                     , DeviceProperties as c_DeviceProperties, CAMERA_STATE as c_CAMERA_STATE
                     , StreamingProperties as c_StreamingProperties, FusedPointCloud as c_FusedPointCloud
@@ -64,13 +65,27 @@ from sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CO
                     , setValueUchar1, setValueUchar2, setValueUchar3, setValueUchar4, setValueUshort1, setValueFloat1, setValueFloat2, setValueFloat3, setValueFloat4
                     , getValueUchar1, getValueUchar2, getValueUchar3, getValueUchar4, getValueUshort1, getValueFloat1, getValueFloat2, getValueFloat3, getValueFloat4
                     , getPointerUchar1, getPointerUchar2, getPointerUchar3, getPointerUchar4, getPointerUshort1, getPointerFloat1, getPointerFloat2, getPointerFloat3, getPointerFloat4, uint
-                    , ObjectData as c_ObjectData, OBJECT_CLASS as c_OBJECT_CLASS, OBJECT_SUBCLASS as c_OBJECT_SUBCLASS
+                    , ObjectData as c_ObjectData, BodyData as c_BodyData, OBJECT_CLASS as c_OBJECT_CLASS, OBJECT_SUBCLASS as c_OBJECT_SUBCLASS
                     , OBJECT_TRACKING_STATE as c_OBJECT_TRACKING_STATE, OBJECT_ACTION_STATE as c_OBJECT_ACTION_STATE
-                    , BODY_PARTS as c_BODY_PARTS, SIDE as c_SIDE, CameraInformation as c_CameraInformation, CUctx_st
+                    , BODY_18_PARTS as c_BODY_18_PARTS, SIDE as c_SIDE, CameraInformation as c_CameraInformation, CUctx_st
                     , FLIP_MODE as c_FLIP_MODE, getResolution as c_getResolution, BatchParameters as c_BatchParameters
-                    , ObjectsBatch as c_ObjectsBatch, getIdx as c_getIdx, BODY_FORMAT as c_BODY_FORMAT, BODY_PARTS_POSE_34 as c_BODY_PARTS_POSE_34
+                    , ObjectsBatch as c_ObjectsBatch, BodiesBatch as c_BodiesBatch, getIdx as c_getIdx, BODY_FORMAT as c_BODY_FORMAT, BODY_KEYPOINTS_SELECTION as c_BODY_KEYPOINTS_SELECTION
+                    , BODY_34_PARTS as c_BODY_34_PARTS, BODY_38_PARTS as c_BODY_38_PARTS, BODY_70_PARTS as c_BODY_70_PARTS 
                     , generate_unique_id as c_generate_unique_id, CustomBoxObjectData as c_CustomBoxObjectData
-                    , OBJECT_FILTERING_MODE as c_OBJECT_FILTERING_MODE)
+                    , OBJECT_FILTERING_MODE as c_OBJECT_FILTERING_MODE
+                    , COMM_TYPE as c_COMM_TYPE, FUSION_ERROR_CODE as c_FUSION_ERROR_CODE, SENDER_ERROR_CODE as c_SENDER_ERROR_CODE
+                    , FusionConfiguration as c_FusionConfiguration, CommunicationParameters as c_CommunicationParameters
+                    , InitFusionParameters as c_InitFusionParameters, CameraIdentifier as c_CameraIdentifier
+                    , BodyTrackingFusionParameters as c_BodyTrackingFusionParameters, BodyTrackingFusionRuntimeParameters as c_BodyTrackingFusionRuntimeParameters
+                    , PositionalTrackingFusionParameters as c_PositionalTrackingFusionParameters, POSITION_TYPE as c_POSITION_TYPE
+                    , CameraMetrics as c_CameraMetrics, FusionMetrics as c_FusionMetrics, GNSSData as c_GNSSData, Fusion as c_Fusion
+                    , ECEF as c_ECEF, LatLng as c_LatLng, UTM as c_UTM
+                    , GeoConverter as c_GeoConverter, GeoPose as c_GeoPose
+                    , readFusionConfigurationFile as c_readFusionConfigurationFile
+                    , readFusionConfigurationFile2 as c_readFusionConfigurationFile2
+                    , writeConfigurationFile as c_writeConfigurationFile
+
+                    )
 from cython.operator cimport (dereference as deref, postincrement)
 from libc.string cimport memcpy
 from cpython cimport bool
@@ -89,7 +104,9 @@ from math import sqrt
 ## \defgroup SpatialMapping_group Spatial Mapping Module
 ## \defgroup PositionalTracking_group Positional Tracking Module
 ## \defgroup Object_group Object Detection Module
+## \defgroup Body_group Body Tracking Module
 ## \defgroup Sensors_group Sensors Module
+## \defgroup Fusion_group Fusion Module
 
 ##
 # \ref Timestamp representation and utilities.
@@ -136,7 +153,7 @@ cdef class Timestamp():
         self.timestamp.setNanoseconds(t_ns)
 
     ##
-    # Sets the timestamp to a value in microoseconds.
+    # Sets the timestamp to a value in microseconds.
     def set_microseconds(self, t_us: int):
         self.timestamp.setMicroseconds(t_us)
 
@@ -191,6 +208,7 @@ cdef class Timestamp():
 # | MOTION_SENSORS_REQUIRED | The module needs the sensors to be enabled (see \ref InitParameters.sensors_required) |
 # |MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION | The module needs a newer version of CUDA |
 class ERROR_CODE(enum.Enum):
+    CAMERA_REBOOTING = <int>c_ERROR_CODE.CAMERA_REBOOTING
     SUCCESS = <int>c_ERROR_CODE.SUCCESS
     FAILURE = <int>c_ERROR_CODE.FAILURE
     NO_GPU_COMPATIBLE = <int>c_ERROR_CODE.NO_GPU_COMPATIBLE
@@ -242,13 +260,17 @@ class ERROR_CODE(enum.Enum):
 # |------------|------------------|
 # | ZED        | Defines ZED Camera model |
 # | ZED_M      | Defines ZED Mini (ZED-M) Camera model |
-# | ZED2 | Defines ZED 2 Camera model |
-# | ZED2i | Defines ZED 2i Camera model |
+# | ZED2       | Defines ZED 2 Camera model |
+# | ZED2i      | Defines ZED 2i Camera model |
+# | ZED_X      | Defines ZED-X Camera model |
+# | ZED_XM     | Defines ZED-X Mini Camera model |
 class MODEL(enum.Enum):
     ZED = <int>c_MODEL.ZED
     ZED_M = <int>c_MODEL.ZED_M
     ZED2 = <int>c_MODEL.ZED2
     ZED2i = <int>c_MODEL.ZED2i
+    ZED_X = <int>c_MODEL.ZED_X
+    ZED_XM = <int>c_MODEL.ZED_XM
     LAST = <int>c_MODEL.MODEL_LAST
 
     def __str__(self):
@@ -267,41 +289,55 @@ class MODEL(enum.Enum):
 # | USB        | USB input mode  |
 # | SVO        | SVO file input mode  |
 # | STREAM     | STREAM input mode (requires to use enableStreaming()/disableStreaming() on the "sender" side) |
+# | GMSL       | GMSL input mode (only on NVIDIA Jetson) |
+
 class INPUT_TYPE(enum.Enum):
     USB = <int>c_INPUT_TYPE.USB
     SVO = <int>c_INPUT_TYPE.SVO
     STREAM = <int>c_INPUT_TYPE.STREAM
+    GMSL = <int>c_INPUT_TYPE.GMSL
+    LAST = <int>c_INPUT_TYPE.LAST
 
 ##
-# Lists available models for detection
+# List available models for object detection module
 #
 # \ingroup Object_group
 #
 # | Enumerator               |                  |
 # |--------------------------|------------------|
-# | MULTI_CLASS_BOX          | Any object, bounding box based |
+# | MULTI_CLASS_BOX_FAST     | Any object, bounding box based |
 # | MULTI_CLASS_BOX_ACCURATE | Any object, bounding box based, more accurate but slower than the base model |
-# | HUMAN_BODY_FAST          | Keypoints based, specific to human skeleton, real time performance even on Jetson or low end GPU cards |
-# | HUMAN_BODY_ACCURATE      | Keypoints based, specific to human skeleton, state of the art accuracy, requires powerful GPU |
 # | MULTI_CLASS_BOX_MEDIUM   | Any object, bounding box based, compromise between accuracy and speed  |
-# | HUMAN_BODY_MEDIUM        | Keypoints based, specific to human skeleton, compromise between accuracy and speed  |
-# | PERSON_HEAD_BOX          | Bounding Box detector specialized in person heads, particulary well suited for crowded environments, the person localization is also improved  |
-# | PERSON_HEAD_BOX_ACCURATE | Bounding Box detector specialized in person heads, particulary well suited for crowded environments, the person localization is also improved, state of the art accuracy  |
-# | CUSTOM_BOX_OBJECTS          | For external inference, using your own custom model and/or frameworks. This mode disables the internal inference engine, the 2D bounding box detection must be provided  |
-class DETECTION_MODEL(enum.Enum):
-    MULTI_CLASS_BOX = <int>c_DETECTION_MODEL.MULTI_CLASS_BOX
-    HUMAN_BODY_FAST = <int>c_DETECTION_MODEL.HUMAN_BODY_FAST
-    HUMAN_BODY_ACCURATE = <int>c_DETECTION_MODEL.HUMAN_BODY_ACCURATE
-    MULTI_CLASS_BOX_ACCURATE = <int>c_DETECTION_MODEL.MULTI_CLASS_BOX_ACCURATE
-    MULTI_CLASS_BOX_MEDIUM = <int>c_DETECTION_MODEL.MULTI_CLASS_BOX_MEDIUM
-    HUMAN_BODY_MEDIUM = <int>c_DETECTION_MODEL.HUMAN_BODY_MEDIUM
-    PERSON_HEAD_BOX = <int>c_DETECTION_MODEL.PERSON_HEAD_BOX
-    PERSON_HEAD_BOX_ACCURATE = <int>c_DETECTION_MODEL.PERSON_HEAD_BOX_ACCURATE
-    CUSTOM_BOX_OBJECTS = <int>c_DETECTION_MODEL.CUSTOM_BOX_OBJECTS
-    LAST = <int>c_DETECTION_MODEL.LAST
+# | PERSON_HEAD_BOX_FAST     | Bounding Box detector specialized in person heads, particularly well suited for crowded environments, the person localization is also improved  |
+# | PERSON_HEAD_BOX_ACCURATE | Bounding Box detector specialized in person heads, particularly well suited for crowded environments, the person localization is also improved, state of the art accuracy  |
+# | CUSTOM_BOX_OBJECTS       | For external inference, using your own custom model and/or frameworks. This mode disables the internal inference engine, the 2D bounding box detection must be provided  |
+class OBJECT_DETECTION_MODEL(enum.Enum):
+    MULTI_CLASS_BOX_FAST = <int>c_OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_FAST
+    MULTI_CLASS_BOX_MEDIUM = <int>c_OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_MEDIUM
+    MULTI_CLASS_BOX_ACCURATE = <int>c_OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_ACCURATE
+    PERSON_HEAD_BOX_FAST = <int>c_OBJECT_DETECTION_MODEL.PERSON_HEAD_BOX_FAST
+    PERSON_HEAD_BOX_ACCURATE = <int>c_OBJECT_DETECTION_MODEL.PERSON_HEAD_BOX_ACCURATE
+    CUSTOM_BOX_OBJECTS = <int>c_OBJECT_DETECTION_MODEL.CUSTOM_BOX_OBJECTS
+    LAST = <int>c_OBJECT_DETECTION_MODEL.LAST
 
 ##
-# Lists available filtering mode for object detection/tracking
+# List available models for body tracking module
+#
+# \ingroup Body_group
+#
+# | Enumerator               |                  |
+# |--------------------------|------------------|
+# | HUMAN_BODY_FAST          | Keypoints based, specific to human skeleton, real time performance even on Jetson or low end GPU cards |
+# | HUMAN_BODY_ACCURATE      | Keypoints based, specific to human skeleton, state of the art accuracy, requires powerful GPU |
+# | HUMAN_BODY_MEDIUM        | Keypoints based, specific to human skeleton, compromise between accuracy and speed  |
+class BODY_TRACKING_MODEL(enum.Enum):
+    HUMAN_BODY_FAST = <int>c_BODY_TRACKING_MODEL.HUMAN_BODY_FAST
+    HUMAN_BODY_ACCURATE = <int>c_BODY_TRACKING_MODEL.HUMAN_BODY_ACCURATE
+    HUMAN_BODY_MEDIUM = <int>c_BODY_TRACKING_MODEL.HUMAN_BODY_MEDIUM
+    LAST = <int>c_BODY_TRACKING_MODEL.LAST
+
+##
+# Lists of supported bounding box preprocessing
 #
 # \ingroup Object_group
 #
@@ -444,6 +480,19 @@ cdef class DeviceProperties:
     @serial_number.setter
     def serial_number(self, serial_number):
         self.c_device_properties.serial_number = serial_number
+
+    ##
+    # the input type
+    @property
+    def input_type(self):
+        return INPUT_TYPE(<int>self.c_device_properties.input_type)
+
+    @input_type.setter
+    def input_type(self, value : INPUT_TYPE):
+        if isinstance(value, INPUT_TYPE):
+            self.c_device_properties.input_type = <c_INPUT_TYPE>(<int>value.value)
+        else:
+            raise TypeError("Argument is not of INPUT_TYPE type.")
 
     def __str__(self):
         return to_str(toString(self.c_device_properties)).decode()
@@ -715,7 +764,7 @@ cdef class Matrix4f:
             return ERROR_CODE(<int>self.mat.setSubMatrix3f(input.mat[0], row, column))
 
     ##
-    # Sets a 3x1 Vector inside the \ref Matrix4f at the specifided column index.
+    # Sets a 3x1 Vector inside the \ref Matrix4f at the specified column index.
     # \note Can be used to set the Translation/Position matrix when the matrix4f is a pose or an isometry.
     # \param input0 : first value of the 3x1 Vector to put inside the \ref Matrix4f
     # \param input1 : second value of the 3x1 Vector to put inside the \ref Matrix4f
@@ -726,7 +775,7 @@ cdef class Matrix4f:
         return ERROR_CODE(<int>self.mat.setSubVector3f(Vector3[float](input0, input1, input2), column))
 
     ##
-    # Sets a 4x1 Vector inside the \ref Matrix4f at the specifided column index.
+    # Sets a 4x1 Vector inside the \ref Matrix4f at the specified column index.
     # \param input0 : first value of the 4x1 Vector to put inside the \ref Matrix4f
     # \param input1 : second value of the 4x1 Vector to put inside the \ref Matrix4f
     # \param input2 : third value of the 4x1 Vector to put inside the \ref Matrix4f
@@ -824,16 +873,21 @@ class SIDE(enum.Enum):
 #
 # | Enumerator |            |
 # |------------|------------|
-# | HD2K | 2208*1242, available framerates: 15 fps. |
-# | HD1080 | 1920*1080, available framerates: 15, 30 fps. |
-# | HD720 | 1280*720, available framerates: 15, 30, 60 fps |
-# | VGA | 672*376, available framerates: 15, 30, 60, 100 fps. |
+# | HD2K    | 2208*1242 (x2), available framerates: 15 fps. |
+# | HD1080  | 1920*1080 (x2), available framerates: 15, 30 fps. |
+# | HD1200  | 1920*1200 (x2), available framerates: 30, 60 fps. (ZED-X(M) only) |
+# | HD720   | 1280*720 (x2), available framerates: 15, 30, 60 fps |
+# | SVGA    | 960*600 (x2), available framerates: 60, 120 fps. (ZED-X(M) only) |
+# | VGA     | 672*376 (x2), available framerates: 15, 30, 60, 100 fps. |
 class RESOLUTION(enum.Enum):
     HD2K = <int>c_RESOLUTION.HD2K
     HD1080 = <int>c_RESOLUTION.HD1080
+    HD1200 = <int>c_RESOLUTION.HD1200
     HD720 = <int>c_RESOLUTION.HD720
+    SVGA  = <int>c_RESOLUTION.SVGA
     VGA  = <int>c_RESOLUTION.VGA
-    LAST = <int>c_RESOLUTION.RESOLUTION_LAST
+    AUTO = <int>c_RESOLUTION.AUTO
+    LAST = <int>c_RESOLUTION.LAST
 
 ##
 # Lists available camera settings for the ZED camera (contrast, hue, saturation, gain...).
@@ -858,6 +912,14 @@ class RESOLUTION(enum.Enum):
 # | WHITEBALANCE_TEMPERATURE | Defines the color temperature value. Setting a value will automatically set @WHITEBALANCE_AUTO to 0. Affected value should be between 2800 and 6500 with a step of 100. |
 # | WHITEBALANCE_AUTO | Defines if the White balance is in automatic mode or not |
 # | LED_STATUS | Defines the status of the camera front LED. Set to 0 to disable the light, 1 to enable the light. Default value is on. Requires Camera FW 1523 at least |
+# | EXPOSURE_TIME | Defines the real exposure time in microseconds. Only available for GMSL based cameras. Recommended for ZED-X/ZED-XM to control manual exposure (instead of EXPOSURE setting) |
+# | ANALOG_GAIN | Defines the real analog gain (sensor) in mDB. Range is defined by Jetson DTS and by default [1000-16000].  Recommended for ZED-X/ZED-XM to control manual sensor gain (instead of GAIN setting). Only available for GMSL based cameras. |
+# | DIGITAL_GAIN | Defines the real digital gain (ISP) as a factor. Range is defined by Jetson DTS and by default [1-256].  Recommended for ZED-X/ZED-XM to control manual ISP gain (instead of GAIN setting). Only available for GMSL based cameras. |
+# | AUTO_EXPOSURE_TIME_RANGE | Defines the range of exposure auto control in micro seconds.Used with \ref setCameraSettings(VIDEO_SETTINGS,int,int).  Min/Max range between Max range defined in DTS. By default : [28000 - <fps_time> or 19000] us. Only available for GMSL based cameras |
+# | AUTO_ANALOG_GAIN_RANGE | Defines the range of sensor gain in automatic control. Used with \ref setCameraSettings(VIDEO_SETTINGS,int,int). Min/Max range between Max range defined in DTS. By default : [1000 - 16000] mdB .  Only available for GMSL based cameras |
+# | AUTO_DIGITAL_GAIN_RANGE | Defines the range of digital ISP gain in automatic control. Used with \ref setCameraSettings(VIDEO_SETTINGS,int,int). Min/Max range between Max range defined in DTS. By default : [1 - 256]. Only available for GMSL based cameras |
+# | EXPOSURE_COMPENSATION | Defines the Exposure-target compensation made after auto exposure. Reduces the overall illumination target by factor of F-stops. values range is [0 - 100] (mapped between [-2.0,2.0]). Default value is 50, i.e. no compensation applied. Only available for GMSL based cameras |
+# | DENOISING | Defines the level of denoising applied on both left and right images. values range is [0-100]. Default value is 50. Only available for GMSL based cameras |
 class VIDEO_SETTINGS(enum.Enum):
     BRIGHTNESS = <int>c_VIDEO_SETTINGS.BRIGHTNESS
     CONTRAST = <int>c_VIDEO_SETTINGS.CONTRAST
@@ -872,7 +934,15 @@ class VIDEO_SETTINGS(enum.Enum):
     WHITEBALANCE_TEMPERATURE = <int>c_VIDEO_SETTINGS.WHITEBALANCE_TEMPERATURE
     WHITEBALANCE_AUTO = <int>c_VIDEO_SETTINGS.WHITEBALANCE_AUTO
     LED_STATUS = <int>c_VIDEO_SETTINGS.LED_STATUS
-    LAST = <int>c_VIDEO_SETTINGS.VIDEO_SETTINGS_LAST
+    EXPOSURE_TIME = <int>c_VIDEO_SETTINGS.EXPOSURE_TIME
+    ANALOG_GAIN = <int>c_VIDEO_SETTINGS.ANALOG_GAIN
+    DIGITAL_GAIN = <int>c_VIDEO_SETTINGS.DIGITAL_GAIN
+    AUTO_EXPOSURE_TIME_RANGE = <int>c_VIDEO_SETTINGS.AUTO_EXPOSURE_TIME_RANGE
+    AUTO_ANALOG_GAIN_RANGE = <int>c_VIDEO_SETTINGS.AUTO_ANALOG_GAIN_RANGE
+    AUTO_DIGITAL_GAIN_RANGE = <int>c_VIDEO_SETTINGS.AUTO_DIGITAL_GAIN_RANGE
+    EXPOSURE_COMPENSATION = <int>c_VIDEO_SETTINGS.EXPOSURE_COMPENSATION
+    DENOISING = <int>c_VIDEO_SETTINGS.DENOISING
+    LAST = <int>c_VIDEO_SETTINGS.LAST
 
 ##
 # Lists available depth computation modes.
@@ -892,19 +962,6 @@ class DEPTH_MODE(enum.Enum):
     ULTRA = <int>c_DEPTH_MODE.ULTRA
     NEURAL = <int>c_DEPTH_MODE.NEURAL
     LAST = <int>c_DEPTH_MODE.DEPTH_MODE_LAST
-
-##
-# Lists available depth sensing modes.
-# \ingroup Depth_group
-#
-# | Enumerator |                         |
-# |------------|-------------------------|
-# | STANDARD | This mode outputs ZED standard depth map that preserves edges and depth accuracy.\n- Application examples: Obstacle detection, Automated navigation, People detection, 3D reconstruction, measurements. |
-# | FILL | This mode outputs a smooth and fully dense depth map.\n- Application examples: AR/VR, Mixed-reality capture, Image post-processing. |
-class SENSING_MODE(enum.Enum):
-    STANDARD = <int>c_SENSING_MODE.STANDARD
-    FILL = <int>c_SENSING_MODE.FILL
-    LAST = <int>c_SENSING_MODE.SENSING_MODE_LAST
 
 ##
 # Lists available unit for measures.
@@ -1459,7 +1516,7 @@ cdef class ObjectData:
 
 
     ##
-    # Object label, forwarded from \ref CustomBoxObjectData when using sl.DETECTION_MODEL.CUSTOM_BOX_OBJECTS
+    # Object label, forwarded from \ref CustomBoxObjectData when using sl.OBJECT_DETECTION_MODEL.CUSTOM_BOX_OBJECTS
     @property
     def raw_label(self):
         return self.object_data.raw_label
@@ -1643,32 +1700,7 @@ cdef class ObjectData:
             self.object_data.dimensions[i] = dimensions[i]
    
     ##
-    # A set of useful points representing the human body, expressed in 3D and only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL). 
-    # We use a classic 18 points representation, the keypoint semantic and order is given by \ref BODY_PARTS
-    # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame
-    # \warning in some cases, eg. body partially out of the image, some keypoints can not be detected, they will have negative coordinates. 
-    @property
-    def keypoint(self):
-        cdef np.ndarray arr = np.zeros((self.object_data.keypoint.size(), 3), dtype=np.float32)
-        for i in range(self.object_data.keypoint.size()):
-            for j in range(3):
-                arr[i,j] = self.object_data.keypoint[i].ptr()[j]
-        return arr
-
-    ##
-    # 2D keypoint of the object, only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL)
-    # \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected, they will have non finite values. 
-    @property
-    def keypoint_2d(self):
-        cdef np.ndarray arr = np.zeros((self.object_data.keypoint_2d.size(), 2))
-        for i in range(self.object_data.keypoint_2d.size()):
-            for j in range(2):
-                arr[i,j] = self.object_data.keypoint_2d[i].ptr()[j]
-        return arr
-
-    
-    ##
-    # 3D bounding box of the person head, only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL), represented as eight 3D points. 
+    # 3D bounding box of the person head, only available in [BODY_TRACKING_MODEL.HUMAN_BODY*](\ref OBJECT_DETECTION_MODEL), represented as eight 3D points. 
     # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame
     @property
     def head_bounding_box(self):
@@ -1704,50 +1736,289 @@ cdef class ObjectData:
         for i in range(3):
             self.object_data.head_position[i] = head_position[i]
 
+##
+# Contains data of a detected object such as its bounding_box, label, id and its 3D position.
+# \ingroup Body_group
+cdef class BodyData:
+    cdef c_BodyData body_data
+
+    ##
+    # Object identification number, used as a reference when tracking the object through the frames.
+    # \note Only available if \ref BodyTrackingParameters.enable_tracking is activated else set to -1.
+    @property
+    def id(self):
+        return self.body_data.id
+
+    @id.setter
+    def id(self, int id):
+        self.body_data.id = id
+
+    ##
+    # Unique ID to help identify and track AI detections. Can be either generated externally, or using \ref generate_unique_id() or left empty
+    @property
+    def unique_object_id(self):
+        if not self.body_data.unique_object_id.empty():
+            return self.body_data.unique_object_id.get().decode()
+        else:
+            return ""
+
+    @unique_object_id.setter
+    def unique_object_id(self, str id_):
+        self.body_data.unique_object_id.set(id_.encode())
+
+    ##
+    # Defines the object tracking state. Can have the following values: \ref OBJECT_TRACKING_STATE
+    @property
+    def tracking_state(self):
+        return OBJECT_TRACKING_STATE(<int>self.body_data.tracking_state)
+
+    @tracking_state.setter
+    def tracking_state(self, tracking_state):
+        if isinstance(tracking_state, OBJECT_TRACKING_STATE):
+            self.body_data.tracking_state = <c_OBJECT_TRACKING_STATE>(<unsigned int>tracking_state.value)
+        else:
+            raise TypeError("Argument is not of OBJECT_TRACKING_STATE type.")
+
+    ##
+    # Defines the object action state. Can have the following values: \ref OBJECT_ACTION_STATE
+    @property
+    def action_state(self):
+        return OBJECT_ACTION_STATE(<int>self.body_data.action_state)
+
+    @action_state.setter
+    def action_state(self, action_state):
+        if isinstance(action_state, OBJECT_ACTION_STATE):
+            self.body_data.action_state = <c_OBJECT_ACTION_STATE>(<unsigned int>action_state.value)
+        else:
+            raise TypeError("Argument is not of OBJECT_ACTION_STATE type.")
+
+    ##
+    # Defines the object 3D centroid. Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame
+    @property
+    def position(self):
+        cdef np.ndarray position = np.zeros(3)
+        for i in range(3):
+            position[i] = self.body_data.position[i]
+        return position
+
+    @position.setter
+    def position(self, np.ndarray position):
+        for i in range(3):
+            self.body_data.position[i] = position[i]
+
+    ##
+    # Defines the object 3D velocity. Defined in \ref InitParameters.coordinate_units / s , expressed in \ref RuntimeParameters.measure3D_reference_frame
+    @property
+    def velocity(self):
+        cdef np.ndarray velocity = np.zeros(3)
+        for i in range(3):
+            velocity[i] = self.body_data.velocity[i]
+        return velocity
+
+    @velocity.setter
+    def velocity(self, np.ndarray velocity):
+        for i in range(3):
+            self.body_data.velocity[i] = velocity[i]
+
+    ##
+    # 3D bounding box of the person represented as eight 3D points. Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame
+    # \code
+    #   1 ------ 2
+    #  /        /|
+    # 0 ------ 3 |
+    # | Object | 6
+    # |        |/
+    # 4 ------ 7
+    # \endcode
+    # \note Only available if ObjectDetectionParameters.enable_tracking is activated 
+    @property
+    def bounding_box(self):
+        cdef np.ndarray arr = np.zeros((self.body_data.bounding_box.size(), 3), dtype=np.float32)
+        for i in range(self.body_data.bounding_box.size()):
+            for j in range(3):
+                arr[i,j] = self.body_data.bounding_box[i].ptr()[j]
+        return arr
+
+    @bounding_box.setter
+    def bounding_box(self, np.ndarray coordinates):
+        cdef Vector3[float] vec
+        self.body_data.bounding_box.clear()
+        for i in range(8):
+            vec[0] = coordinates[i][0]
+            vec[1] = coordinates[i][1]
+            vec[2] = coordinates[i][2]
+            self.body_data.bounding_box.push_back(vec)
+
+    ##
+    # 2D bounding box of the person represented as four 2D points starting at the top left corner and rotation clockwise.
+    # Expressed in pixels on the original image resolution, where [0,0] is the top left corner.
+    # \code
+    # A ------ B
+    # | Object |
+    # D ------ C
+    # \endcode
+    @property
+    def bounding_box_2d(self):
+        cdef np.ndarray arr = np.zeros((self.body_data.bounding_box_2d.size(), 2))
+        for i in range(self.body_data.bounding_box_2d.size()):
+            for j in range(2):
+                arr[i,j] = self.body_data.bounding_box_2d[i].ptr()[j]
+        return arr
+
+    @bounding_box_2d.setter
+    def bounding_box_2d(self, np.ndarray coordinates):
+        cdef Vector2[unsigned int] vec
+        self.body_data.bounding_box_2d.clear()
+        for i in range(4):
+            vec[0] = coordinates[i][0]
+            vec[1] = coordinates[i][1]
+            self.body_data.bounding_box_2d.push_back(vec)
+
+    ##
+    # Defines the detection confidence value of the object.
+    # Values can range from 0 to 100, where lower confidence values mean that the object might not be localized perfectly or that the label (\ref OBJECT_CLASS) is uncertain.
+    @property
+    def confidence(self):
+        return self.body_data.confidence
+
+    @confidence.setter
+    def confidence(self, float confidence):
+        self.body_data.confidence = confidence
+
+    ##
+    # Defines for the bounding_box_2d the pixels which really belong to the object (set to 255) and those of the background (set to 0).
+    # \warning The mask information is available only for tracked objects ([OBJECT_TRACKING_STATE.OK](\ref OBJECT_TRACKING_STATE)) that have a valid depth. Otherwise, it will not be initialized ([mask.is_init](\ref Mat.is_init) == False) 
+    @property
+    def mask(self):
+        mat = Mat()
+        mat.mat = self.body_data.mask
+        return mat
+
+    @mask.setter
+    def mask(self, Mat mat):
+        self.body_data.mask = mat.mat
+
+    ##
+    # 3D object dimensions: width, height, length 
+    # \note Only available if ObjectDetectionParameters.enable_tracking is activated 
+    @property
+    def dimensions(self):
+        cdef np.ndarray dimensions = np.zeros(3)
+        for i in range(3):
+            dimensions[i] = self.body_data.dimensions[i]
+        return dimensions
+
+    @dimensions.setter
+    def dimensions(self, np.ndarray dimensions):
+        for i in range(3):
+            self.body_data.dimensions[i] = dimensions[i]
+   
+    ##
+    # A set of useful points representing the human body, expressed in 3D and only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL). 
+    # We use a classic 18 points representation, the keypoint semantic and order is given by \ref BODY_18_PARTS
+    # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame
+    # \warning in some cases, eg. body partially out of the image, some keypoints can not be detected, they will have negative coordinates. 
+    @property
+    def keypoint(self):
+        cdef np.ndarray arr = np.zeros((self.body_data.keypoint.size(), 3), dtype=np.float32)
+        for i in range(self.body_data.keypoint.size()):
+            for j in range(3):
+                arr[i,j] = self.body_data.keypoint[i].ptr()[j]
+        return arr
+
+    ##
+    # 2D keypoint of the object, only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL)
+    # \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected, they will have non finite values. 
+    @property
+    def keypoint_2d(self):
+        cdef np.ndarray arr = np.zeros((self.body_data.keypoint_2d.size(), 2))
+        for i in range(self.body_data.keypoint_2d.size()):
+            for j in range(2):
+                arr[i,j] = self.body_data.keypoint_2d[i].ptr()[j]
+        return arr
+
+    
+    ##
+    # 3D bounding box of the person head, only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL), represented as eight 3D points. 
+    # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame
+    @property
+    def head_bounding_box(self):
+        cdef np.ndarray arr = np.zeros((self.body_data.head_bounding_box.size(), 3), dtype=np.float32)
+        for i in range(self.body_data.head_bounding_box.size()):
+            for j in range(3):
+                arr[i,j] = self.body_data.head_bounding_box[i].ptr()[j]
+        return arr
+
+    ##
+    # 2D bounding box of the person head, only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL), represented as four 2D points starting at the top left corner and rotation clockwise.
+    # Expressed in pixels on the original image resolution. 
+    @property
+    def head_bounding_box_2d(self):
+        cdef np.ndarray arr = np.zeros((self.body_data.head_bounding_box_2d.size(), 2))
+        for i in range(self.body_data.head_bounding_box_2d.size()):
+            for j in range(2):
+                arr[i,j] = self.body_data.head_bounding_box_2d[i].ptr()[j]
+        return arr
+
+    ##
+    # 3D head centroid, only available in [DETECTION_MODEL.HUMAN_BODY*](\ref DETECTION_MODEL). 
+    # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame
+    @property
+    def head_position(self):
+        cdef np.ndarray head_position = np.zeros(3)
+        for i in range(3):
+            head_position[i] = self.body_data.head_position[i]
+        return head_position
+
+    @head_position.setter
+    def head_position(self, np.ndarray head_position):
+        for i in range(3):
+            self.body_data.head_position[i] = head_position[i]
+
     ##
     # Per keypoint detection confidence, can not be lower than the \ref ObjectDetectionRuntimeParameters::detection_confidence_threshold.
     # \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
     # \warning In some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected, they will have non finite values.
     @property
     def keypoint_confidence(self):
-        cdef np.ndarray out_arr = np.zeros(self.object_data.keypoint_confidence.size())
-        for i in range(self.object_data.keypoint_confidence.size()):
-            out_arr[i] = self.object_data.keypoint_confidence[i]
+        cdef np.ndarray out_arr = np.zeros(self.body_data.keypoint_confidence.size())
+        for i in range(self.body_data.keypoint_confidence.size()):
+            out_arr[i] = self.body_data.keypoint_confidence[i]
         return out_arr
 
     ##
     # Per keypoint local position (the position of the child keypoint with respect to its parent expressed in its parent coordinate frame)
     # \note it is expressed in [sl.REFERENCE_FRAME.CAMERA](\ref REFERENCE_FRAME) or [sl.REFERENCE_FRAME.WORLD](\ref REFERENCE_FRAME)
-    # \warning Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL) and with [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT).
+    # \warning Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL) and with [sl.BODY_FORMAT.BODY_18](\ref BODY_FORMAT).
     @property
     def local_position_per_joint(self):
-        cdef np.ndarray arr = np.zeros((self.object_data.local_position_per_joint.size(), 3), dtype=np.float32)
-        for i in range(self.object_data.local_position_per_joint.size()):
+        cdef np.ndarray arr = np.zeros((self.body_data.local_position_per_joint.size(), 3), dtype=np.float32)
+        for i in range(self.body_data.local_position_per_joint.size()):
             for j in range(3):
-                arr[i,j] = self.object_data.local_position_per_joint[i].ptr()[j]
+                arr[i,j] = self.body_data.local_position_per_joint[i].ptr()[j]
         return arr
 
     ##
     # Per keypoint local orientation
     # \note the orientation is represented by a quaternion which is stored in a numpy array of size 4 [qx,qy,qz,qw]
-    # \warning Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL) and with [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT).
+    # \warning Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL) and with [sl.BODY_FORMAT.BODY_18](\ref BODY_FORMAT).
     @property
     def local_orientation_per_joint(self):
-        cdef np.ndarray arr = np.zeros((self.object_data.local_orientation_per_joint.size(), 4), dtype=np.float32)
-        for i in range(self.object_data.local_orientation_per_joint.size()):
+        cdef np.ndarray arr = np.zeros((self.body_data.local_orientation_per_joint.size(), 4), dtype=np.float32)
+        for i in range(self.body_data.local_orientation_per_joint.size()):
             for j in range(4):
-                arr[i,j] = self.object_data.local_orientation_per_joint[i].ptr()[j]
+                arr[i,j] = self.body_data.local_orientation_per_joint[i].ptr()[j]
         return arr
 
     ##
     # Global root orientation of the skeleton. The orientation is also represented by a quaternion with the same format as \ref local_orientation_per_joint
     # \note the global root position is already accessible in \ref keypoint attribute by using the root index of a given \ref sl.BODY_FORMAT
-    # \warning Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL) and with [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT).
+    # \warning Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL) and with [sl.BODY_FORMAT.BODY_18](\ref BODY_FORMAT).
     @property
     def global_root_orientation(self):
         cdef np.ndarray arr = np.zeros(4)
         for i in range(4):
-            arr[i] = self.object_data.global_root_orientation[i]
+            arr[i] = self.body_data.global_root_orientation[i]
         return arr
 
 ##
@@ -1834,8 +2105,8 @@ cdef class CustomBoxObjectData:
         self.custom_box_object_data.is_grounded = is_grounded
 
 ##
-# \brief Semantic of human body parts and order of \ref sl.ObjectData.keypoint for [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT)
-# \ingroup Object_group
+# \brief Semantic of human body parts and order of \ref sl.ObjectData.keypoint for [sl.BODY_FORMAT.BODY_18](\ref BODY_FORMAT)
+# \ingroup Body_group
 # 
 # | Enumerator |                         |
 # |------------|-------------------------|
@@ -1857,35 +2128,30 @@ cdef class CustomBoxObjectData:
 # | LEFT_EYE |  |
 # | RIGHT_EAR |  |
 # | LEFT_EAR |  |
-class BODY_PARTS(enum.Enum):
-    NOSE = <int>c_BODY_PARTS.NOSE
-    NECK = <int>c_BODY_PARTS.NECK
-    RIGHT_SHOULDER = <int>c_BODY_PARTS.RIGHT_SHOULDER
-    RIGHT_ELBOW = <int>c_BODY_PARTS.RIGHT_ELBOW
-    RIGHT_WRIST = <int>c_BODY_PARTS.RIGHT_WRIST
-    LEFT_SHOULDER = <int>c_BODY_PARTS.LEFT_SHOULDER
-    LEFT_ELBOW = <int>c_BODY_PARTS.LEFT_ELBOW
-    LEFT_WRIST = <int>c_BODY_PARTS.LEFT_WRIST
-    RIGHT_HIP = <int>c_BODY_PARTS.RIGHT_HIP
-    RIGHT_KNEE = <int>c_BODY_PARTS.RIGHT_KNEE
-    RIGHT_ANKLE = <int>c_BODY_PARTS.RIGHT_ANKLE
-    LEFT_HIP = <int>c_BODY_PARTS.LEFT_HIP
-    LEFT_KNEE = <int>c_BODY_PARTS.LEFT_KNEE
-    LEFT_ANKLE = <int>c_BODY_PARTS.LEFT_ANKLE
-    RIGHT_EYE = <int>c_BODY_PARTS.RIGHT_EYE
-    LEFT_EYE = <int>c_BODY_PARTS.LEFT_EYE
-    RIGHT_EAR = <int>c_BODY_PARTS.RIGHT_EAR
-    LEFT_EAR = <int>c_BODY_PARTS.LEFT_EAR
-    LAST = <int>c_BODY_PARTS.LAST
-
-##
-# \brief Equivalent to \ref BODY_PARTS. Added in SDK 3.6 for compatibility with previous versions.
-# \ingroup Object_group
-BODY_PARTS_POSE_18 = BODY_PARTS
+class BODY_18_PARTS(enum.Enum):
+    NOSE = <int>c_BODY_18_PARTS.NOSE
+    NECK = <int>c_BODY_18_PARTS.NECK
+    RIGHT_SHOULDER = <int>c_BODY_18_PARTS.RIGHT_SHOULDER
+    RIGHT_ELBOW = <int>c_BODY_18_PARTS.RIGHT_ELBOW
+    RIGHT_WRIST = <int>c_BODY_18_PARTS.RIGHT_WRIST
+    LEFT_SHOULDER = <int>c_BODY_18_PARTS.LEFT_SHOULDER
+    LEFT_ELBOW = <int>c_BODY_18_PARTS.LEFT_ELBOW
+    LEFT_WRIST = <int>c_BODY_18_PARTS.LEFT_WRIST
+    RIGHT_HIP = <int>c_BODY_18_PARTS.RIGHT_HIP
+    RIGHT_KNEE = <int>c_BODY_18_PARTS.RIGHT_KNEE
+    RIGHT_ANKLE = <int>c_BODY_18_PARTS.RIGHT_ANKLE
+    LEFT_HIP = <int>c_BODY_18_PARTS.LEFT_HIP
+    LEFT_KNEE = <int>c_BODY_18_PARTS.LEFT_KNEE
+    LEFT_ANKLE = <int>c_BODY_18_PARTS.LEFT_ANKLE
+    RIGHT_EYE = <int>c_BODY_18_PARTS.RIGHT_EYE
+    LEFT_EYE = <int>c_BODY_18_PARTS.LEFT_EYE
+    RIGHT_EAR = <int>c_BODY_18_PARTS.RIGHT_EAR
+    LEFT_EAR = <int>c_BODY_18_PARTS.LEFT_EAR
+    LAST = <int>c_BODY_18_PARTS.LAST
 
 ##
 # \brief Semantic of human body parts and order of \ref sl.ObjectData.keypoint for [sl.BODY_FORMAT.POSE_32](\ref BODY_FORMAT)
-# \ingroup Object_group
+# \ingroup Body_group
 # 
 # | Enumerator |                         |
 # |------------|-------------------------|
@@ -1923,132 +2189,506 @@ BODY_PARTS_POSE_18 = BODY_PARTS
 # | RIGHT_EAR |  |
 # | LEFT_HEEL |  |
 # | RIGHT_HEEL |  |
-class BODY_PARTS_POSE_34(enum.Enum):
-    PELVIS = <int>c_BODY_PARTS_POSE_34.PELVIS 
-    NAVAL_SPINE = <int>c_BODY_PARTS_POSE_34.NAVAL_SPINE 
-    CHEST_SPINE = <int>c_BODY_PARTS_POSE_34.CHEST_SPINE 
-    NECK = <int>c_BODY_PARTS_POSE_34.NECK 
-    LEFT_CLAVICLE = <int>c_BODY_PARTS_POSE_34.LEFT_CLAVICLE 
-    LEFT_SHOULDER = <int>c_BODY_PARTS_POSE_34.LEFT_SHOULDER 
-    LEFT_ELBOW = <int>c_BODY_PARTS_POSE_34.LEFT_ELBOW 
-    LEFT_WRIST = <int>c_BODY_PARTS_POSE_34.LEFT_WRIST 
-    LEFT_HAND = <int>c_BODY_PARTS_POSE_34.LEFT_HAND 
-    LEFT_HANDTIP = <int>c_BODY_PARTS_POSE_34.LEFT_HANDTIP 
-    LEFT_THUMB = <int>c_BODY_PARTS_POSE_34.LEFT_THUMB 
-    RIGHT_CLAVICLE = <int>c_BODY_PARTS_POSE_34.RIGHT_CLAVICLE  
-    RIGHT_SHOULDER = <int>c_BODY_PARTS_POSE_34.RIGHT_SHOULDER 
-    RIGHT_ELBOW = <int>c_BODY_PARTS_POSE_34.RIGHT_ELBOW 
-    RIGHT_WRIST = <int>c_BODY_PARTS_POSE_34.RIGHT_WRIST 
-    RIGHT_HAND = <int>c_BODY_PARTS_POSE_34.RIGHT_HAND 
-    RIGHT_HANDTIP = <int>c_BODY_PARTS_POSE_34.RIGHT_HANDTIP 
-    RIGHT_THUMB = <int>c_BODY_PARTS_POSE_34.RIGHT_THUMB 
-    LEFT_HIP = <int>c_BODY_PARTS_POSE_34.LEFT_HIP 
-    LEFT_KNEE = <int>c_BODY_PARTS_POSE_34.LEFT_KNEE 
-    LEFT_ANKLE = <int>c_BODY_PARTS_POSE_34.LEFT_ANKLE 
-    LEFT_FOOT = <int>c_BODY_PARTS_POSE_34.LEFT_FOOT 
-    RIGHT_HIP = <int>c_BODY_PARTS_POSE_34.RIGHT_HIP 
-    RIGHT_KNEE = <int>c_BODY_PARTS_POSE_34.RIGHT_KNEE 
-    RIGHT_ANKLE = <int>c_BODY_PARTS_POSE_34.RIGHT_ANKLE 
-    RIGHT_FOOT = <int>c_BODY_PARTS_POSE_34.RIGHT_FOOT 
-    HEAD = <int>c_BODY_PARTS_POSE_34.HEAD 
-    NOSE = <int>c_BODY_PARTS_POSE_34.NOSE 
-    LEFT_EYE = <int>c_BODY_PARTS_POSE_34.LEFT_EYE 
-    LEFT_EAR = <int>c_BODY_PARTS_POSE_34.LEFT_EAR 
-    RIGHT_EYE = <int>c_BODY_PARTS_POSE_34.RIGHT_EYE 
-    RIGHT_EAR = <int>c_BODY_PARTS_POSE_34.RIGHT_EAR 
-    LEFT_HEEL = <int>c_BODY_PARTS_POSE_34.LEFT_HEEL
-    RIGHT_HEEL = <int>c_BODY_PARTS_POSE_34.RIGHT_HEEL
-    LAST = <int>c_BODY_PARTS_POSE_34.LAST
+class BODY_34_PARTS(enum.Enum):
+    PELVIS = <int>c_BODY_34_PARTS.PELVIS 
+    NAVAL_SPINE = <int>c_BODY_34_PARTS.NAVAL_SPINE 
+    CHEST_SPINE = <int>c_BODY_34_PARTS.CHEST_SPINE 
+    NECK = <int>c_BODY_34_PARTS.NECK 
+    LEFT_CLAVICLE = <int>c_BODY_34_PARTS.LEFT_CLAVICLE 
+    LEFT_SHOULDER = <int>c_BODY_34_PARTS.LEFT_SHOULDER 
+    LEFT_ELBOW = <int>c_BODY_34_PARTS.LEFT_ELBOW 
+    LEFT_WRIST = <int>c_BODY_34_PARTS.LEFT_WRIST 
+    LEFT_HAND = <int>c_BODY_34_PARTS.LEFT_HAND 
+    LEFT_HANDTIP = <int>c_BODY_34_PARTS.LEFT_HANDTIP 
+    LEFT_THUMB = <int>c_BODY_34_PARTS.LEFT_THUMB 
+    RIGHT_CLAVICLE = <int>c_BODY_34_PARTS.RIGHT_CLAVICLE  
+    RIGHT_SHOULDER = <int>c_BODY_34_PARTS.RIGHT_SHOULDER 
+    RIGHT_ELBOW = <int>c_BODY_34_PARTS.RIGHT_ELBOW 
+    RIGHT_WRIST = <int>c_BODY_34_PARTS.RIGHT_WRIST 
+    RIGHT_HAND = <int>c_BODY_34_PARTS.RIGHT_HAND 
+    RIGHT_HANDTIP = <int>c_BODY_34_PARTS.RIGHT_HANDTIP 
+    RIGHT_THUMB = <int>c_BODY_34_PARTS.RIGHT_THUMB 
+    LEFT_HIP = <int>c_BODY_34_PARTS.LEFT_HIP 
+    LEFT_KNEE = <int>c_BODY_34_PARTS.LEFT_KNEE 
+    LEFT_ANKLE = <int>c_BODY_34_PARTS.LEFT_ANKLE 
+    LEFT_FOOT = <int>c_BODY_34_PARTS.LEFT_FOOT 
+    RIGHT_HIP = <int>c_BODY_34_PARTS.RIGHT_HIP 
+    RIGHT_KNEE = <int>c_BODY_34_PARTS.RIGHT_KNEE 
+    RIGHT_ANKLE = <int>c_BODY_34_PARTS.RIGHT_ANKLE 
+    RIGHT_FOOT = <int>c_BODY_34_PARTS.RIGHT_FOOT 
+    HEAD = <int>c_BODY_34_PARTS.HEAD 
+    NOSE = <int>c_BODY_34_PARTS.NOSE 
+    LEFT_EYE = <int>c_BODY_34_PARTS.LEFT_EYE 
+    LEFT_EAR = <int>c_BODY_34_PARTS.LEFT_EAR 
+    RIGHT_EYE = <int>c_BODY_34_PARTS.RIGHT_EYE 
+    RIGHT_EAR = <int>c_BODY_34_PARTS.RIGHT_EAR 
+    LEFT_HEEL = <int>c_BODY_34_PARTS.LEFT_HEEL
+    RIGHT_HEEL = <int>c_BODY_34_PARTS.RIGHT_HEEL
+    LAST = <int>c_BODY_34_PARTS.LAST
 
 ##
-# \brief List of supported skeleton body model
-# \ingroup Object_group
+# \brief Semantic of human body parts and order of \ref sl.ObjectData.keypoint for [sl.BODY_FORMAT.POSE_38](\ref BODY_FORMAT)
+# \ingroup Body_group
 # 
 # | Enumerator |                         |
 # |------------|-------------------------|
-# | POSE_18 | 18  keypoint model of COCO 18. \note local keypoint angle and position are not available with this format.  |
-# | POSE_34 | 34 keypoint model. \note local keypoint angle and position are available. \warning The SDK will automatically enable fitting. |
+# | PELVIS |  |
+# | SPINE_1 |  |
+# | SPINE_2 |  |
+# | SPINE_3 |  |
+# | NECK |  |
+# | NOSE |  |
+# | LEFT_EYE |  |
+# | RIGHT_EYE |  |
+# | LEFT_EAR |  |
+# | RIGHT_EAR |  |
+# | LEFT_CLAVICLE |  |
+# | RIGHT_CLAVICLE |  |
+# | LEFT_SHOULDER |  |
+# | RIGHT_SHOULDER |  |
+# | LEFT_ELBOW |  |
+# | RIGHT_ELBOW |  |
+# | LEFT_WRIST |  |
+# | RIGHT_WRIST |  |
+# | LEFT_HIP |  |
+# | RIGHT_HIP |  |
+# | LEFT_KNEE |  |
+# | RIGHT_KNEE |  |
+# | LEFT_ANKLE |  |
+# | RIGHT_ANKLE |  |
+# | LEFT_BIG_TOE |  |
+# | RIGHT_BIG_TOE |  |
+# | LEFT_SMALL_TOE |  |
+# | RIGHT_SMALL_TOE |  |
+# | LEFT_HEEL |  |
+# | RIGHT_HEEL |  |
+# | LEFT_HAND_THUMB_4 |  |
+# | RIGHT_HAND_THUMB_4 |  |
+# | LEFT_HAND_INDEX_1 |  |
+# | RIGHT_HAND_INDEX_1 |  |
+# | LEFT_HAND_MIDDLE_4 |  |
+# | RIGHT_HAND_MIDDLE_4 |  |
+# | LEFT_HAND_PINKY_1 |  |
+# | RIGHT_HAND_PINKY_1 |  |
+class BODY_38_PARTS(enum.Enum):
+    PELVIS = <int>c_BODY_38_PARTS.PELVIS 
+    SPINE_1 = <int>c_BODY_38_PARTS.SPINE_1 
+    SPINE_2 = <int>c_BODY_38_PARTS.SPINE_2 
+    SPINE_3 = <int>c_BODY_38_PARTS.SPINE_3 
+    NECK = <int>c_BODY_38_PARTS.NECK 
+    NOSE = <int>c_BODY_38_PARTS.NOSE 
+    LEFT_EYE = <int>c_BODY_38_PARTS.LEFT_EYE 
+    RIGHT_EYE = <int>c_BODY_38_PARTS.RIGHT_EYE 
+    LEFT_EAR = <int>c_BODY_38_PARTS.LEFT_EAR         
+    RIGHT_EAR = <int>c_BODY_38_PARTS.RIGHT_EAR         
+    LEFT_CLAVICLE = <int>c_BODY_38_PARTS.LEFT_CLAVICLE 
+    RIGHT_CLAVICLE = <int>c_BODY_38_PARTS.RIGHT_CLAVICLE  
+    LEFT_SHOULDER = <int>c_BODY_38_PARTS.LEFT_SHOULDER 
+    RIGHT_SHOULDER = <int>c_BODY_38_PARTS.RIGHT_SHOULDER 
+    LEFT_ELBOW = <int>c_BODY_38_PARTS.LEFT_ELBOW 
+    RIGHT_ELBOW = <int>c_BODY_38_PARTS.RIGHT_ELBOW 
+    LEFT_WRIST = <int>c_BODY_38_PARTS.LEFT_WRIST 
+    RIGHT_WRIST = <int>c_BODY_38_PARTS.RIGHT_WRIST
+    LEFT_HIP = <int>c_BODY_38_PARTS.LEFT_HIP 
+    RIGHT_HIP = <int>c_BODY_38_PARTS.RIGHT_HIP 
+    LEFT_KNEE = <int>c_BODY_38_PARTS.LEFT_KNEE 
+    RIGHT_KNEE = <int>c_BODY_38_PARTS.RIGHT_KNEE 
+    LEFT_ANKLE = <int>c_BODY_38_PARTS.LEFT_ANKLE 
+    RIGHT_ANKLE = <int>c_BODY_38_PARTS.RIGHT_ANKLE 
+    LEFT_BIG_TOE = <int>c_BODY_38_PARTS.LEFT_BIG_TOE 
+    RIGHT_BIG_TOE = <int>c_BODY_38_PARTS.RIGHT_BIG_TOE 
+    LEFT_SMALL_TOE = <int>c_BODY_38_PARTS.LEFT_SMALL_TOE 
+    RIGHT_SMALL_TOE = <int>c_BODY_38_PARTS.RIGHT_SMALL_TOE 
+    LEFT_HEEL = <int>c_BODY_38_PARTS.LEFT_HEEL 
+    RIGHT_HEEL = <int>c_BODY_38_PARTS.RIGHT_HEEL    
+    LEFT_HAND_THUMB_4 = <int>c_BODY_38_PARTS.LEFT_HAND_THUMB_4 
+    RIGHT_HAND_THUMB_4 = <int>c_BODY_38_PARTS.RIGHT_HAND_THUMB_4 
+    LEFT_HAND_INDEX_1 = <int>c_BODY_38_PARTS.LEFT_HAND_INDEX_1 
+    RIGHT_HAND_INDEX_1 = <int>c_BODY_38_PARTS.RIGHT_HAND_INDEX_1 
+    LEFT_HAND_MIDDLE_4 = <int>c_BODY_38_PARTS.LEFT_HAND_MIDDLE_4 
+    RIGHT_HAND_MIDDLE_4 = <int>c_BODY_38_PARTS.RIGHT_HAND_MIDDLE_4 
+    LEFT_HAND_PINKY_1 = <int>c_BODY_38_PARTS.LEFT_HAND_PINKY_1 
+    RIGHT_HAND_PINKY_1 = <int>c_BODY_38_PARTS.RIGHT_HAND_PINKY_1 
+    LAST = <int>c_BODY_38_PARTS.LAST
+
+##
+# \brief Semantic of human body parts and order of \ref sl.ObjectData.keypoint for [sl.BODY_FORMAT.POSE_70](\ref BODY_FORMAT)
+# \ingroup Body_group
+# 
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | PELVIS |  |
+# | SPINE_1 |  |
+# | SPINE_2 |  |
+# | SPINE_3 |  |
+# | NECK |  |
+# | NOSE |  |
+# | LEFT_EYE |  |
+# | RIGHT_EYE |  |
+# | LEFT_EAR |  |
+# | RIGHT_EAR |  |
+# | LEFT_CLAVICLE |  |
+# | RIGHT_CLAVICLE |  |
+# | LEFT_SHOULDER |  |
+# | RIGHT_SHOULDER |  |
+# | LEFT_ELBOW |  |
+# | RIGHT_ELBOW |  |
+# | LEFT_WRIST |  |
+# | RIGHT_WRIST |  |
+# | LEFT_HIP |  |
+# | RIGHT_HIP |  |
+# | LEFT_KNEE |  |
+# | RIGHT_KNEE |  |
+# | LEFT_ANKLE |  |
+# | RIGHT_ANKLE |  |
+# | LEFT_BIG_TOE |  |
+# | RIGHT_BIG_TOE |  |
+# | LEFT_SMALL_TOE |  |
+# | RIGHT_SMALL_TOE |  |
+# | LEFT_HEEL |  |
+# | RIGHT_HEEL |  |
+# | LEFT_HAND_THUMB_1 |  |
+# | LEFT_HAND_THUMB_2 |  |
+# | LEFT_HAND_THUMB_3 |  |
+# | LEFT_HAND_THUMB_4 |  |
+# | LEFT_HAND_INDEX_1 |  |
+# | LEFT_HAND_INDEX_2 |  |
+# | LEFT_HAND_INDEX_3 |  |
+# | LEFT_HAND_INDEX_4 |  |
+# | LEFT_HAND_MIDDLE_1 |  |
+# | LEFT_HAND_MIDDLE_2 |  |
+# | LEFT_HAND_MIDDLE_3 |  |
+# | LEFT_HAND_MIDDLE_4 |  |
+# | LEFT_HAND_RING_1 |  |
+# | LEFT_HAND_RING_2 |  |
+# | LEFT_HAND_RING_3 |  |
+# | LEFT_HAND_RING_4 |  |
+# | LEFT_HAND_PINKY_1 |  |
+# | LEFT_HAND_PINKY_2 |  |
+# | LEFT_HAND_PINKY_3 |  |
+# | LEFT_HAND_PINKY_4 |  |
+# | RIGHT_HAND_THUMB_1 |  |
+# | RIGHT_HAND_THUMB_2 |  |
+# | RIGHT_HAND_THUMB_3 |  |
+# | RIGHT_HAND_THUMB_4 |  |
+# | RIGHT_HAND_INDEX_1 |  |
+# | RIGHT_HAND_INDEX_2 |  |
+# | RIGHT_HAND_INDEX_3 |  |
+# | RIGHT_HAND_INDEX_4 |  |
+# | RIGHT_HAND_MIDDLE_1 |  |
+# | RIGHT_HAND_MIDDLE_2 |  |
+# | RIGHT_HAND_MIDDLE_3 |  |
+# | RIGHT_HAND_MIDDLE_4 |  |
+# | RIGHT_HAND_RING_1 |  |
+# | RIGHT_HAND_RING_2 |  |
+# | RIGHT_HAND_RING_3 |  |
+# | RIGHT_HAND_RING_4 |  |
+# | RIGHT_HAND_PINKY_1 |  |
+# | RIGHT_HAND_PINKY_2 |  |
+# | RIGHT_HAND_PINKY_3 |  |
+# | RIGHT_HAND_PINKY_4 |  |
+class BODY_70_PARTS(enum.Enum):
+        PELVIS = <int>c_BODY_70_PARTS.PELVIS
+        SPINE_1 = <int>c_BODY_70_PARTS.SPINE_1 
+        SPINE_2 = <int>c_BODY_70_PARTS.SPINE_2 
+        SPINE_3 = <int>c_BODY_70_PARTS.SPINE_3 
+        NECK = <int>c_BODY_70_PARTS.NECK 
+        NOSE = <int>c_BODY_70_PARTS.NOSE 
+        LEFT_EYE = <int>c_BODY_70_PARTS.LEFT_EYE 
+        RIGHT_EYE = <int>c_BODY_70_PARTS.RIGHT_EYE 
+        LEFT_EAR = <int>c_BODY_70_PARTS.LEFT_EAR         
+        RIGHT_EAR = <int>c_BODY_70_PARTS.RIGHT_EAR         
+        LEFT_CLAVICLE = <int>c_BODY_70_PARTS.LEFT_CLAVICLE 
+        RIGHT_CLAVICLE = <int>c_BODY_70_PARTS.RIGHT_CLAVICLE  
+        LEFT_SHOULDER = <int>c_BODY_70_PARTS.LEFT_SHOULDER 
+        RIGHT_SHOULDER = <int>c_BODY_70_PARTS.RIGHT_SHOULDER 
+        LEFT_ELBOW = <int>c_BODY_70_PARTS.LEFT_ELBOW 
+        RIGHT_ELBOW = <int>c_BODY_70_PARTS.RIGHT_ELBOW 
+        LEFT_WRIST = <int>c_BODY_70_PARTS.LEFT_WRIST 
+        RIGHT_WRIST = <int>c_BODY_70_PARTS.RIGHT_WRIST
+        LEFT_HIP = <int>c_BODY_70_PARTS.LEFT_HIP 
+        RIGHT_HIP = <int>c_BODY_70_PARTS.RIGHT_HIP 
+        LEFT_KNEE = <int>c_BODY_70_PARTS.LEFT_KNEE 
+        RIGHT_KNEE = <int>c_BODY_70_PARTS.RIGHT_KNEE 
+        LEFT_ANKLE = <int>c_BODY_70_PARTS.LEFT_ANKLE 
+        RIGHT_ANKLE = <int>c_BODY_70_PARTS.RIGHT_ANKLE 
+        LEFT_BIG_TOE = <int>c_BODY_70_PARTS.LEFT_BIG_TOE 
+        RIGHT_BIG_TOE = <int>c_BODY_70_PARTS.RIGHT_BIG_TOE 
+        LEFT_SMALL_TOE = <int>c_BODY_70_PARTS.LEFT_SMALL_TOE 
+        RIGHT_SMALL_TOE = <int>c_BODY_70_PARTS.RIGHT_SMALL_TOE 
+        LEFT_HEEL = <int>c_BODY_70_PARTS.LEFT_HEEL 
+        RIGHT_HEEL = <int>c_BODY_70_PARTS.RIGHT_HEEL    
+
+        LEFT_HAND_THUMB_1 = <int>c_BODY_70_PARTS.LEFT_HAND_THUMB_1 
+        LEFT_HAND_THUMB_2 = <int>c_BODY_70_PARTS.LEFT_HAND_THUMB_2 
+        LEFT_HAND_THUMB_3 = <int>c_BODY_70_PARTS.LEFT_HAND_THUMB_3 
+        LEFT_HAND_THUMB_4 = <int>c_BODY_70_PARTS.LEFT_HAND_THUMB_4 
+        LEFT_HAND_INDEX_1 = <int>c_BODY_70_PARTS.LEFT_HAND_INDEX_1 
+        LEFT_HAND_INDEX_2 = <int>c_BODY_70_PARTS.LEFT_HAND_INDEX_2 
+        LEFT_HAND_INDEX_3 = <int>c_BODY_70_PARTS.LEFT_HAND_INDEX_3 
+        LEFT_HAND_INDEX_4 = <int>c_BODY_70_PARTS.LEFT_HAND_INDEX_4 
+        LEFT_HAND_MIDDLE_1 = <int>c_BODY_70_PARTS.LEFT_HAND_MIDDLE_1 
+        LEFT_HAND_MIDDLE_2 = <int>c_BODY_70_PARTS.LEFT_HAND_MIDDLE_2 
+        LEFT_HAND_MIDDLE_3 = <int>c_BODY_70_PARTS.LEFT_HAND_MIDDLE_3 
+        LEFT_HAND_MIDDLE_4 = <int>c_BODY_70_PARTS.LEFT_HAND_MIDDLE_4 
+        LEFT_HAND_RING_1 = <int>c_BODY_70_PARTS.LEFT_HAND_RING_1 
+        LEFT_HAND_RING_2 = <int>c_BODY_70_PARTS.LEFT_HAND_RING_2 
+        LEFT_HAND_RING_3 = <int>c_BODY_70_PARTS.LEFT_HAND_RING_3 
+        LEFT_HAND_RING_4 = <int>c_BODY_70_PARTS.LEFT_HAND_RING_4 
+        LEFT_HAND_PINKY_1 = <int>c_BODY_70_PARTS.LEFT_HAND_PINKY_1 
+        LEFT_HAND_PINKY_2 = <int>c_BODY_70_PARTS.LEFT_HAND_PINKY_2 
+        LEFT_HAND_PINKY_3 = <int>c_BODY_70_PARTS.LEFT_HAND_PINKY_3 
+        LEFT_HAND_PINKY_4 = <int>c_BODY_70_PARTS.LEFT_HAND_PINKY_4 
+
+        RIGHT_HAND_THUMB_1 = <int>c_BODY_70_PARTS.RIGHT_HAND_THUMB_1 
+        RIGHT_HAND_THUMB_2 = <int>c_BODY_70_PARTS.RIGHT_HAND_THUMB_2 
+        RIGHT_HAND_THUMB_3 = <int>c_BODY_70_PARTS.RIGHT_HAND_THUMB_3 
+        RIGHT_HAND_THUMB_4 = <int>c_BODY_70_PARTS.RIGHT_HAND_THUMB_4 
+        RIGHT_HAND_INDEX_1 = <int>c_BODY_70_PARTS.RIGHT_HAND_INDEX_1 
+        RIGHT_HAND_INDEX_2 = <int>c_BODY_70_PARTS.RIGHT_HAND_INDEX_2 
+        RIGHT_HAND_INDEX_3 = <int>c_BODY_70_PARTS.RIGHT_HAND_INDEX_3 
+        RIGHT_HAND_INDEX_4 = <int>c_BODY_70_PARTS.RIGHT_HAND_INDEX_4 
+        RIGHT_HAND_MIDDLE_1 = <int>c_BODY_70_PARTS.RIGHT_HAND_MIDDLE_1 
+        RIGHT_HAND_MIDDLE_2 = <int>c_BODY_70_PARTS.RIGHT_HAND_MIDDLE_2 
+        RIGHT_HAND_MIDDLE_3 = <int>c_BODY_70_PARTS.RIGHT_HAND_MIDDLE_3 
+        RIGHT_HAND_MIDDLE_4 = <int>c_BODY_70_PARTS.RIGHT_HAND_MIDDLE_4 
+        RIGHT_HAND_RING_1 = <int>c_BODY_70_PARTS.RIGHT_HAND_RING_1 
+        RIGHT_HAND_RING_2 = <int>c_BODY_70_PARTS.RIGHT_HAND_RING_2 
+        RIGHT_HAND_RING_3 = <int>c_BODY_70_PARTS.RIGHT_HAND_RING_3 
+        RIGHT_HAND_RING_4 = <int>c_BODY_70_PARTS.RIGHT_HAND_RING_4 
+        RIGHT_HAND_PINKY_1 = <int>c_BODY_70_PARTS.RIGHT_HAND_PINKY_1 
+        RIGHT_HAND_PINKY_2 = <int>c_BODY_70_PARTS.RIGHT_HAND_PINKY_2 
+        RIGHT_HAND_PINKY_3 = <int>c_BODY_70_PARTS.RIGHT_HAND_PINKY_3 
+        RIGHT_HAND_PINKY_4 = <int>c_BODY_70_PARTS.RIGHT_HAND_PINKY_4 
+
+        LAST = <int>c_BODY_70_PARTS.LAST
+
+##
+# \brief List of supported skeleton body model
+# \ingroup Body_group
+# 
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | BODY_18 | 18 keypoint model of COCO 18. \note local keypoint angle and position are not available with this format.  |
+# | BODY_34 | 34 keypoint model. \note local keypoint angle and position are available. \warning The SDK will automatically enable fitting. |
+# | BODY_38 | 38 keypoint model. \note local keypoint angle and position are available. |
+# | BODY_70 | 70 keypoint model. \note local keypoint angle and position are available. |
 class BODY_FORMAT(enum.Enum):
-    POSE_18 = <int>c_BODY_FORMAT.POSE_18
-    POSE_34 = <int>c_BODY_FORMAT.POSE_34
+    BODY_18 = <int>c_BODY_FORMAT.BODY_18
+    BODY_34 = <int>c_BODY_FORMAT.BODY_34
+    BODY_38 = <int>c_BODY_FORMAT.BODY_38
+    BODY_70 = <int>c_BODY_FORMAT.BODY_70
     LAST = <int>c_BODY_FORMAT.LAST
 
+##
+# \brief Lists of supported skeleton body selection model
+# \ingroup Body_group
+class BODY_KEYPOINTS_SELECTION(enum.Enum):
+    FULL = <int>c_BODY_KEYPOINTS_SELECTION.FULL
+    UPPER_BODY = <int>c_BODY_KEYPOINTS_SELECTION.UPPER_BODY
+    LAST = <int>c_BODY_KEYPOINTS_SELECTION.LAST
 
 ##
-# \brief Links of human body keypoints for [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT), useful for display.
-# \ingroup Object_group
-BODY_BONES = [ (BODY_PARTS.NOSE, BODY_PARTS.NECK),
-                (BODY_PARTS.NECK, BODY_PARTS.RIGHT_SHOULDER),
-                (BODY_PARTS.RIGHT_SHOULDER, BODY_PARTS.RIGHT_ELBOW),
-                (BODY_PARTS.RIGHT_ELBOW, BODY_PARTS.RIGHT_WRIST),
-                (BODY_PARTS.NECK, BODY_PARTS.LEFT_SHOULDER),
-                (BODY_PARTS.LEFT_SHOULDER, BODY_PARTS.LEFT_ELBOW),
-                (BODY_PARTS.LEFT_ELBOW, BODY_PARTS.LEFT_WRIST),
-                (BODY_PARTS.RIGHT_SHOULDER, BODY_PARTS.RIGHT_HIP),
-                (BODY_PARTS.RIGHT_HIP, BODY_PARTS.RIGHT_KNEE),
-                (BODY_PARTS.RIGHT_KNEE, BODY_PARTS.RIGHT_ANKLE),
-                (BODY_PARTS.LEFT_SHOULDER, BODY_PARTS.LEFT_HIP),
-                (BODY_PARTS.LEFT_HIP, BODY_PARTS.LEFT_KNEE),
-                (BODY_PARTS.LEFT_KNEE, BODY_PARTS.LEFT_ANKLE),
-                (BODY_PARTS.RIGHT_SHOULDER, BODY_PARTS.LEFT_SHOULDER),
-                (BODY_PARTS.RIGHT_HIP, BODY_PARTS.LEFT_HIP),
-                (BODY_PARTS.NOSE, BODY_PARTS.RIGHT_EYE),
-                (BODY_PARTS.RIGHT_EYE, BODY_PARTS.RIGHT_EAR),
-                (BODY_PARTS.NOSE, BODY_PARTS.LEFT_EYE),
-                (BODY_PARTS.LEFT_EYE, BODY_PARTS.LEFT_EAR) ]
+# \brief Links of human body keypoints for [sl.BODY_FORMAT.BODY_18](\ref BODY_FORMAT), useful for display.
+# \ingroup Body_group
+BODY_18_BONES = [ (BODY_18_PARTS.NOSE, BODY_18_PARTS.NECK),
+                (BODY_18_PARTS.NECK, BODY_18_PARTS.RIGHT_SHOULDER),
+                (BODY_18_PARTS.RIGHT_SHOULDER, BODY_18_PARTS.RIGHT_ELBOW),
+                (BODY_18_PARTS.RIGHT_ELBOW, BODY_18_PARTS.RIGHT_WRIST),
+                (BODY_18_PARTS.NECK, BODY_18_PARTS.LEFT_SHOULDER),
+                (BODY_18_PARTS.LEFT_SHOULDER, BODY_18_PARTS.LEFT_ELBOW),
+                (BODY_18_PARTS.LEFT_ELBOW, BODY_18_PARTS.LEFT_WRIST),
+                (BODY_18_PARTS.RIGHT_SHOULDER, BODY_18_PARTS.RIGHT_HIP),
+                (BODY_18_PARTS.RIGHT_HIP, BODY_18_PARTS.RIGHT_KNEE),
+                (BODY_18_PARTS.RIGHT_KNEE, BODY_18_PARTS.RIGHT_ANKLE),
+                (BODY_18_PARTS.LEFT_SHOULDER, BODY_18_PARTS.LEFT_HIP),
+                (BODY_18_PARTS.LEFT_HIP, BODY_18_PARTS.LEFT_KNEE),
+                (BODY_18_PARTS.LEFT_KNEE, BODY_18_PARTS.LEFT_ANKLE),
+                (BODY_18_PARTS.RIGHT_SHOULDER, BODY_18_PARTS.LEFT_SHOULDER),
+                (BODY_18_PARTS.RIGHT_HIP, BODY_18_PARTS.LEFT_HIP),
+                (BODY_18_PARTS.NOSE, BODY_18_PARTS.RIGHT_EYE),
+                (BODY_18_PARTS.RIGHT_EYE, BODY_18_PARTS.RIGHT_EAR),
+                (BODY_18_PARTS.NOSE, BODY_18_PARTS.LEFT_EYE),
+                (BODY_18_PARTS.LEFT_EYE, BODY_18_PARTS.LEFT_EAR) ]
 
 ##
-# \brief Links of human body keypoints for [sl.BODY_FORMAT.POSE_34](\ref BODY_FORMAT), useful for display.
-# \ingroup Object_group
-BODY_BONES_POSE_34 = [ 
-        (BODY_PARTS_POSE_34.PELVIS, BODY_PARTS_POSE_34.NAVAL_SPINE),
-		(BODY_PARTS_POSE_34.NAVAL_SPINE, BODY_PARTS_POSE_34.CHEST_SPINE),
-		(BODY_PARTS_POSE_34.CHEST_SPINE, BODY_PARTS_POSE_34.LEFT_CLAVICLE),
-		(BODY_PARTS_POSE_34.LEFT_CLAVICLE, BODY_PARTS_POSE_34.LEFT_SHOULDER),
-		(BODY_PARTS_POSE_34.LEFT_SHOULDER, BODY_PARTS_POSE_34.LEFT_ELBOW),
-		(BODY_PARTS_POSE_34.LEFT_ELBOW, BODY_PARTS_POSE_34.LEFT_WRIST),
-		(BODY_PARTS_POSE_34.LEFT_WRIST, BODY_PARTS_POSE_34.LEFT_HAND),
-		(BODY_PARTS_POSE_34.LEFT_HAND, BODY_PARTS_POSE_34.LEFT_HANDTIP),
-		(BODY_PARTS_POSE_34.LEFT_WRIST, BODY_PARTS_POSE_34.LEFT_THUMB),
-		(BODY_PARTS_POSE_34.CHEST_SPINE, BODY_PARTS_POSE_34.RIGHT_CLAVICLE),
-		(BODY_PARTS_POSE_34.RIGHT_CLAVICLE, BODY_PARTS_POSE_34.RIGHT_SHOULDER),
-		(BODY_PARTS_POSE_34.RIGHT_SHOULDER, BODY_PARTS_POSE_34.RIGHT_ELBOW),
-		(BODY_PARTS_POSE_34.RIGHT_ELBOW, BODY_PARTS_POSE_34.RIGHT_WRIST),
-		(BODY_PARTS_POSE_34.RIGHT_WRIST, BODY_PARTS_POSE_34.RIGHT_HAND),
-		(BODY_PARTS_POSE_34.RIGHT_HAND, BODY_PARTS_POSE_34.RIGHT_HANDTIP),
-		(BODY_PARTS_POSE_34.RIGHT_WRIST, BODY_PARTS_POSE_34.RIGHT_THUMB),
-		(BODY_PARTS_POSE_34.PELVIS, BODY_PARTS_POSE_34.LEFT_HIP),
-		(BODY_PARTS_POSE_34.LEFT_HIP, BODY_PARTS_POSE_34.LEFT_KNEE),
-		(BODY_PARTS_POSE_34.LEFT_KNEE, BODY_PARTS_POSE_34.LEFT_ANKLE),
-		(BODY_PARTS_POSE_34.LEFT_ANKLE, BODY_PARTS_POSE_34.LEFT_FOOT),
-		(BODY_PARTS_POSE_34.PELVIS, BODY_PARTS_POSE_34.RIGHT_HIP),
-		(BODY_PARTS_POSE_34.RIGHT_HIP, BODY_PARTS_POSE_34.RIGHT_KNEE),
-		(BODY_PARTS_POSE_34.RIGHT_KNEE, BODY_PARTS_POSE_34.RIGHT_ANKLE),
-		(BODY_PARTS_POSE_34.RIGHT_ANKLE, BODY_PARTS_POSE_34.RIGHT_FOOT),
-		(BODY_PARTS_POSE_34.CHEST_SPINE, BODY_PARTS_POSE_34.NECK),
-		(BODY_PARTS_POSE_34.NECK, BODY_PARTS_POSE_34.HEAD),
-		(BODY_PARTS_POSE_34.HEAD, BODY_PARTS_POSE_34.NOSE),
-		(BODY_PARTS_POSE_34.NOSE, BODY_PARTS_POSE_34.LEFT_EYE),
-		(BODY_PARTS_POSE_34.LEFT_EYE, BODY_PARTS_POSE_34.LEFT_EAR),
-		(BODY_PARTS_POSE_34.NOSE, BODY_PARTS_POSE_34.RIGHT_EYE),
-		(BODY_PARTS_POSE_34.RIGHT_EYE, BODY_PARTS_POSE_34.RIGHT_EAR),
-		(BODY_PARTS_POSE_34.LEFT_ANKLE, BODY_PARTS_POSE_34.LEFT_HEEL),
-		(BODY_PARTS_POSE_34.RIGHT_ANKLE, BODY_PARTS_POSE_34.RIGHT_HEEL),
-		(BODY_PARTS_POSE_34.LEFT_HEEL, BODY_PARTS_POSE_34.LEFT_FOOT),
-        (BODY_PARTS_POSE_34.RIGHT_HEEL, BODY_PARTS_POSE_34.RIGHT_FOOT)
+# \brief Links of human body keypoints for [sl.BODY_FORMAT.BODY_34](\ref BODY_FORMAT), useful for display.
+# \ingroup Body_group
+BODY_34_BONES = [ 
+        (BODY_34_PARTS.PELVIS, BODY_34_PARTS.NAVAL_SPINE),
+		(BODY_34_PARTS.NAVAL_SPINE, BODY_34_PARTS.CHEST_SPINE),
+		(BODY_34_PARTS.CHEST_SPINE, BODY_34_PARTS.LEFT_CLAVICLE),
+		(BODY_34_PARTS.LEFT_CLAVICLE, BODY_34_PARTS.LEFT_SHOULDER),
+		(BODY_34_PARTS.LEFT_SHOULDER, BODY_34_PARTS.LEFT_ELBOW),
+		(BODY_34_PARTS.LEFT_ELBOW, BODY_34_PARTS.LEFT_WRIST),
+		(BODY_34_PARTS.LEFT_WRIST, BODY_34_PARTS.LEFT_HAND),
+		(BODY_34_PARTS.LEFT_HAND, BODY_34_PARTS.LEFT_HANDTIP),
+		(BODY_34_PARTS.LEFT_WRIST, BODY_34_PARTS.LEFT_THUMB),
+		(BODY_34_PARTS.CHEST_SPINE, BODY_34_PARTS.RIGHT_CLAVICLE),
+		(BODY_34_PARTS.RIGHT_CLAVICLE, BODY_34_PARTS.RIGHT_SHOULDER),
+		(BODY_34_PARTS.RIGHT_SHOULDER, BODY_34_PARTS.RIGHT_ELBOW),
+		(BODY_34_PARTS.RIGHT_ELBOW, BODY_34_PARTS.RIGHT_WRIST),
+		(BODY_34_PARTS.RIGHT_WRIST, BODY_34_PARTS.RIGHT_HAND),
+		(BODY_34_PARTS.RIGHT_HAND, BODY_34_PARTS.RIGHT_HANDTIP),
+		(BODY_34_PARTS.RIGHT_WRIST, BODY_34_PARTS.RIGHT_THUMB),
+		(BODY_34_PARTS.PELVIS, BODY_34_PARTS.LEFT_HIP),
+		(BODY_34_PARTS.LEFT_HIP, BODY_34_PARTS.LEFT_KNEE),
+		(BODY_34_PARTS.LEFT_KNEE, BODY_34_PARTS.LEFT_ANKLE),
+		(BODY_34_PARTS.LEFT_ANKLE, BODY_34_PARTS.LEFT_FOOT),
+		(BODY_34_PARTS.PELVIS, BODY_34_PARTS.RIGHT_HIP),
+		(BODY_34_PARTS.RIGHT_HIP, BODY_34_PARTS.RIGHT_KNEE),
+		(BODY_34_PARTS.RIGHT_KNEE, BODY_34_PARTS.RIGHT_ANKLE),
+		(BODY_34_PARTS.RIGHT_ANKLE, BODY_34_PARTS.RIGHT_FOOT),
+		(BODY_34_PARTS.CHEST_SPINE, BODY_34_PARTS.NECK),
+		(BODY_34_PARTS.NECK, BODY_34_PARTS.HEAD),
+		(BODY_34_PARTS.HEAD, BODY_34_PARTS.NOSE),
+		(BODY_34_PARTS.NOSE, BODY_34_PARTS.LEFT_EYE),
+		(BODY_34_PARTS.LEFT_EYE, BODY_34_PARTS.LEFT_EAR),
+		(BODY_34_PARTS.NOSE, BODY_34_PARTS.RIGHT_EYE),
+		(BODY_34_PARTS.RIGHT_EYE, BODY_34_PARTS.RIGHT_EAR),
+		(BODY_34_PARTS.LEFT_ANKLE, BODY_34_PARTS.LEFT_HEEL),
+		(BODY_34_PARTS.RIGHT_ANKLE, BODY_34_PARTS.RIGHT_HEEL),
+		(BODY_34_PARTS.LEFT_HEEL, BODY_34_PARTS.LEFT_FOOT),
+        (BODY_34_PARTS.RIGHT_HEEL, BODY_34_PARTS.RIGHT_FOOT)
  ]
 
 ##
-# Returns the associated index for a given \ref BODY_PARTS.
-# \ingroup Object_group
-def get_idx(part: BODY_PARTS):
-    return c_getIdx(<c_BODY_PARTS>(<unsigned int>part.value))
+# \brief Links of human body keypoints for [sl.BODY_FORMAT.BODY_38](\ref BODY_FORMAT), useful for display.
+# \ingroup Body_group
+BODY_38_BONES = [
+        (BODY_38_PARTS.PELVIS, BODY_38_PARTS.SPINE_1),
+        (BODY_38_PARTS.SPINE_1, BODY_38_PARTS.SPINE_2),
+        (BODY_38_PARTS.SPINE_2, BODY_38_PARTS.SPINE_3),
+        (BODY_38_PARTS.SPINE_3, BODY_38_PARTS.NECK),
+        (BODY_38_PARTS.NECK, BODY_38_PARTS.NOSE),
+        (BODY_38_PARTS.NOSE, BODY_38_PARTS.LEFT_EYE),
+        (BODY_38_PARTS.LEFT_EYE, BODY_38_PARTS.LEFT_EAR),
+        (BODY_38_PARTS.NOSE, BODY_38_PARTS.RIGHT_EYE),
+        (BODY_38_PARTS.RIGHT_EYE, BODY_38_PARTS.RIGHT_EAR),
+        (BODY_38_PARTS.SPINE_3, BODY_38_PARTS.LEFT_CLAVICLE),
+        (BODY_38_PARTS.LEFT_CLAVICLE, BODY_38_PARTS.LEFT_SHOULDER),
+        (BODY_38_PARTS.LEFT_SHOULDER, BODY_38_PARTS.LEFT_ELBOW),
+        (BODY_38_PARTS.LEFT_ELBOW, BODY_38_PARTS.LEFT_WRIST),
+        (BODY_38_PARTS.LEFT_WRIST, BODY_38_PARTS.LEFT_HAND_THUMB_4),
+        (BODY_38_PARTS.LEFT_WRIST, BODY_38_PARTS.LEFT_HAND_INDEX_1),
+        (BODY_38_PARTS.LEFT_WRIST, BODY_38_PARTS.LEFT_HAND_MIDDLE_4),
+        (BODY_38_PARTS.LEFT_WRIST, BODY_38_PARTS.LEFT_HAND_PINKY_1),
+        (BODY_38_PARTS.SPINE_3, BODY_38_PARTS.RIGHT_CLAVICLE),
+        (BODY_38_PARTS.RIGHT_CLAVICLE, BODY_38_PARTS.RIGHT_SHOULDER),
+        (BODY_38_PARTS.RIGHT_SHOULDER, BODY_38_PARTS.RIGHT_ELBOW),
+        (BODY_38_PARTS.RIGHT_ELBOW, BODY_38_PARTS.RIGHT_WRIST),
+        (BODY_38_PARTS.RIGHT_WRIST, BODY_38_PARTS.RIGHT_HAND_THUMB_4),
+        (BODY_38_PARTS.RIGHT_WRIST, BODY_38_PARTS.RIGHT_HAND_INDEX_1),
+        (BODY_38_PARTS.RIGHT_WRIST, BODY_38_PARTS.RIGHT_HAND_MIDDLE_4),
+        (BODY_38_PARTS.RIGHT_WRIST, BODY_38_PARTS.RIGHT_HAND_PINKY_1),
+        (BODY_38_PARTS.PELVIS, BODY_38_PARTS.LEFT_HIP),
+        (BODY_38_PARTS.LEFT_HIP, BODY_38_PARTS.LEFT_KNEE),
+        (BODY_38_PARTS.LEFT_KNEE, BODY_38_PARTS.LEFT_ANKLE),
+        (BODY_38_PARTS.LEFT_ANKLE, BODY_38_PARTS.LEFT_HEEL),
+        (BODY_38_PARTS.LEFT_ANKLE, BODY_38_PARTS.LEFT_BIG_TOE),
+        (BODY_38_PARTS.LEFT_ANKLE, BODY_38_PARTS.LEFT_SMALL_TOE),
+        (BODY_38_PARTS.PELVIS, BODY_38_PARTS.RIGHT_HIP),
+        (BODY_38_PARTS.RIGHT_HIP, BODY_38_PARTS.RIGHT_KNEE),
+        (BODY_38_PARTS.RIGHT_KNEE, BODY_38_PARTS.RIGHT_ANKLE),
+        (BODY_38_PARTS.RIGHT_ANKLE, BODY_38_PARTS.RIGHT_HEEL),
+        (BODY_38_PARTS.RIGHT_ANKLE, BODY_38_PARTS.RIGHT_BIG_TOE),
+        (BODY_38_PARTS.RIGHT_ANKLE, BODY_38_PARTS.RIGHT_SMALL_TOE)
+ ]
 
 ##
-# Returns the associated index for a given \ref BODY_PARTS_POSE_34.
-# \ingroup Object_group
-def get_idx_34(part: BODY_PARTS_POSE_34):
-    return c_getIdx(<c_BODY_PARTS_POSE_34>(<unsigned int>part.value))
+# \brief Links of human body keypoints for [sl.BODY_FORMAT.BODY_70](\ref BODY_FORMAT), useful for display.
+# \ingroup Body_group
+BODY_70_BONES = [
+
+        (BODY_70_PARTS.PELVIS, BODY_70_PARTS.SPINE_1),
+        (BODY_70_PARTS.SPINE_1, BODY_70_PARTS.SPINE_2),
+        (BODY_70_PARTS.SPINE_2, BODY_70_PARTS.SPINE_3),
+        (BODY_70_PARTS.SPINE_3, BODY_70_PARTS.NECK),
+        # Face
+        (BODY_70_PARTS.NECK, BODY_70_PARTS.NOSE),
+        (BODY_70_PARTS.NOSE, BODY_70_PARTS.LEFT_EYE),
+        (BODY_70_PARTS.LEFT_EYE, BODY_70_PARTS.LEFT_EAR),
+        (BODY_70_PARTS.NOSE, BODY_70_PARTS.RIGHT_EYE),
+        (BODY_70_PARTS.RIGHT_EYE, BODY_70_PARTS.RIGHT_EAR),
+        # Left Arm
+        (BODY_70_PARTS.SPINE_3, BODY_70_PARTS.LEFT_CLAVICLE),
+        (BODY_70_PARTS.LEFT_CLAVICLE, BODY_70_PARTS.LEFT_SHOULDER),
+        (BODY_70_PARTS.LEFT_SHOULDER, BODY_70_PARTS.LEFT_ELBOW),
+        (BODY_70_PARTS.LEFT_ELBOW, BODY_70_PARTS.LEFT_WRIST),
+        # Left Hand
+        (BODY_70_PARTS.LEFT_WRIST,          BODY_70_PARTS.LEFT_HAND_THUMB_1),
+        (BODY_70_PARTS.LEFT_HAND_THUMB_1,   BODY_70_PARTS.LEFT_HAND_THUMB_2),
+        (BODY_70_PARTS.LEFT_HAND_THUMB_2,   BODY_70_PARTS.LEFT_HAND_THUMB_3),
+        (BODY_70_PARTS.LEFT_HAND_THUMB_3,   BODY_70_PARTS.LEFT_HAND_THUMB_4),
+        (BODY_70_PARTS.LEFT_WRIST,          BODY_70_PARTS.LEFT_HAND_INDEX_1),
+        (BODY_70_PARTS.LEFT_HAND_INDEX_1,   BODY_70_PARTS.LEFT_HAND_INDEX_2),
+        (BODY_70_PARTS.LEFT_HAND_INDEX_2,   BODY_70_PARTS.LEFT_HAND_INDEX_3),
+        (BODY_70_PARTS.LEFT_HAND_INDEX_3,   BODY_70_PARTS.LEFT_HAND_INDEX_4),
+        (BODY_70_PARTS.LEFT_WRIST,          BODY_70_PARTS.LEFT_HAND_MIDDLE_1),
+        (BODY_70_PARTS.LEFT_HAND_MIDDLE_1,  BODY_70_PARTS.LEFT_HAND_MIDDLE_2),
+        (BODY_70_PARTS.LEFT_HAND_MIDDLE_2,  BODY_70_PARTS.LEFT_HAND_MIDDLE_3),
+        (BODY_70_PARTS.LEFT_HAND_MIDDLE_3,  BODY_70_PARTS.LEFT_HAND_MIDDLE_4),
+        (BODY_70_PARTS.LEFT_WRIST,          BODY_70_PARTS.LEFT_HAND_RING_1),
+        (BODY_70_PARTS.LEFT_HAND_RING_1,    BODY_70_PARTS.LEFT_HAND_RING_2),
+        (BODY_70_PARTS.LEFT_HAND_RING_2,    BODY_70_PARTS.LEFT_HAND_RING_3),
+        (BODY_70_PARTS.LEFT_HAND_RING_3,    BODY_70_PARTS.LEFT_HAND_RING_4),
+        (BODY_70_PARTS.LEFT_WRIST,          BODY_70_PARTS.LEFT_HAND_PINKY_1),
+        (BODY_70_PARTS.LEFT_HAND_PINKY_1,   BODY_70_PARTS.LEFT_HAND_PINKY_2),
+        (BODY_70_PARTS.LEFT_HAND_PINKY_2,   BODY_70_PARTS.LEFT_HAND_PINKY_3),
+        (BODY_70_PARTS.LEFT_HAND_PINKY_3,   BODY_70_PARTS.LEFT_HAND_PINKY_4),
+        # Right Arm
+        (BODY_70_PARTS.SPINE_3, BODY_70_PARTS.RIGHT_CLAVICLE),
+        (BODY_70_PARTS.RIGHT_CLAVICLE, BODY_70_PARTS.RIGHT_SHOULDER),
+        (BODY_70_PARTS.RIGHT_SHOULDER, BODY_70_PARTS.RIGHT_ELBOW),
+        (BODY_70_PARTS.RIGHT_ELBOW, BODY_70_PARTS.RIGHT_WRIST),
+        # Right Hand
+        (BODY_70_PARTS.RIGHT_WRIST,          BODY_70_PARTS.RIGHT_HAND_THUMB_1),
+        (BODY_70_PARTS.RIGHT_HAND_THUMB_1,   BODY_70_PARTS.RIGHT_HAND_THUMB_2),
+        (BODY_70_PARTS.RIGHT_HAND_THUMB_2,   BODY_70_PARTS.RIGHT_HAND_THUMB_3),
+        (BODY_70_PARTS.RIGHT_HAND_THUMB_3,   BODY_70_PARTS.RIGHT_HAND_THUMB_4),
+        (BODY_70_PARTS.RIGHT_WRIST,          BODY_70_PARTS.RIGHT_HAND_INDEX_1),
+        (BODY_70_PARTS.RIGHT_HAND_INDEX_1,   BODY_70_PARTS.RIGHT_HAND_INDEX_2),
+        (BODY_70_PARTS.RIGHT_HAND_INDEX_2,   BODY_70_PARTS.RIGHT_HAND_INDEX_3),
+        (BODY_70_PARTS.RIGHT_HAND_INDEX_3,   BODY_70_PARTS.RIGHT_HAND_INDEX_4),
+        (BODY_70_PARTS.RIGHT_WRIST,          BODY_70_PARTS.RIGHT_HAND_MIDDLE_1),
+        (BODY_70_PARTS.RIGHT_HAND_MIDDLE_1,  BODY_70_PARTS.RIGHT_HAND_MIDDLE_2),
+        (BODY_70_PARTS.RIGHT_HAND_MIDDLE_2,  BODY_70_PARTS.RIGHT_HAND_MIDDLE_3),
+        (BODY_70_PARTS.RIGHT_HAND_MIDDLE_3,  BODY_70_PARTS.RIGHT_HAND_MIDDLE_4),
+        (BODY_70_PARTS.RIGHT_WRIST,          BODY_70_PARTS.RIGHT_HAND_RING_1),
+        (BODY_70_PARTS.RIGHT_HAND_RING_1,    BODY_70_PARTS.RIGHT_HAND_RING_2),
+        (BODY_70_PARTS.RIGHT_HAND_RING_2,    BODY_70_PARTS.RIGHT_HAND_RING_3),
+        (BODY_70_PARTS.RIGHT_HAND_RING_3,    BODY_70_PARTS.RIGHT_HAND_RING_4),
+        (BODY_70_PARTS.RIGHT_WRIST,          BODY_70_PARTS.RIGHT_HAND_PINKY_1),
+        (BODY_70_PARTS.RIGHT_HAND_PINKY_1,   BODY_70_PARTS.RIGHT_HAND_PINKY_2),
+        (BODY_70_PARTS.RIGHT_HAND_PINKY_2,   BODY_70_PARTS.RIGHT_HAND_PINKY_3),
+        (BODY_70_PARTS.RIGHT_HAND_PINKY_3,   BODY_70_PARTS.RIGHT_HAND_PINKY_4),
+        # Left Leg
+        (BODY_70_PARTS.PELVIS, BODY_70_PARTS.LEFT_HIP),
+        (BODY_70_PARTS.LEFT_HIP, BODY_70_PARTS.LEFT_KNEE),
+        (BODY_70_PARTS.LEFT_KNEE, BODY_70_PARTS.LEFT_ANKLE),
+        (BODY_70_PARTS.LEFT_ANKLE, BODY_70_PARTS.LEFT_HEEL),
+        (BODY_70_PARTS.LEFT_ANKLE, BODY_70_PARTS.LEFT_BIG_TOE),
+        (BODY_70_PARTS.LEFT_ANKLE, BODY_70_PARTS.LEFT_SMALL_TOE),
+        # Right Leg
+        (BODY_70_PARTS.PELVIS, BODY_70_PARTS.RIGHT_HIP),
+        (BODY_70_PARTS.RIGHT_HIP, BODY_70_PARTS.RIGHT_KNEE),
+        (BODY_70_PARTS.RIGHT_KNEE, BODY_70_PARTS.RIGHT_ANKLE),
+        (BODY_70_PARTS.RIGHT_ANKLE, BODY_70_PARTS.RIGHT_HEEL),
+        (BODY_70_PARTS.RIGHT_ANKLE, BODY_70_PARTS.RIGHT_BIG_TOE),
+        (BODY_70_PARTS.RIGHT_ANKLE, BODY_70_PARTS.RIGHT_SMALL_TOE)
+]
+
+##
+# Returns the associated index for a given \ref BODY_18_PARTS.
+# \ingroup Body_group
+def get_idx(part: BODY_18_PARTS):
+    return c_getIdx(<c_BODY_18_PARTS>(<unsigned int>part.value))
+
+##
+# Returns the associated index for a given \ref BODY_34_PARTS.
+# \ingroup Body_group
+def get_idx_34(part: BODY_34_PARTS):
+    return c_getIdx(<c_BODY_34_PARTS>(<unsigned int>part.value))
 
 ##
 # Contains batched data of a detected object
@@ -2193,34 +2833,6 @@ cdef class ObjectsBatch:
         for i in range(self.objects_batch.action_states.size()):
             action_states_out.append(OBJECT_ACTION_STATE(<unsigned int>self.objects_batch.action_states[i]))
         return action_states_out
-    
-    ##
-	# A sample of 2d person keypoints.
-	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
-    # \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints cannot be detected, they will have non finite values.
-    @property
-    def keypoints_2d(self):
-        # 18 keypoints
-        cdef np.ndarray arr = np.zeros((self.objects_batch.keypoints_2d.size(),self.objects_batch.keypoints_2d[0].size(),2))
-        for i in range(self.objects_batch.keypoints_2d.size()):
-            for j in range(self.objects_batch.keypoints_2d[0].size()):
-                for k in range(2):
-                    arr[i,j,k] = self.objects_batch.keypoints_2d[i][j][k]
-        return arr
-
-	##
-	# A sample of 3d person keypoints
-	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
-	# \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints cannot be detected, they will have non finite values.
-    @property
-    def keypoints(self):
-        # 18 keypoints
-        cdef np.ndarray arr = np.zeros((self.objects_batch.keypoints.size(),self.objects_batch.keypoints[0].size(),3))
-        for i in range(self.objects_batch.keypoints.size()):
-            for j in range(self.objects_batch.keypoints[0].size()):
-                for k in range(3):
-                    arr[i,j,k] = self.objects_batch.keypoints[i][j][k]
-        return arr
 
     ##
 	# Bounds the head with four 2D points. Expressed in pixels on the original image resolution.
@@ -2257,17 +2869,6 @@ cdef class ObjectsBatch:
         for i in range(self.objects_batch.head_positions.size()):
             for j in range(3):
                 arr[i,j] = self.objects_batch.head_positions[i][j]
-        return arr
-
-	##
-	# Per keypoint detection confidence, cannot be lower than the [sl.ObjectDetectionRuntimeParameters().detection_confidence_threshold](\ref ObjectDetectionRuntimeParameters).
-	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
-	# \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints cannot be detected, they will have non finite values.
-    @property
-    def keypoint_confidences(self):
-        cdef np.ndarray arr = np.zeros(self.objects_batch.keypoint_confidences.size())
-        for i in range(self.objects_batch.keypoint_confidences.size()):
-            arr[i] = self.objects_batch.keypoint_confidences[i]
         return arr
 
 ##
@@ -2339,6 +2940,267 @@ cdef class Objects:
            raise TypeError("Argument is not of ObjectData type.") 
 
 ##
+# Contains batched data of a detected object
+# \ingroup Body_group
+cdef class BodiesBatch:
+    cdef c_BodiesBatch bodies_batch
+
+    ##
+    # The trajectory ID
+    @property
+    def id(self):
+        return self.bodies_batch.id
+
+    @id.setter
+    def id(self, int value):
+        self.bodies_batch.id = value
+
+    ##
+    # Defines the body tracking state.
+    @property
+    def tracking_state(self):
+        return OBJECT_TRACKING_STATE(<int>self.bodies_batch.tracking_state)
+
+    @tracking_state.setter
+    def tracking_state(self, tracking_state):
+        if isinstance(tracking_state, OBJECT_TRACKING_STATE):
+            self.bodies_batch.tracking_state = <c_OBJECT_TRACKING_STATE>(<unsigned int>tracking_state.value)
+        else:
+            raise TypeError("Argument is not of OBJECT_TRACKING_STATE type.")
+
+    ##
+    # A sample of 3d positions
+    @property
+    def positions(self):
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.positions.size(), 3), dtype=np.float32)
+        for i in range(self.bodies_batch.positions.size()):
+            for j in range(3):
+                arr[i,j] = self.bodies_batch.positions[i].ptr()[j]
+        return arr
+
+    ##
+    # A sample of the associated position covariance
+    @property
+    def position_covariances(self):
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.position_covariances.size(), 6), dtype=np.float32)
+        for i in range(self.bodies_batch.position_covariances.size()):
+            for j in range(6):
+                arr[i,j] = self.bodies_batch.position_covariances[i][j]
+        return arr
+
+    ##
+    # A sample of 3d velocities
+    @property
+    def velocities(self):
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.velocities.size(), 3), dtype=np.float32)
+        for i in range(self.bodies_batch.velocities.size()):
+            for j in range(3):
+                arr[i,j] = self.bodies_batch.velocities[i].ptr()[j]
+        return arr
+
+    ##
+    # The associated position timestamp
+    @property
+    def timestamps(self):
+        out_ts = []
+        for i in range(self.bodies_batch.timestamps.size()):
+            ts = Timestamp()
+            ts.timestamp = self.bodies_batch.timestamps[i] 
+            out_ts.append(ts)
+        return out_ts
+
+    ##
+    # A sample of 3d bounding boxes
+    @property
+    def bounding_boxes(self):
+        # A 3D bounding box should have 8 indices, 3 coordinates
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.bounding_boxes.size(),8,3))
+        for i in range(self.bodies_batch.bounding_boxes.size()):
+            for j in range(8):
+                for k in range(3):
+                    arr[i,j,k] = self.bodies_batch.bounding_boxes[i][j][k]
+        return arr
+
+    ##
+    # 2D bounding box of the person represented as four 2D points starting at the top left corner and rotation clockwise.
+    # Expressed in pixels on the original image resolution, [0,0] is the top left corner.
+    # \code
+    # A ------ B
+    # | Object |
+    # D ------ C
+    # \endcode
+    @property
+    def bounding_boxes_2d(self):
+        # A 2D bounding box should have 4 indices, 2 coordinates
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.bounding_boxes_2d.size(),4,2))
+        for i in range(self.bodies_batch.bounding_boxes_2d.size()):
+            for j in range(4):
+                for k in range(2):
+                    arr[i,j,k] = self.bodies_batch.bounding_boxes_2d[i][j][k]
+        return arr
+
+    ##
+    # A sample of object detection confidence
+    @property
+    def confidences(self):
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.confidences.size()))
+        for i in range(self.bodies_batch.confidences.size()):
+            arr[i] = self.bodies_batch.confidences[i]
+        return arr
+
+    ##
+    # A sample of the object action state
+    @property
+    def action_states(self):
+        action_states_out = []
+        for i in range(self.bodies_batch.action_states.size()):
+            action_states_out.append(OBJECT_ACTION_STATE(<unsigned int>self.bodies_batch.action_states[i]))
+        return action_states_out
+    
+    ##
+	# A sample of 2d person keypoints.
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
+    # \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints cannot be detected, they will have non finite values.
+    @property
+    def keypoints_2d(self):
+        # 18 keypoints
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.keypoints_2d.size(),self.bodies_batch.keypoints_2d[0].size(),2))
+        for i in range(self.bodies_batch.keypoints_2d.size()):
+            for j in range(self.bodies_batch.keypoints_2d[0].size()):
+                for k in range(2):
+                    arr[i,j,k] = self.bodies_batch.keypoints_2d[i][j][k]
+        return arr
+
+	##
+	# A sample of 3d person keypoints
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
+	# \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints cannot be detected, they will have non finite values.
+    @property
+    def keypoints(self):
+        # 18 keypoints
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.keypoints.size(),self.bodies_batch.keypoints[0].size(),3))
+        for i in range(self.bodies_batch.keypoints.size()):
+            for j in range(self.bodies_batch.keypoints[0].size()):
+                for k in range(3):
+                    arr[i,j,k] = self.bodies_batch.keypoints[i][j][k]
+        return arr
+
+    ##
+	# Bounds the head with four 2D points. Expressed in pixels on the original image resolution.
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL)
+    @property
+    def head_bounding_boxes_2d(self):
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.head_bounding_boxes_2d.size(),4,2))
+        for i in range(self.bodies_batch.head_bounding_boxes_2d.size()):
+            for j in range(4):
+                for k in range(2):
+                    arr[i,j,k] = self.bodies_batch.head_bounding_boxes_2d[i][j][k]
+        return arr
+
+    ##
+	# Bounds the head with eight 3D points. 
+    # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame.
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
+    @property
+    def head_bounding_boxes(self):
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.head_bounding_boxes.size(),8,3))
+        for i in range(self.bodies_batch.head_bounding_boxes.size()):
+            for j in range(8):
+                for k in range(3):
+                    arr[i,j,k] = self.bodies_batch.head_bounding_boxes[i][j][k]
+        return arr
+		
+    ##
+	# 3D head centroid.
+    # Defined in \ref InitParameters.coordinate_units, expressed in \ref RuntimeParameters.measure3D_reference_frame.
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
+    @property
+    def head_positions(self):
+        cdef np.ndarray arr = np.zeros((self.bodies_batch.head_positions.size(),3))
+        for i in range(self.bodies_batch.head_positions.size()):
+            for j in range(3):
+                arr[i,j] = self.bodies_batch.head_positions[i][j]
+        return arr
+
+	##
+	# Per keypoint detection confidence, cannot be lower than the [sl.ObjectDetectionRuntimeParameters().detection_confidence_threshold](\ref ObjectDetectionRuntimeParameters).
+	# \note Not available with [DETECTION_MODEL.MULTI_CLASS_BOX*](\ref DETECTION_MODEL).
+	# \warning in some cases, eg. body partially out of the image or missing depth data, some keypoints cannot be detected, they will have non finite values.
+    @property
+    def keypoint_confidences(self):
+        cdef np.ndarray arr = np.zeros(self.bodies_batch.keypoint_confidences.size())
+        for i in range(self.bodies_batch.keypoint_confidences.size()):
+            arr[i] = self.bodies_batch.keypoint_confidences[i]
+        return arr
+
+##
+# Contains the result of the object detection module. The detected objects are listed in \ref object_list.
+# \ingroup Object_group
+cdef class Bodies:
+    cdef c_Bodies bodies
+
+    ##
+    # Defines the \ref Timestamp corresponding to the frame acquisition. 
+    # This value is especially useful for the async mode to synchronize the data.
+    @property
+    def timestamp(self):
+        ts = Timestamp()
+        ts.timestamp=self.bodies.timestamp
+        return ts
+
+    @timestamp.setter
+    def timestamp(self, unsigned long long timestamp):
+        self.bodies.timestamp.data_ns = timestamp
+
+    ##
+    # The list of detected bodies. An array of \ref BodiesData .
+    @property
+    def body_list(self):
+        body_list_ = []
+        for i in range(self.bodies.body_list.size()):
+            py_bodyData = BodyData()
+            py_bodyData.body_data = self.bodies.body_list[i]
+            body_list_.append(py_bodyData)
+        return body_list_
+
+    @body_list.setter
+    def body_list(self, bodies):
+        for i in range(len(bodies)):
+            self.bodies.body_list.push_back((<BodyData>bodies[i]).body_data)
+
+    ##
+    # Defines if the object list has already been retrieved or not.
+    @property
+    def is_new(self):
+        return self.bodies.is_new
+
+    @is_new.setter
+    def is_new(self, bool is_new):
+        self.bodies.is_new = is_new
+
+    ##
+    # Defines if both the object tracking and the world orientation have been setup.
+    @property
+    def is_tracked(self):
+        return self.bodies.is_tracked
+
+    @is_tracked.setter
+    def is_tracked(self, bool is_tracked):
+        self.bodies.is_tracked = is_tracked
+
+
+    ##
+    # Function that looks for a given body ID in the current body list and returns the associated body if found and a status.
+    # \param py_body_data [out] : the body corresponding to the given ID if found
+    # \param body_data_id [in] : the input body ID
+    # \return True if found False otherwise
+    def get_body_data_from_id(self, py_body_data: BodyData, body_data_id: int):
+        if isinstance(py_body_data, BodyData) :
+            return self.bodies.getBodyDataFromId((<BodyData>py_body_data).body_data, body_data_id)
+        else :
+           raise TypeError("Argument is not of ObjectData type.") 
+
+##
 # Sets batch trajectory parameters
 # \ingroup Object_group
 # The default constructor sets all parameters to their default settings.
@@ -2401,27 +3263,25 @@ cdef class ObjectDetectionParameters:
     # Constructor. Calling the constructor without any parameter will set them to their default values.
     # \param image_sync : sets \ref image_sync. Default: True
     # \param enable_tracking : sets \ref enable_tracking. Default: True
-    # \param enable_mask_output : sets \ref enable_mask_output. Default: True
+    # \param enable_segmentation : sets \ref enable_segmentation. Default: True
     # \param enable_body_fitting : sets \ref enable_body_fitting. Default: False
     # \param max_range : sets \ref max_range. Default: -1.0 (set to \ref InitParameters.depth_maximum_distance)
     # \param batch_trajectories_parameters : sets \ref batch_parameters. Default: see \ref BatchParameters default constructor  
-    # \param body_format : sets \ref body_format. Default: [sl.BODY_FORMAT.POSE_18](\ref BODY_FORMAT)  
+    # \param body_format : sets \ref body_format. Default: [sl.BODY_FORMAT.BODY_18](\ref BODY_FORMAT)  
     def __cinit__(self, image_sync=True, enable_tracking=True
-                , enable_mask_output=True, detection_model=DETECTION_MODEL.MULTI_CLASS_BOX
-                , enable_body_fitting=False, max_range=-1.0
-                , batch_trajectories_parameters=BatchParameters()
-                , body_format=BODY_FORMAT.POSE_18
+                , enable_segmentation=False, detection_model=OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_FAST
+                , max_range=-1.0 , batch_trajectories_parameters=BatchParameters()
                 , filtering_mode = OBJECT_FILTERING_MODE.NMS3D
                 , prediction_timeout_s = 0.2
-                , allow_reduced_precision_inference = False):
+                , allow_reduced_precision_inference = False
+                , instance_module_id = 0):
         self.object_detection = new c_ObjectDetectionParameters(image_sync, enable_tracking
-                                                                , enable_mask_output, <c_DETECTION_MODEL>(<unsigned int>detection_model.value)
-                                                                , enable_body_fitting, max_range
-                                                                , (<BatchParameters>batch_trajectories_parameters).batch_params[0]
-                                                                , <c_BODY_FORMAT>(<unsigned int>body_format.value)
+                                                                , enable_segmentation, <c_OBJECT_DETECTION_MODEL>(<unsigned int>detection_model.value)
+                                                                , max_range, (<BatchParameters>batch_trajectories_parameters).batch_params[0]
                                                                 , <c_OBJECT_FILTERING_MODE>(<unsigned int>filtering_mode.value)
                                                                 , prediction_timeout_s
-                                                                , allow_reduced_precision_inference)
+                                                                , allow_reduced_precision_inference
+                                                                , instance_module_id)
 
     def __dealloc__(self):
         del self.object_detection
@@ -2449,47 +3309,25 @@ cdef class ObjectDetectionParameters:
     ##
     # Defines if the mask object will be computed
     @property
-    def enable_mask_output(self):
-        return self.object_detection.enable_mask_output
+    def enable_segmentation(self):
+        return self.object_detection.enable_segmentation
 
-    @enable_mask_output.setter
-    def enable_mask_output(self, bool enable_mask_output):
-        self.object_detection.enable_mask_output = enable_mask_output
+    @enable_segmentation.setter
+    def enable_segmentation(self, bool enable_segmentation):
+        self.object_detection.enable_segmentation = enable_segmentation
 
     ##
     # Enable human pose estimation with skeleton keypoints output 
     @property
     def detection_model(self):
-        return DETECTION_MODEL(<int>self.object_detection.detection_model)
+        return OBJECT_DETECTION_MODEL(<int>self.object_detection.detection_model)
 
     @detection_model.setter
     def detection_model(self, detection_model):
-        if isinstance(detection_model, DETECTION_MODEL) :
-            self.object_detection.detection_model = <c_DETECTION_MODEL>(<unsigned int>detection_model.value)
+        if isinstance(detection_model, OBJECT_DETECTION_MODEL) :
+            self.object_detection.detection_model = <c_OBJECT_DETECTION_MODEL>(<unsigned int>detection_model.value)
         else :
             raise TypeError()
-
-    ##
-    # Defines the body format output by the SDK when \ref retrieve_objects is called.
-    # \warning if set to sl.BODY_FORMAT.POSE_32, the ZED SDK will automatically enable the fitting (cf. \ref enable_body_fitting).
-    @property
-    def body_format(self):
-        return BODY_FORMAT(<int>self.object_detection.body_format)
-
-    @body_format.setter
-    def body_format(self, body_format):
-        if isinstance(body_format, BODY_FORMAT):
-            self.object_detection.body_format = <c_BODY_FORMAT>(<unsigned int>body_format.value)
-
-    ##
-    # Defines if the body fitting will be applied 
-    @property
-    def enable_body_fitting(self):
-        return self.object_detection.enable_body_fitting
-
-    @enable_body_fitting.setter
-    def enable_body_fitting(self, bool enable_body_fitting):
-        self.object_detection.enable_body_fitting = enable_body_fitting
 
     ##
     # Defines an upper depth range for detections
@@ -2553,6 +3391,18 @@ cdef class ObjectDetectionParameters:
     def allow_reduced_precision_inference(self, bool allow_reduced_precision_inference):
         self.object_detection.allow_reduced_precision_inference = allow_reduced_precision_inference
 
+    ##
+    # Defines which object detection instance to use
+    @property
+    def instance_module_id(self):
+        return self.object_detection.instance_module_id
+
+    @instance_module_id.setter
+    def instance_module_id(self, unsigned int instance_module_id):
+        self.object_detection.instance_module_id = instance_module_id
+
+
+
 ##
 # Sets the object detection runtime parameters.
 # \ingroup Object_group
@@ -2565,14 +3415,14 @@ cdef class ObjectDetectionRuntimeParameters:
     # \param object_class_filter : sets \ref object_class_filter. Default: empty list (all classes are tracked)
     # \param object_class_detection_confidence_threshold : sets \ref object_class_detection_confidence_threshold. Default: empty dict (detection_confidence_threshold value will be taken for each class)
     # \param minimum_keypoints_threshold: sets \ref minimum_keypoints_threshold. Default: 0 (all skeletons are retrieved)
-    def __cinit__(self, detection_confidence_threshold=50, object_class_filter=[], object_class_detection_confidence_threshold={}, minimum_keypoints_threshold=0):
+    def __cinit__(self, detection_confidence_threshold=50, object_class_filter=[], object_class_detection_confidence_threshold={}):
         cdef vector[int] vec_cpy
         cdef map[int,float] map_cpy
         for object_class in object_class_filter:
             vec_cpy.push_back(<int>object_class.value)
         for k,v in object_class_detection_confidence_threshold.items():
             map_cpy[<int>k.value] = v
-        self.object_detection_rt = create_object_detection_runtime_parameters(detection_confidence_threshold, vec_cpy, map_cpy, minimum_keypoints_threshold)
+        self.object_detection_rt = create_object_detection_runtime_parameters(detection_confidence_threshold, vec_cpy, map_cpy)
 
     def __dealloc__(self):
         del self.object_detection_rt
@@ -2638,17 +3488,191 @@ cdef class ObjectDetectionRuntimeParameters:
         for k,v in object_class_detection_confidence_threshold_dict.items():
             self.object_detection_rt.object_class_detection_confidence_threshold[<c_OBJECT_CLASS>(<unsigned int>k.value)] = v
 
+##
+# Sets the body tracking parameters.
+# \ingroup Body_group
+# The default constructor sets all parameters to their default settings.
+# \note Parameters can be user adjusted.
+cdef class BodyTrackingParameters:
+    cdef c_BodyTrackingParameters* bodyTrackingParameters
+
+    ##
+    # Constructor. Calling the constructor without any parameter will set them to their default values.
+    # \param image_sync : sets \ref image_sync. Default: True
+    # \param enable_tracking : sets \ref enable_tracking. Default: True
+    # \param enable_segmentation : sets \ref enable_segmentation. Default: True
+    # \param enable_body_fitting : sets \ref enable_body_fitting. Default: False
+    # \param max_range : sets \ref max_range. Default: -1.0 (set to \ref InitParameters.depth_maximum_distance)
+    # \param body_format : sets \ref body_format. Default: [sl.BODY_FORMAT.BODY_18](\ref BODY_FORMAT)  
+    def __cinit__(self, image_sync=True, enable_tracking=True
+                , enable_segmentation=True, detection_model=BODY_TRACKING_MODEL.HUMAN_BODY_ACCURATE
+                , enable_body_fitting=False, max_range=-1.0
+                , body_format=BODY_FORMAT.BODY_18, body_selection=BODY_KEYPOINTS_SELECTION.FULL, prediction_timeout_s = 0.2
+                , allow_reduced_precision_inference = False
+                , instance_module_id = 0):
+        self.bodyTrackingParameters = new c_BodyTrackingParameters(image_sync, enable_tracking
+                                                                , enable_segmentation
+                                                                , <c_BODY_TRACKING_MODEL>(<int>detection_model.value)
+                                                                , enable_body_fitting
+                                                                , max_range
+                                                                , <c_BODY_FORMAT>(<int>body_format.value)
+                                                                , <c_BODY_KEYPOINTS_SELECTION>(<int>body_selection.value)
+                                                                , prediction_timeout_s
+                                                                , allow_reduced_precision_inference
+                                                                , instance_module_id)
+
+    def __dealloc__(self):
+        del self.bodyTrackingParameters
+
+    ##
+    # Defines if the object detection  is synchronized to the image or runs in a separate thread
+    @property
+    def image_sync(self):
+        return self.bodyTrackingParameters.image_sync
+
+    @image_sync.setter
+    def image_sync(self, bool image_sync):
+        self.bodyTrackingParameters.image_sync = image_sync
+
+    ##
+    # Defines if the object detection will track objects across images flow
+    @property
+    def enable_tracking(self):
+        return self.bodyTrackingParameters.enable_tracking
+
+    @enable_tracking.setter
+    def enable_tracking(self, bool enable_tracking):
+        self.bodyTrackingParameters.enable_tracking = enable_tracking
+
+    ##
+    # Defines if the mask object will be computed
+    @property
+    def enable_segmentation(self):
+        return self.bodyTrackingParameters.enable_segmentation
+
+    @enable_segmentation.setter
+    def enable_segmentation(self, bool enable_segmentation):
+        self.bodyTrackingParameters.enable_segmentation = enable_segmentation
+
+    ##
+    # Enable human pose estimation with skeleton keypoints output 
+    @property
+    def detection_model(self):
+        return BODY_TRACKING_MODEL(<int>self.bodyTrackingParameters.detection_model)
+
+    @detection_model.setter
+    def detection_model(self, detection_model):
+        if isinstance(detection_model, BODY_TRACKING_MODEL) :
+            self.bodyTrackingParameters.detection_model = <c_BODY_TRACKING_MODEL>(<unsigned int>detection_model.value)
+        else :
+            raise TypeError()
+
+    ##
+    # Defines the body format output by the SDK when \ref retrieve_objects is called.
+    # \warning if set to sl.BODY_FORMAT.POSE_32, the ZED SDK will automatically enable the fitting (cf. \ref enable_body_fitting).
+    @property
+    def body_format(self):
+        return BODY_FORMAT(<int>self.bodyTrackingParameters.body_format)
+
+    @body_format.setter
+    def body_format(self, body_format):
+        if isinstance(body_format, BODY_FORMAT):
+            self.bodyTrackingParameters.body_format = <c_BODY_FORMAT>(<unsigned int>body_format.value)
+
+    ##
+    # Defines if the body fitting will be applied 
+    @property
+    def enable_body_fitting(self):
+        return self.bodyTrackingParameters.enable_body_fitting
+
+    @enable_body_fitting.setter
+    def enable_body_fitting(self, bool enable_body_fitting):
+        self.bodyTrackingParameters.enable_body_fitting = enable_body_fitting
+
+    ##
+    # Defines an upper depth range for detections
+    # \n Defined in \ref InitParameters.coordinate_units
+    # \n Default value is set to \ref InitParameters.depth_maximum_distance (can not be higher)
+    @property
+    def max_range(self):
+        return self.bodyTrackingParameters.max_range
+
+    @max_range.setter
+    def max_range(self, float max_range):
+        self.bodyTrackingParameters.max_range = max_range
+
+    ##
+    # When an object is not detected anymore, the SDK will predict its positions during a short period of time before its state switched to SEARCHING.
+    @property
+    def prediction_timeout_s(self):
+        return self.bodyTrackingParameters.prediction_timeout_s
+
+    @prediction_timeout_s.setter
+    def prediction_timeout_s(self, float prediction_timeout_s):
+        self.bodyTrackingParameters.prediction_timeout_s = prediction_timeout_s
+        
+    ##
+    # Allow inference to run at a lower precision to improve runtime and memory usage, 
+    # it might increase the initial optimization time and could include downloading calibration data or calibration cache and slightly reduce the accuracy
+    @property
+    def allow_reduced_precision_inference(self):
+        return self.bodyTrackingParameters.allow_reduced_precision_inference
+
+    @allow_reduced_precision_inference.setter
+    def allow_reduced_precision_inference(self, bool allow_reduced_precision_inference):
+        self.bodyTrackingParameters.allow_reduced_precision_inference = allow_reduced_precision_inference
+
+    ##
+    # Defines which object detection instance to use
+    @property
+    def instance_module_id(self):
+        return self.bodyTrackingParameters.instance_module_id
+
+    @instance_module_id.setter
+    def instance_module_id(self, unsigned int instance_module_id):
+        self.bodyTrackingParameters.instance_module_id = instance_module_id
+
+
+
+##
+# Sets the object detection runtime parameters.
+# \ingroup Body_group
+cdef class BodyTrackingRuntimeParameters:
+    cdef c_BodyTrackingRuntimeParameters* body_tracking_rt
+
+    ##
+    # Default constructor
+    # \param detection_confidence_threshold : sets \ref detection_confidence_threshold. Default: 50
+    # \param minimum_keypoints_threshold: sets \ref minimum_keypoints_threshold. Default: 0 (all skeletons are retrieved)
+    def __cinit__(self, detection_confidence_threshold=50, minimum_keypoints_threshold=0):
+        self.body_tracking_rt = new c_BodyTrackingRuntimeParameters(detection_confidence_threshold, minimum_keypoints_threshold)
+
+    def __dealloc__(self):
+        del self.body_tracking_rt
+
+    ##
+    # Defines the confidence threshold: interval between 1 and 99. A confidence of 1 meaning a low threshold, more uncertain objects and 99 very few but very precise objects.
+    # If the scene contains a lot of bodies, increasing the confidence can slightly speed up the process, since every object instances are tracked.
+    @property
+    def detection_confidence_threshold(self):
+        return self.body_tracking_rt.detection_confidence_threshold
+
+    @detection_confidence_threshold.setter
+    def detection_confidence_threshold(self, float detection_confidence_threshold_):
+        self.body_tracking_rt.detection_confidence_threshold = detection_confidence_threshold_
+ 
     ##
     # Defines minimal number of keypoints per skeleton to be retrieved:
     # the SDK will outputs skeleton with more keypoints than this threshold.
     # it is useful for example to remove unstable fitting results when a skeleton is partially occluded.
     @property
     def minimum_keypoints_threshold(self):
-        return self.object_detection_rt.minimum_keypoints_threshold
+        return self.body_tracking_rt.minimum_keypoints_threshold
 
     @minimum_keypoints_threshold.setter
     def minimum_keypoints_threshold(self, int minimum_keypoints_threshold_):
-        self.object_detection_rt.minimum_keypoints_threshold = minimum_keypoints_threshold_
+        self.body_tracking_rt.minimum_keypoints_threshold = minimum_keypoints_threshold_
+
 
 # Returns the current timestamp at the time the function is called.
 # \ingroup Core_group
@@ -2909,6 +3933,9 @@ cdef class CameraParameters:
         self.camera_params.cx = cx_
         self.camera_params.cy = cy_
 
+    def scale(self, resolution: Resolution) -> CameraParameters:
+        cam_params = CameraParameters()
+        cam_params.camera_params = self.camera_params.scale(resolution.resolution)
 
 ##
 # Intrinsic and Extrinsic parameters of the camera (translation and rotation).
@@ -2922,8 +3949,6 @@ cdef class CalibrationParameters:
     cdef c_CalibrationParameters calibration
     cdef CameraParameters py_left_cam
     cdef CameraParameters py_right_cam
-    cdef Vector3[float] R
-    cdef Vector3[float] T
     cdef Transform py_stereo_transform
 
     def __cinit__(self):
@@ -2934,53 +3959,9 @@ cdef class CalibrationParameters:
     def set(self):
         self.py_left_cam.camera_params = self.calibration.left_cam
         self.py_right_cam.camera_params = self.calibration.right_cam
-        self.R = self.calibration.R
-        self.T = self.calibration.T
         
         for i in range(16):
             self.py_stereo_transform.transform.m[i] = self.calibration.stereo_transform.m[i]
-
-    ##
-    # Rotation on its own (using Rodrigues' transformation) of the right sensor. The left is considered as the reference. Defined as 'tilt', 'convergence' and 'roll'. Using a \ref Rotation , you can use \ref Rotation.set_rotation_vector() to convert into other representations.
-    # \n Returns a Numpy array of float.
-    @property
-    def R(self):
-        cdef np.ndarray arr = np.zeros(3)
-        for i in range(3):
-            arr[i] = self.calibration.R[i]
-        return arr
-
-    ##
-    # Sets \ref R 's data.
-    # \param float value1 : x
-    # \param float value2 : y
-    # \param float value3 : z
-    def set_R(self, value1: float, value2: float, value3: float) :
-        self.calibration.R[0] = value1
-        self.calibration.R[1] = value2
-        self.calibration.R[2] = value3
-        self.set()
-
-    ##
-    # Translation between the two sensors. T[0] is the distance between the two cameras (baseline) in the \ref UNIT chosen during \ref Camera.open (mm, cm, meters, inches...).
-    # \n Returns a numpy array of float.
-    @property
-    def T(self):
-        cdef np.ndarray arr = np.zeros(3)
-        for i in range(3):
-            arr[i] = self.calibration.T[i]
-        return arr
-
-    ##
-    # Sets \ref T 's data.
-    # \param float value1 : x
-    # \param float value2 : y
-    # \param float value3 : z
-    def set_T(self, value1: float, value2: float, value3: float) :
-        self.calibration.T[0] = value1
-        self.calibration.T[1] = value2
-        self.calibration.T[2] = value3
-        self.set()
 
     ##
     # Returns the camera baseline in the \ref sl.UNIT defined in \ref sl.InitParameters
@@ -3144,10 +4125,10 @@ cdef class SensorsConfiguration:
         self.magnetometer_parameters = SensorParameters()
         self.magnetometer_parameters.c_sensor_parameters = config.magnetometer_parameters
         self.magnetometer_parameters.set()
+        self.firmware_version = config.firmware_version
         self.barometer_parameters = SensorParameters()
         self.barometer_parameters.c_sensor_parameters = config.barometer_parameters
         self.barometer_parameters.set()
-        self.firmware_version = caminfo.camera_firmware_version
         self.camera_imu_transform = Transform()
         for i in range(16):
             self.camera_imu_transform.transform.m[i] = config.camera_imu_transform.m[i]
@@ -3211,36 +4192,31 @@ cdef class CameraConfiguration:
     cdef c_Resolution py_res
     cdef float camera_fps
 
-    def __cinit__(self, Camera py_camera, Resolution resizer=Resolution(0,0)):
+    def __cinit__(self, Camera py_camera, Resolution resizer=Resolution(0,0), int firmware_version_=0, int fps_=0, CalibrationParameters py_calib_= CalibrationParameters(), CalibrationParameters py_calib_raw_= CalibrationParameters()):
         res = c_Resolution(resizer.width, resizer.height)
         self.py_calib = CalibrationParameters()
         caminfo = py_camera.camera.getCameraInformation(res)
-        self.py_calib.calibration = caminfo.calibration_parameters
+        camconfig = caminfo.camera_configuration
+        self.py_calib.calibration = camconfig.calibration_parameters
         self.py_calib_raw = CalibrationParameters()
-        self.py_calib_raw.calibration = caminfo.calibration_parameters_raw
+        self.py_calib_raw.calibration = camconfig.calibration_parameters_raw
         self.py_calib.set()
         self.py_calib_raw.set()
-        self.firmware_version = caminfo.camera_firmware_version
-        self.py_res = caminfo.camera_resolution
-        self.camera_fps = caminfo.camera_fps
+        self.firmware_version = camconfig.firmware_version
+        self.py_res = camconfig.resolution
+        self.camera_fps = camconfig.fps
 
     ##
     # \ref Resolution of the camera
     @property
-    def camera_resolution(self):
+    def resolution(self):
         return Resolution(self.py_res.width, self.py_res.height)
 
     ##
     # \ref FPS of the camera
     @property
-    def camera_fps(self):
+    def fps(self):
         return self.camera_fps
-
-    ##
-    # The model of the camera (ZED, ZED2 or ZED-M).
-    @property
-    def camera_model(self):
-        return MODEL(<int>self.camera_model)
 
     ##
     # Intrinsic and Extrinsic stereo \ref CalibrationParameters for rectified/undistorded images (default).
@@ -3253,12 +4229,6 @@ cdef class CameraConfiguration:
     @property
     def calibration_parameters_raw(self):
         return self.py_calib_raw
-
-    ##
-    # The serial number of the camera.
-    @property
-    def serial_number(self):
-        return self.serial_number
 
     ##
     # The internal firmware version of the camera.
@@ -3281,16 +4251,6 @@ cdef class CameraInformation:
     cdef CameraConfiguration py_camera_configuration
     cdef SensorsConfiguration py_sensors_configuration
     
-    # Deprecated
-    cdef unsigned int camera_firmware_version
-    cdef unsigned int sensors_firmware_version
-    cdef CalibrationParameters py_calib
-    cdef CalibrationParameters py_calib_raw
-    cdef Transform py_camera_imu_transform
-    cdef float camera_fps
-    cdef c_Resolution py_res
-
-
     ##
     # Constructor. Gets the \ref CameraParameters from a \ref Camera object.
     # \param py_camera : \ref Camera object.
@@ -3304,23 +4264,9 @@ cdef class CameraInformation:
     def __cinit__(self, py_camera: Camera, resizer=Resolution(0,0)):
         res = c_Resolution(resizer.width, resizer.height)
         caminfo = py_camera.camera.getCameraInformation(res)
-        self.py_calib = CalibrationParameters()
-        self.py_calib.calibration = caminfo.calibration_parameters
-        self.py_calib_raw = CalibrationParameters()
-        self.py_calib_raw.calibration = caminfo.calibration_parameters_raw
-        self.py_calib.set()
-        self.py_calib_raw.set()
-        self.py_camera_imu_transform = Transform()
-        for i in range(16):
-            self.py_camera_imu_transform.transform.m[i] = caminfo.camera_imu_transform.m[i]
 
         self.serial_number = caminfo.serial_number
-        self.camera_firmware_version = caminfo.camera_firmware_version
-        self.sensors_firmware_version = caminfo.sensors_firmware_version
         self.camera_model = caminfo.camera_model
-        self.py_res = caminfo.camera_resolution
-        self.camera_fps = caminfo.camera_fps
-
         self.py_camera_configuration = CameraConfiguration(py_camera, resizer)
         self.py_sensors_configuration = SensorsConfiguration(py_camera, resizer)
         self.input_type = caminfo.input_type
@@ -3344,59 +4290,16 @@ cdef class CameraInformation:
         return INPUT_TYPE(<int>self.input_type)
 
     ##
-    # \ref Resolution of the camera
-    @property
-    def camera_resolution(self):
-        return Resolution(self.py_res.width, self.py_res.height)
-
-    ##
-    # FPS of the camera
-    @property
-    def camera_fps(self):
-        return self.camera_fps
-
-    ##
     # The model of the camera (ZED, ZED2 or ZED-M).
     @property
     def camera_model(self):
         return MODEL(<int>self.camera_model)
 
     ##
-    # Intrinsic and Extrinsic stereo \ref CalibrationParameters for rectified/undistorded images (default).
-    @property
-    def calibration_parameters(self):
-        return self.py_calib
-
-    ##
-    # Intrinsic and Extrinsic stereo \ref CalibrationParameters for original images (unrectified/distorded).
-    @property
-    def calibration_parameters_raw(self):
-        return self.py_calib_raw
-
-    ##
-    # IMU to Left camera transform matrix, that contains rotation and translation between IMU frame and camera frame. Note that this transform was applied to the fused quaternion provided in get_imu_data() in v2.4 but not anymore starting from v2.5. See \ref Camera.get_sensors_data() for more info.
-    @property
-    def camera_imu_transform(self):
-        return self.py_camera_imu_transform
-
-    ##
     # The serial number of the camera.
     @property
     def serial_number(self):
         return self.serial_number
-
-    ##
-    # The internal firmware version of the camera.
-    @property
-    def camera_firmware_version(self):
-        return self.camera_firmware_version
-
-    ##
-    # The internal firmware version of the sensors of ZEDM or ZED2.
-    @property
-    def sensors_firmware_version(self):
-        return self.sensors_firmware_version
-
 
 ##
 # The \ref Mat class can handle multiple matrix formats from 1 to 4 channels, with different value types (float or uchar), and can be stored CPU and/or GPU side.
@@ -3725,6 +4628,15 @@ cdef class Mat:
     # \return The format of the current \ref Mat
     def get_memory_type(self):
         return MEM(<int>self.mat.getMemoryType())
+
+    ##
+    # Returns the Mat as a Numpy Array
+    # This is for convenience to mimic the PyTorch API https://pytorch.org/docs/stable/generated/torch.Tensor.numpy.html
+    # This is like an alias of \ref get_data() function
+    # \param force : defines if the memory of the Mat need to be duplicated or not. The fastest is deep_copy at False but the sl::Mat memory must not be released to use the numpy array.
+    # \return A Numpy array containing the \ref Mat data.
+    def numpy(self, force=False):
+        return self.get_data(memory_type=MEM.CPU, deep_copy=force)
 
     ##
     # Cast the data of the \ref Mat in a Numpy array (with or without copy).
@@ -5019,6 +5931,12 @@ class SPATIAL_MAP_TYPE(enum.Enum):
     MESH = <int>c_SPATIAL_MAP_TYPE.MESH
     FUSED_POINT_CLOUD = <int>c_SPATIAL_MAP_TYPE.FUSED_POINT_CLOUD
 
+class BUS_TYPE(enum.Enum):
+    USB = <int>c_BUS_TYPE.USB
+    GMSL = <int>c_BUS_TYPE.GMSL
+    AUTO = <int>c_BUS_TYPE.AUTO
+    LAST = <int>c_BUS_TYPE.LAST
+
 ##
 # Defines the input type used in the ZED SDK. Can be used to select a specific camera with ID or serial number, or a svo file.
 # \ingroup Video_group
@@ -5036,14 +5954,14 @@ cdef class InputType:
     ##
     # Set the input as the camera with specified id
     # \param id : The desired camera ID
-    def set_from_camera_id(self, id: uint):
-        self.input.setFromCameraID(id)
+    def set_from_camera_id(self, id: uint, bus_type : BUS_TYPE = BUS_TYPE.AUTO):
+        self.input.setFromCameraID(id, <c_BUS_TYPE>(<int>(bus_type.value)))
 
     ##
     # Set the input as the camera with specified serial number
     # \param serial_number : The desired camera serial_number
-    def set_from_serial_number(self, serial_number: uint):
-        self.input.setFromSerialNumber(serial_number)
+    def set_from_serial_number(self, serial_number: uint, bus_type : BUS_TYPE = BUS_TYPE.AUTO):
+        self.input.setFromSerialNumber(serial_number, <c_BUS_TYPE>(<int>(bus_type.value)))
 
     ##
     # Set the input as the svo specified with the filename
@@ -5060,6 +5978,14 @@ cdef class InputType:
         sender_ip_ = sender_ip.encode()
         self.input.setFromStream(String(<char*>sender_ip_), port)
  
+    def get_type(self) -> INPUT_TYPE:
+        return INPUT_TYPE(<int>self.input.getType())
+
+    def get_configuration(self) -> str:
+        return to_str(self.input.getConfiguration()).decode()
+
+    def is_init(self) -> bool:
+        return self.input.isInit()
 
 ##
 # Holds the options used to initialize the \ref Camera object.
@@ -5123,6 +6049,7 @@ cdef class InitParameters:
     # \param enable_image_enhancement : activates \ref enable_image_enhancement
     # \param optional_opencv_calibration_file : sets \ref optional_opencv_calibration_file
     # \param open_timeout_sec : sets \ref open_timeout_sec
+    # \param async_grab_camera_recovery : sets \ref async_grab_camera_recovery
     #
     # \code
     # params = sl.InitParameters(camera_resolution=RESOLUTION.HD720, camera_fps=30, depth_mode=DEPTH_MODE.PERFORMANCE)
@@ -5136,7 +6063,7 @@ cdef class InitParameters:
                   camera_image_flip=FLIP_MODE.AUTO, enable_right_side_measure=False,
                   sdk_verbose_log_file="", depth_stabilization=1, input_t=InputType(),
                   optional_settings_path="",sensors_required=False,
-                  enable_image_enhancement=True, optional_opencv_calibration_file="", open_timeout_sec=5.0):
+                  enable_image_enhancement=True, optional_opencv_calibration_file="", open_timeout_sec=5.0, async_grab_camera_recovery=False):
         if (isinstance(camera_resolution, RESOLUTION) and isinstance(camera_fps, int) and
             isinstance(svo_real_time_mode, bool) and isinstance(depth_mode, DEPTH_MODE) and
             isinstance(coordinate_units, UNIT) and
@@ -5148,7 +6075,8 @@ cdef class InitParameters:
             isinstance(sdk_verbose_log_file, str) and isinstance(depth_stabilization, int) and
             isinstance(input_t, InputType) and isinstance(optional_settings_path, str) and
             isinstance(optional_opencv_calibration_file, str) and
-            isinstance(open_timeout_sec, float)) :
+            isinstance(open_timeout_sec, float) and
+            isinstance(async_grab_camera_recovery, bool)) :
 
             filelog = sdk_verbose_log_file.encode()
             fileoption = optional_settings_path.encode()
@@ -5161,7 +6089,7 @@ cdef class InitParameters:
                                             enable_right_side_measure,
                                             String(<char*> filelog), depth_stabilization,
                                             <CUcontext> 0, (<InputType>input_t).input, String(<char*> fileoption), sensors_required, enable_image_enhancement,
-                                            String(<char*> filecalibration), <float>(open_timeout_sec))
+                                            String(<char*> filecalibration), <float>(open_timeout_sec), async_grab_camera_recovery)
         else:
             raise TypeError("Argument is not of right type.")
 
@@ -5558,14 +6486,14 @@ cdef class InitParameters:
     ##
     # Call of \ref InputType.set_from_camera_id function of \ref input
     # \param id : The desired camera ID
-    def set_from_camera_id(self, id: uint):
-        self.init.input.setFromCameraID(id)
+    def set_from_camera_id(self, id: uint, bus_type : BUS_TYPE = BUS_TYPE.AUTO):
+        self.init.input.setFromCameraID(id, <c_BUS_TYPE>(<int>(bus_type.value)))
 
     ##
     # Call of \ref InputType.set_from_serial_number function of \ref input
     # \param serial_number : The desired camera serial_number
-    def set_from_serial_number(self, serial_number: uint):
-        self.init.input.setFromSerialNumber(serial_number)
+    def set_from_serial_number(self, serial_number: uint, bus_type : BUS_TYPE = BUS_TYPE.AUTO):
+        self.init.input.setFromSerialNumber(serial_number, <c_BUS_TYPE>(<int>(bus_type.value)))
 
     ##
     # Call of \ref InputType.set_from_svo_file function of \ref input
@@ -5591,24 +6519,24 @@ cdef class RuntimeParameters:
     cdef c_RuntimeParameters* runtime
     ##
     # Constructor.
-    # \param sensing_mode : chosen \ref sensing_mode
     # \param enable_depth : activates \ref enable_depth
     # \param confidence_threshold : chosen \ref confidence_threshold
     # \param texture_confidence_threshold : chosen \ref texture_confidence_threshold
     # \param measure3D_reference_frame : chosen \ref measure3D_reference_frame
     #
     # \code
-    # params = sl.RuntimeParameters(sensing_mode=SENSING_MODE.STANDARD, enable_depth=True)
+    # params = sl.RuntimeParameters(enable_depth=True)
     # \endcode
-    def __cinit__(self, sensing_mode=SENSING_MODE.STANDARD, enable_depth=True,
+    def __cinit__(self, enable_depth=True, enable_fill_mode=False,
                   confidence_threshold = 100, texture_confidence_threshold = 100,
                   measure3D_reference_frame=REFERENCE_FRAME.CAMERA, remove_saturated_areas = True):
-        if (isinstance(sensing_mode, SENSING_MODE) and isinstance(enable_depth, bool)
+        if (isinstance(enable_depth, bool)
+            and isinstance(enable_fill_mode, bool)
             and isinstance(confidence_threshold, int) and
             isinstance(measure3D_reference_frame, REFERENCE_FRAME)
             and isinstance(remove_saturated_areas, bool)):
 
-            self.runtime = new c_RuntimeParameters(<c_SENSING_MODE>(<unsigned int>sensing_mode.value), enable_depth, confidence_threshold, texture_confidence_threshold,
+            self.runtime = new c_RuntimeParameters(enable_depth, enable_fill_mode, confidence_threshold, texture_confidence_threshold,
                                                  <c_REFERENCE_FRAME>(<unsigned int>measure3D_reference_frame.value),remove_saturated_areas)
         else:
             raise TypeError()
@@ -5633,20 +6561,6 @@ cdef class RuntimeParameters:
         return self.runtime.load(String(<char*> filename_load))
 
     ##
-    # Defines the algorithm used for depth map computation, more info : \ref SENSING_MODE definition.
-    # default : [SENSING_MODE.STANDARD](\ref SENSING_MODE)
-    @property
-    def sensing_mode(self):
-        return SENSING_MODE(<int>self.runtime.sensing_mode)
-
-    @sensing_mode.setter
-    def sensing_mode(self, value):
-        if isinstance(value, SENSING_MODE):
-            self.runtime.sensing_mode = <c_SENSING_MODE>(<unsigned int>value.value)
-        else:
-            raise TypeError("Argument must be of SENSING_MODE type.")
-
-    ##
     # Defines if the depth map should be computed.
     # If false, only the images are available.
     # default : True
@@ -5657,6 +6571,17 @@ cdef class RuntimeParameters:
     @enable_depth.setter
     def enable_depth(self, value: bool):
         self.runtime.enable_depth = value
+
+    ##
+    # Defines if the depth map should be completed or not, similar to the removed SENSING_MODE::FILL
+    # Enabling this will override the confidence values confidence_threshold and texture_confidence_threshold as well as remove_saturated_areas
+    @property
+    def enable_fill_mode(self):
+        return self.runtime.enable_fill_mode
+
+    @enable_fill_mode.setter
+    def enable_fill_mode(self, value: bool):
+        self.runtime.enable_fill_mode = value
 
     ##
     # Provides 3D measures (point cloud and normals) in the desired reference frame.
@@ -5689,16 +6614,6 @@ cdef class RuntimeParameters:
     @confidence_threshold.setter
     def confidence_threshold(self, value):
         self.runtime.confidence_threshold = value
-
-    ##
-    # \deprecated Use texture_confidence_threshold instead
-    @property
-    def textureness_confidence_threshold(self):
-        return self.runtime.textureness_confidence_threshold
-
-    @textureness_confidence_threshold.setter
-    def textureness_confidence_threshold(self, value):
-        self.runtime.textureness_confidence_threshold = value
 
     ##
     # Threshold to reject depth values based on their texture confidence.
@@ -7044,7 +7959,6 @@ cdef class RecordingStatus:
 #                exit(-1)
 #
 #            runtime_param = sl.RuntimeParameters()
-#            runtime_param.sensing_mode = sl.SENSING_MODE.STANDARD
 #
 #            # --- Main loop grabing images and depth values
 #            # Capture 50 frames and stop
@@ -7135,7 +8049,6 @@ cdef class Camera:
     #   - \ref InitParameters.enable_right_side_measure : Activating this parameter increases computation time
     #   - \ref InitParameters.depth_mode : \ref DEPTH_MODE "PERFORMANCE" will run faster than \ref DEPTH_MODE "ULTRA"
     #   - \ref enable_positional_tracking() : Activating the tracking is an additional load
-    #   - \ref RuntimeParameters.sensing_mode : \ref SENSING_MODE "STANDARD" mode will run faster than \ref SENSING_MODE "FILL" mode, which needs to estimate the depth of occluded pixels.
     #   - \ref RuntimeParameters.enable_depth : Avoiding the depth computation must be faster. However, it is required by most SDK features (tracking, spatial mapping, plane estimation, etc.)
     #   - \ref RuntimeParameters.remove_saturated_areas : Remove saturated areas from depth estimation . Recommended to True.
     #
@@ -7148,7 +8061,6 @@ cdef class Camera:
     # \code
     # # Set runtime parameters after opening the camera
     # runtime_param = sl.RuntimeParameters()
-    # runtime_param.sensing_mode = sl.SENSING_MODE.STANDARD # Use STANDARD sensing mode
     #
     # image = sl.Mat()
     # while True :
@@ -7242,7 +8154,7 @@ cdef class Camera:
     # \code
     # depth_map = sl.Mat()
     # point_cloud = sl.Mat()
-    # resolution = zed.get_camera_informations().camera_resolution
+    # resolution = zed.get_camera_information().camera_resolution
     # x = int(resolution.width / 2) # Center coordinates
     # y = int(resolution.height / 2)
     #
@@ -7284,6 +8196,9 @@ cdef class Camera:
     # \return An ERROR_CODE if something went wrong.
     def set_region_of_interest(self, py_mat: Mat):
         return ERROR_CODE(<int>self.camera.setRegionOfInterest(py_mat.mat))
+
+    def start_publishing(self, communication_parameters : CommunicationParameters):
+        return ERROR_CODE(<int>self.camera.startPublishing(communication_parameters.communicationParameters))
 
     ##
     # Sets the playback cursor to the desired frame number in the SVO file.
@@ -7382,7 +8297,13 @@ cdef class Camera:
     # \note Works only if the camera is opened in live mode.
     def set_camera_settings(self, settings: VIDEO_SETTINGS, value=-1):
         if isinstance(settings, VIDEO_SETTINGS) :
-            self.camera.setCameraSettings(<c_VIDEO_SETTINGS>(<unsigned int>settings.value), <int>value)
+            self.camera.setCameraSettings(<c_VIDEO_SETTINGS>(<int>settings.value), value)
+        else:
+            raise TypeError("Arguments must be of VIDEO_SETTINGS and boolean types.")
+
+    def set_camera_settings_range(self, settings: VIDEO_SETTINGS, min=-1, max=-1):
+        if isinstance(settings, VIDEO_SETTINGS) :
+            self.camera.setCameraSettings(<c_VIDEO_SETTINGS>(<int>settings.value), min, max)
         else:
             raise TypeError("Arguments must be of VIDEO_SETTINGS and boolean types.")
 
@@ -7420,9 +8341,20 @@ cdef class Camera:
     # \endcode
     #
     # \note Works only if the camera is open in live mode. (Settings aren't exported in the SVO file format)            
-    def get_camera_settings(self, setting: VIDEO_SETTINGS):
+    def get_camera_settings(self, setting: VIDEO_SETTINGS) -> (ERROR_CODE, int):
+        cdef int value
         if isinstance(setting, VIDEO_SETTINGS):
-            return self.camera.getCameraSettings(<c_VIDEO_SETTINGS>(<unsigned int>setting.value))
+            error_code = ERROR_CODE(<int>self.camera.getCameraSettings(<c_VIDEO_SETTINGS>(<unsigned int&>setting.value), value))
+            return error_code, value
+        else:
+            raise TypeError("Argument is not of VIDEO_SETTINGS type.")
+
+    def get_camera_settings_range(self, setting: VIDEO_SETTINGS) -> (ERROR_CODE, int, int):
+        cdef int min
+        cdef int max
+        if isinstance(setting, VIDEO_SETTINGS):
+            error_code = ERROR_CODE(<int>self.camera.getCameraSettings(<c_VIDEO_SETTINGS>(<unsigned int>setting.value), <int&>min, <int&>max))
+            return error_code, min, max
         else:
             raise TypeError("Argument is not of VIDEO_SETTINGS type.")
 
@@ -7524,7 +8456,6 @@ cdef class Camera:
     # \return \ref RuntimeParameters containing the parameters that defines the behavior of the \ref grab()
     def get_runtime_parameters(self) :
         runtime = RuntimeParameters()
-        runtime.runtime.sensing_mode = self.camera.getRuntimeParameters().sensing_mode
         runtime.runtime.measure3D_reference_frame = self.camera.getRuntimeParameters().measure3D_reference_frame
         runtime.runtime.enable_depth = self.camera.getRuntimeParameters().enable_depth
         runtime.runtime.confidence_threshold = self.camera.getRuntimeParameters().confidence_threshold
@@ -7555,6 +8486,7 @@ cdef class Camera:
         init.init.sdk_verbose_log_file = self.camera.getInitParameters().sdk_verbose_log_file
         init.init.input = self.camera.getInitParameters().input
         init.init.optional_settings_path = self.camera.getInitParameters().optional_settings_path
+        init.init.async_grab_camera_recovery = self.camera.getInitParameters().async_grab_camera_recovery
         return init
 
     ##
@@ -7593,14 +8525,35 @@ cdef class Camera:
     # Returns the object detection parameters used. Corresponds to the structure sent when the \ref Camera.enable_object_detection() function was called
     #
     # \return \ref ObjectDetectionParameters containing the parameters used for object detection initialization.
-    def get_object_detection_parameters(self) :
+    def get_object_detection_parameters(self, instance_module_id=0) :
         object_detection = ObjectDetectionParameters()
-        object_detection.object_detection.image_sync = self.camera.getObjectDetectionParameters().image_sync
-        object_detection.object_detection.enable_tracking = self.camera.getObjectDetectionParameters().enable_tracking
-        object_detection.object_detection.max_range = self.camera.getObjectDetectionParameters().max_range
-        object_detection.object_detection.prediction_timeout_s = self.camera.getObjectDetectionParameters().prediction_timeout_s
+        object_detection.object_detection.image_sync = self.camera.getObjectDetectionParameters(instance_module_id).image_sync
+        object_detection.object_detection.enable_tracking = self.camera.getObjectDetectionParameters(instance_module_id).enable_tracking
+        object_detection.object_detection.max_range = self.camera.getObjectDetectionParameters(instance_module_id).max_range
+        object_detection.object_detection.prediction_timeout_s = self.camera.getObjectDetectionParameters(instance_module_id).prediction_timeout_s
+        object_detection.object_detection.instance_module_id = instance_module_id
+        object_detection.object_detection.enable_segmentation = self.camera.getObjectDetectionParameters(instance_module_id).enable_segmentation
         return object_detection
 
+    ##
+    # Returns the object detection parameters used. Correspond to the structure send when the \ref enable_body_tracking() function was called.
+    #
+    # \return \ref BodyTrackingParameters containing the parameters used for object detection initialization.
+    def get_body_tracking_parameters(self, instance_id = 0):
+        body_params = BodyTrackingParameters()
+        body_params.bodyTrackingParameters.image_sync = self.camera.getBodyTrackingParameters(instance_id).image_sync
+        body_params.bodyTrackingParameters.enable_tracking = self.camera.getBodyTrackingParameters(instance_id).enable_tracking
+        body_params.bodyTrackingParameters.enable_segmentation = self.camera.getBodyTrackingParameters(instance_id).enable_segmentation
+        body_params.bodyTrackingParameters.detection_model = self.camera.getBodyTrackingParameters(instance_id).detection_model
+        body_params.bodyTrackingParameters.enable_body_fitting = self.camera.getBodyTrackingParameters(instance_id).enable_body_fitting
+        body_params.bodyTrackingParameters.body_format = self.camera.getBodyTrackingParameters(instance_id).body_format
+        body_params.bodyTrackingParameters.body_selection = self.camera.getBodyTrackingParameters(instance_id).body_selection
+        body_params.bodyTrackingParameters.max_range = self.camera.getBodyTrackingParameters(instance_id).max_range
+        body_params.bodyTrackingParameters.prediction_timeout_s = self.camera.getBodyTrackingParameters(instance_id).prediction_timeout_s
+        body_params.bodyTrackingParameters.allow_reduced_precision_inference = self.camera.getBodyTrackingParameters(instance_id).allow_reduced_precision_inference
+        body_params.bodyTrackingParameters.instance_module_id = self.camera.getBodyTrackingParameters(instance_id).instance_module_id
+        return body_params
+  
     ##
     # Returns the streaming parameters used. Corresponds to the structure sent when the \ref Camera.enable_streaming() function was called.
     # 
@@ -7684,11 +8637,137 @@ cdef class Camera:
     # In some cases, due to temperature changes or strong vibrations, the stereo calibration becomes less accurate.
     # Use this function to update the self-calibration data and get more reliable depth values.
     # \note The self calibration will occur at the next \ref grab() call.
-    # \note This function is similar to the previous resetSelfCalibration() used in 2.X SDK versions.
-    # \warning New values will then be available in \ref getCameraInformation(), be sure to get them to still have consistent 2D <-> 3D conversion.
+    # \note This function is similar to the previous reset_self_calibration() used in 2.X SDK versions.
+    # \warning New values will then be available in \ref get_camera_information(), be sure to get them to still have consistent 2D <-> 3D conversion.
     def update_self_calibration(self):
         self.camera.updateSelfCalibration()
-        
+
+    ##
+    # Initializes and starts the Deep Learning detection module.
+    #
+    # - Human skeleton detection with the \ref DETECTION_MODEL::HUMAN_BODY_FAST or \ref DETECTION_MODEL::HUMAN_BODY_ACCURATE.
+    # This model only detects humans but also provides a full skeleton map for each person.
+    #
+    # Detected objects can be retrieved using the \ref retrieve_bodies() function.
+    
+    # As detecting and tracking the objects is CPU and GPU-intensive, the module can be used synchronously or asynchronously using \ref BodyTrackingParameters::image_sync.
+    # - <b>Synchronous:</b> the \ref retrieve_bodies() function will be blocking during the detection.
+    # - <b>Asynchronous:</b> the detection is running in the background, and \ref retrieve_bodies() will immediately return the last objects detected.
+    #
+    # \note - Only one detection model can be used at the time.
+    # \note - <b>This Depth Learning detection module is only available for ZED2 cameras</b>
+    # \note - This feature uses AI to locate objects and requires a powerful GPU. A GPU with at least 3GB of memory is recommended.
+    #
+    # \param object_detection_parameters : Structure containing all specific parameters for object detection.
+    # For more information, see the \ref BodyTrackingParameters documentation.
+    # \return
+    #     - \ref ERROR_CODE::SUCCESS : if everything went fine.
+    #     - \ref ERROR_CODE::CORRUPTED_SDK_INSTALLATION : if the AI model is missing or corrupted. In this case, the SDK needs to be reinstalled.
+    #     - \ref ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CAMERA : if the camera used does not have a IMU (ZED Camera). the IMU gives the gravity vector that helps in the 3D box localization. Therefore the Body detection module is available only for ZED-M and ZED2 camera model.
+    #     - \ref ERROR_CODE::MOTION_SENSORS_REQUIRED : if the camera model is correct (ZED2) but the IMU is missing. It probably happens because InitParameters::sensors_required was set to false and that IMU has not been found.
+    #     - \ref ERROR_CODE::INVALID_FUNCTION_CALL : if one of the BodyTracking parameter is not compatible with other modules parameters (For example, depth mode has been set to NONE).
+    #     - \ref ERROR_CODE::FAILURE : otherwise.
+    #
+    # \code
+    #
+    # import pyzed.sl as sl
+    # def main() :
+    #     # Create a ZED camera object
+    #     zed = sl.Camera()
+    # 
+    #     # Open the camera
+    #     err = zed.open(init_params)
+    #     if err != sl.ERROR_CODE.SUCCESS :
+    #         print(repr(err))
+    #         exit(-1)
+    # 
+    #     # Set tracking parameters
+    #     track_params = sl.PositionalTrackingParameters()
+    #     track_params.enable_spatial_memory = True
+    #
+    #     # Set the object detection parameters
+    #     object_detection_params = sl.BodyTrackingParameters()
+    #     object_detection_params.image_sync = True
+    #
+    #     # Enable the object detection
+    #     err = zed.enable_body_tracking(object_detection_params)
+    #     if err != sl.ERROR_CODE.SUCCESS :
+    #         print(repr(err))
+    #         exit(-1)
+    # 
+    #     # Grab an image and detect objects on it
+    #     objects = sl.Bodies()
+    #     while True :
+    #         if zed.grab() == sl.ERROR_CODE.SUCCESS :
+    #             zed.retrieve_bodies(objects)
+    #             print(len(objects.object_list), " objects detected\n")
+    #             # Use the objects in your application
+    # 
+    #     # Close the camera
+    #     zed.disable_body_tracking()
+    #     zed.close()
+    #
+    # if __name__ == "__main__":
+    #     main()
+    # \endcode
+    def enable_body_tracking(self, body_tracking_parameters : BodyTrackingParameters = BodyTrackingParameters()) -> ERROR_CODE:
+        if isinstance(body_tracking_parameters, BodyTrackingParameters):
+            return ERROR_CODE(<int>self.camera.enableBodyTracking(deref(body_tracking_parameters.bodyTrackingParameters)))
+        else:
+            raise TypeError("Argument is not of BodyTrackingParameters type.")
+
+    ##
+    # Pauses or resumes the object detection processes.
+    #
+    # If the object detection has been enabled with  \ref BodyTrackingParameters::image_sync set to false (running asynchronously), this function will pause processing.
+    #
+    # While in pause, calling this function with <i>status = false</i> will resume the object detection.
+    # The \ref retrieveBodies function will keep on returning the last objects detected while in pause.
+    #
+    #\param status : If true, object detection is paused. If false, object detection is resumed.
+    def pause_body_tracking(self, status : bool, instance_id : int = 0):
+        return self.camera.pauseBodyTracking(status, instance_id)
+
+    ##
+    # Disables the Body Detection process.
+    #
+    # The object detection module immediately stops and frees its memory allocations.
+    # If the object detection has been enabled, this function will automatically be called by \ref close().
+    def disable_body_tracking(self, instance_id : int = 0, force_disable_all_instances : bool = False):
+        return self.camera.disableBodyTracking(instance_id, force_disable_all_instances)
+
+    ##
+    # Retrieve objects detected by the object detection module
+    #
+    # This function returns the result of the object detection, whether the module is running synchronously or asynchronously.
+    #
+    # - <b>Asynchronous:</b> this function immediately returns the last objects detected. If the current detection isn't done, the objects from the last detection will be returned, and \ref Bodies::is_new will be set to false.
+    # - <b>Synchronous:</b> this function executes detection and waits for it to finish before returning the detected objects.
+    #
+    # It is recommended to keep the same \ref Bodies object as the input of all calls to this function. This will enable the identification and the tracking of every objects detected.
+    #
+    # \param objects : The detected objects will be saved into this object. If the object already contains data from a previous detection, it will be updated, keeping a unique ID for the same person.
+    # \param parameters : Body detection runtime settings, can be changed at each detection. In async mode, the parameters update is applied on the next iteration.
+    #
+    # \return \ref SUCCESS if everything went fine, \ref ERROR_CODE::FAILURE otherwise
+    #
+    # \code
+    # objects = sl.Bodies() # Unique Bodies to be updated after each grab
+    # --- Main loop
+    # while True :
+    #     if zed.grab() == sl.ERROR_CODE.SUCCESS : # Grab an image from the camera
+    #         zed.retrieve_bodies(objects)
+    #         for object in objects.object_list:
+    #             print(object.label)
+    # \endcode
+    def retrieve_bodies(self, bodies : Bodies, body_tracking_runtime_parameters : BodyTrackingRuntimeParameters = BodyTrackingRuntimeParameters(), instance_id : int = 0) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.camera.retrieveBodies(bodies.bodies, deref(body_tracking_runtime_parameters.body_tracking_rt), instance_id))
+
+    ##
+    # Tells if the object detection module is enabled
+    def is_body_tracking_enabled(self, instance_id : int = 0):
+        return self.camera.isBodyTrackingEnabled(instance_id)
+
     ##
     # Retrieves the Sensors (IMU,magnetometer,barometer) Data at a specific time reference
     # 
@@ -7816,7 +8895,6 @@ cdef class Camera:
     # \param area_file_path : if set, saves the spatial memory into an '.area' file. default : (empty)
     # \n area_file_path is the name and path of the database, e.g. "path/to/file/myArea1.area".
     #
-    # \note The '.area' database depends on the depth map SENSING_MODE chosen during the recording. The same mode must be used to reload the database.
     def disable_positional_tracking(self, area_file_path=""):
         filename = (<str>area_file_path).encode()
         self.camera.disablePositionalTracking(String(<char*> filename))
@@ -8014,7 +9092,7 @@ cdef class Camera:
     # Checks the plane at the given left image coordinates.
     # 
     # This function gives the 3D plane corresponding to a given pixel in the latest left image \ref grab() "grabbed".
-    # The pixel coordinates are expected to be contained between 0 and \ref CameraInformations.camera_resolution "get_camera_informations().camera_resolution.width-1" and  \ref CameraInformations.camera_resolution "get_camera_informations().camera_resolution.height-1"
+    # The pixel coordinates are expected to be contained between 0 and \ref CameraInformations.camera_resolution "get_camera_information().camera_resolution.width-1" and  \ref CameraInformations.camera_resolution "get_camera_information().camera_resolution.height-1"
     # 
     # \param coord :  \b [in] The image coordinate. The coordinate must be taken from the full-size image
     # \param plane : \b [out] The detected plane if the function succeeded
@@ -8283,16 +9361,18 @@ cdef class Camera:
     #     main()
     # \endcode
     def enable_object_detection(self, object_detection_parameters = ObjectDetectionParameters()) :
-        return ERROR_CODE(<int>self.camera.enableObjectDetection(deref((<ObjectDetectionParameters>object_detection_parameters).object_detection)))
-
+        if isinstance(object_detection_parameters, ObjectDetectionParameters):
+            return ERROR_CODE(<int>self.camera.enableObjectDetection(deref((<ObjectDetectionParameters>object_detection_parameters).object_detection)))
+        else:
+            raise TypeError("Argument is not of ObjectDetectionParameters type.")
 
     ##
     # Disables the Object Detection process.
     #
     # The object detection module immediately stops and frees its memory allocations.
     # If the object detection has been enabled, this function will automatically be called by \ref close().
-    def disable_object_detection(self):
-        self.camera.disableObjectDetection()
+    def disable_object_detection(self, instance_module_id=0):
+        self.camera.disableObjectDetection(instance_module_id)
 
     ##
     # Pauses or resumes the object detection processes.
@@ -8302,9 +9382,9 @@ cdef class Camera:
     # The \ref retrieve_objects function will keep on returning the last objects detected while in pause.
     #
     # \param status : If true, object detection is paused. If false, object detection is resumed.
-    def pause_object_detection(self, status: bool):
+    def pause_object_detection(self, status: bool, instance_module_id=0):
         if isinstance(status, bool):
-            self.camera.pauseObjectDetection(status)
+            self.camera.pauseObjectDetection(status, instance_module_id)
         else:
             raise TypeError("Argument is not of boolean type.")
 
@@ -8332,9 +9412,9 @@ cdef class Camera:
     #         for i in range(len(object_list)) :
     #             print(repr(object_list[i].label))
     # \endcode
-    def retrieve_objects(self, py_objects: Objects, object_detection_parameters=ObjectDetectionRuntimeParameters()):
+    def retrieve_objects(self, py_objects: Objects, object_detection_parameters=ObjectDetectionRuntimeParameters(), instance_module_id=0):
         if isinstance(py_objects, Objects) :
-            return ERROR_CODE(<int>self.camera.retrieveObjects((<Objects>py_objects).objects, deref((<ObjectDetectionRuntimeParameters>object_detection_parameters).object_detection_rt)))
+            return ERROR_CODE(<int>self.camera.retrieveObjects((<Objects>py_objects).objects, deref((<ObjectDetectionRuntimeParameters>object_detection_parameters).object_detection_rt), instance_module_id))
         else :
            raise TypeError("Argument is not of Objects type.") 
 
@@ -8354,10 +9434,10 @@ cdef class Camera:
     #         zed.get_objects_batch(trajectories)                   # Get batch of objects
     #         print("Size of batch : {}".format(len(trajectories)))
     # \endcode
-    def get_objects_batch(self, trajectories: list[ObjectsBatch]):
+    def get_objects_batch(self, trajectories: list[ObjectsBatch], instance_module_id=0):
         cdef vector[c_ObjectsBatch] output_trajectories
         if trajectories is not None:
-            status = self.camera.getObjectsBatch(output_trajectories)
+            status = self.camera.getObjectsBatch(output_trajectories, instance_module_id)
             for trajectory in output_trajectories:
                 curr = ObjectsBatch()
                 curr.objects_batch = trajectory
@@ -8371,13 +9451,13 @@ cdef class Camera:
     # \param objects_in : list of \ref CustomBoxObjectData.
     # \return [ERROR_CODE.SUCCESS](\ref ERROR_CODE) if everything went fine
     # \note The detection should be done on the current grabbed left image as the internal process will use all current available data to extract 3D information and perform object tracking.
-    def ingest_custom_box_objects(self, objects_in: list[CustomBoxObjectData]):
+    def ingest_custom_box_objects(self, objects_in: list[CustomBoxObjectData], instance_module_id=0):
         cdef vector[c_CustomBoxObjectData] custom_obj
         if objects_in is not None:
             # Convert input list into C vector
             for i in range(len(objects_in)):
                 custom_obj.push_back((<CustomBoxObjectData>objects_in[i]).custom_box_object_data) 
-            status = self.camera.ingestCustomBoxObjects(custom_obj)
+            status = self.camera.ingestCustomBoxObjects(custom_obj, instance_module_id)
             return ERROR_CODE(<int>status)
         else:
             raise TypeError("Argument is not of the right type")
@@ -8444,3 +9524,1062 @@ cdef class Camera:
     def reboot(sn : int, fullReboot: bool =True):
         cls = Camera()
         return ERROR_CODE(<int>cls.camera.reboot(sn, fullReboot))
+
+##
+# Lists the types of communications available for Fusion app.
+# \ingroup Fusion_group
+class COMM_TYPE(enum.Enum):
+    LOCAL_NETWORK = <int>c_COMM_TYPE.LOCAL_NETWORK
+    INTRA_PROCESS = <int>c_COMM_TYPE.INTRA_PROCESS
+    LAST = <int>c_COMM_TYPE.LAST
+
+##
+# Lists the types of error that can be raised by the Fusion
+#
+# \ingroup Fusion_group
+# 
+# | Enumerator     |                  |
+# |----------------|------------------|
+# | WRONG_BODY_FORMAT | Senders use different body format, consider to change them. |
+# | NOT_ENABLE | The following module was not enabled |
+# | INPUT_FEED_MISMATCH | Some source are provided by SVO and some sources are provided by LIVE stream |
+# | CONNECTION_TIMED_OUT | Connection timed out ... impossible to reach the sender... this may be due to ZED Hub absence |
+# | SHARED_MEMORY_LEAK | Detect multiple instance of SHARED_MEMORY communicator ... only one is authorized |
+# | BAD_IP_ADDRESS | The IP format provided is wrong, please provide IP in this format a.b.c.d where (a, b, c, d) are numbers between 0 and 255. |
+# | CONNECTION_ERROR | Something goes bad in the connection between sender and receiver. |
+# | FAILURE | Standard code for unsuccessful behavior. |
+# | SUCCESS |  |
+# | FUSION_ERRATIC_FPS | Some big differences has been observed between senders FPS |
+# | FUSION_FPS_TOO_LOW | At least one sender has fps lower than 10 FPS |
+class FUSION_ERROR_CODE(enum.Enum):
+    WRONG_BODY_FORMAT = <int>c_FUSION_ERROR_CODE.WRONG_BODY_FORMAT
+    NOT_ENABLE = <int>c_FUSION_ERROR_CODE.NOT_ENABLE
+    INPUT_FEED_MISMATCH = <int>c_FUSION_ERROR_CODE.INPUT_FEED_MISMATCH
+    CONNECTION_TIMED_OUT = <int>c_FUSION_ERROR_CODE.CONNECTION_TIMED_OUT
+    MEMORY_ALREADY_USED = <int>c_FUSION_ERROR_CODE.MEMORY_ALREADY_USED
+    BAD_IP_ADDRESS = <int>c_FUSION_ERROR_CODE.BAD_IP_ADDRESS
+    FAILURE = <int>c_FUSION_ERROR_CODE.FAILURE
+    SUCCESS = <int>c_FUSION_ERROR_CODE.SUCCESS
+    FUSION_ERRATIC_FPS = <int>c_FUSION_ERROR_CODE.FUSION_ERRATIC_FPS
+    FUSION_FPS_TOO_LOW = <int>c_FUSION_ERROR_CODE.FUSION_FPS_TOO_LOW
+
+    def __str__(self):
+        return to_str(toString(<c_FUSION_ERROR_CODE>(<int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_FUSION_ERROR_CODE>(<int>self.value))).decode()
+
+##
+# Lists the types of error that can be raised during the Fusion by senders
+#
+# \ingroup Fusion_group
+# 
+# | Enumerator     |                  |
+# |----------------|------------------|
+# | DISCONNECTED | the sender has been disconnected |
+# | SUCCESS |  |
+# | GRAB_ERROR | the sender has encountered an grab error |
+# | ERRATIC_FPS | the sender does not run with a constant frame rate |
+# | FPS_TOO_LOW | fps lower than 10 FPS |
+class SENDER_ERROR_CODE(enum.Enum):
+    DISCONNECTED = <int>c_SENDER_ERROR_CODE.DISCONNECTED
+    SUCCESS = <int>c_SENDER_ERROR_CODE.SUCCESS
+    GRAB_ERROR = <int>c_SENDER_ERROR_CODE.GRAB_ERROR
+    ERRATIC_FPS = <int>c_SENDER_ERROR_CODE.ERRATIC_FPS
+    FPS_TOO_LOW = <int>c_SENDER_ERROR_CODE.FPS_TOO_LOW
+
+    def __str__(self):
+        return to_str(toString(<c_SENDER_ERROR_CODE>(<int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_SENDER_ERROR_CODE>(<int>self.value))).decode()
+
+##
+# Change the type of outputed position (raw data or fusion data projected into zed camera)
+#
+# \ingroup Fusion_group
+#
+# | Enumerator     |                  |
+# |----------------|------------------|
+# | RAW | The output position will be the raw position data |
+# | FUSION | The output position will be the fused position projected into the requested camera repository |
+class POSITION_TYPE(enum.Enum):
+        RAW  = <int>c_POSITION_TYPE.RAW
+        FUSION  = <int>c_POSITION_TYPE.FUSION
+        LAST  = <int>c_POSITION_TYPE.LAST
+
+##
+# Holds the communication parameter to configure the connection between senders and receiver
+# \ingroup Fusion_group
+cdef class CommunicationParameters:
+    cdef c_CommunicationParameters communicationParameters
+
+    ##
+    # Default constructor. All the parameters are set to their default and optimized values.
+    def __cinit__(self):
+        self.communicationParameters = c_CommunicationParameters()
+
+    ##
+    # Setup the communication to used shared memory for intra process workflow, senders and receiver in different threads.
+    def set_for_shared_memory(self):
+        return self.communicationParameters.setForSharedMemory()
+
+    ##
+    # Setup local Network connection information
+    def set_for_local_network(self, port : int, ip : str = ""):
+        if ip == "":
+            return self.communicationParameters.setForLocalNetwork(<int>port)
+        return self.communicationParameters.setForLocalNetwork(ip.encode('utf-8'), <int>port)
+
+    ##
+    # The comm port used for streaming the data
+    @property
+    def port(self):
+        return self.communicationParameters.getPort()
+
+    ##
+    # The IP address of the sender
+    @property
+    def ip_address(self):
+        return self.communicationParameters.getIpAddress().decode()
+
+    ##
+    # The type of the used communication
+    @property
+    def comm_type(self):
+        return COMM_TYPE(<int>self.communicationParameters.getType())
+
+##
+# useful struct to store the Fusion configuration, can be read from /write to a Json file.
+# \ingroup Fusion_group
+cdef class FusionConfiguration:
+    cdef c_FusionConfiguration fusionConfiguration
+    cdef Transform pose
+
+    def __cinit__(self):
+        self.pose = Transform()
+
+    ##
+    # The serial number of the used ZED camera.
+    @property
+    def serial_number(self):
+        return self.fusionConfiguration.serial_number
+
+    @serial_number.setter
+    def serial_number(self, value: int):
+        self.fusionConfiguration.serial_number = value
+
+    ##
+    # The communication parameters to connect this camera to the Fusion
+    @property
+    def communication_parameters(self):
+        cp = CommunicationParameters()
+        cp.communicationParameters = self.fusionConfiguration.communication_parameters
+        return cp
+
+    @communication_parameters.setter
+    def communication_parameters(self, communication_parameters : CommunicationParameters):
+        self.fusionConfiguration.communication_parameters = communication_parameters.communicationParameters
+
+    ##
+    # The WORLD Pose of the camera for Fusion
+    @property
+    def pose(self):
+        for i in range(16):
+            self.pose.transform.m[i] = self.fusionConfiguration.pose.m[i]
+        return self.pose
+
+    @pose.setter
+    def pose(self, transform : Transform):
+        self.fusionConfiguration.pose = deref(transform.transform)
+
+    ##
+    # The input type for the current camera.
+    @property
+    def input_type(self):
+        inp = InputType()
+        inp.input = self.fusionConfiguration.input_type
+        return inp
+
+    @input_type.setter
+    def input_type(self, input_type : InputType):
+        self.fusionConfiguration.input_type = input_type.input
+
+##
+# Read a Configuration JSON file to configure a fusion process 
+# \ingroup Fusion_group
+# \param json_config_filename : The name of the JSON file containing the configuration
+# \param serial_number : the serial number of the ZED Camera you want to retrieve
+# \param coord_system : the COORDINATE_SYSTEM in which you want the World Pose to be in
+# \param unit : the UNIT in which you want the World Pose to be in
+#
+# \return a \ref FusionConfiguration for the requested camera
+# \note empty if no data were found for the requested camera
+def read_fusion_configuration_file_from_serial(self, json_config_filename : str, serial_number : int, coord_system : COORDINATE_SYSTEM, unit: UNIT) -> FusionConfiguration:
+    fusion_configuration = FusionConfiguration()
+    fusion_configuration.fusionConfiguration = c_readFusionConfigurationFile(json_config_filename.encode('utf-8'), serial_number, <c_COORDINATE_SYSTEM>(<int>coord_system.value), <c_UNIT>(<int>unit.value))
+    return fusion_configuration
+
+##
+# Read a Configuration JSON file to configure a fusion process
+# \ingroup Fusion_group
+# \param json_config_filename : The name of the JSON file containing the configuration
+# \param coord_system : the COORDINATE_SYSTEM in which you want the World Pose to be in
+# \param unit : the UNIT in which you want the World Pose to be in
+#
+# \return a vector of \ref FusionConfiguration for all the camera present in the file
+# \note empty if no data were found for the requested camera
+def read_fusion_configuration_file(json_config_filename : str, coord_system : COORDINATE_SYSTEM, unit: UNIT) -> list[FusionConfiguration]:
+    cdef vector[c_FusionConfiguration] fusion_configurations = c_readFusionConfigurationFile2(json_config_filename.encode('utf-8'), <c_COORDINATE_SYSTEM>(<int>coord_system.value), <c_UNIT>(<int>unit.value))
+    return_list = []
+    for item in fusion_configurations:
+        fc = FusionConfiguration()
+        fc.fusionConfiguration = item
+        return_list.append(fc)
+    return return_list
+
+##
+# Write a Configuration JSON file to configure a fusion process
+# \ingroup Fusion_group
+# \param json_config_filename : The name of the JSON that will contain the information
+# \param fusion_configurations: a vector of \ref FusionConfiguration listing all the camera configurations
+# \param coord_sys : the COORDINATE_SYSTEM in which the World Pose is
+# \param unit : the UNIT in which the World Pose is
+def write_configuration_file(json_config_filename : str, fusion_configurations : list, coord_sys : COORDINATE_SYSTEM, unit: UNIT):
+    cdef vector[c_FusionConfiguration] confs
+    for fusion_configuration in fusion_configurations:
+        cast_conf = <FusionConfiguration>fusion_configuration
+        confs.push_back(cast_conf.fusionConfiguration)
+
+    c_writeConfigurationFile(json_config_filename.encode('utf-8'), confs, <c_COORDINATE_SYSTEM>(<int>coord_sys.value), <c_UNIT>(<int>unit.value))
+
+
+cdef class PositionalTrackingFusionParameters:
+    cdef c_PositionalTrackingFusionParameters positionalTrackingFusionParameters
+
+    ##
+    # Is the GNSS fusion enabled
+    @property
+    def enable_GNSS_fusion(self):
+        return self.positionalTrackingFusionParameters.enable_GNSS_fusion
+
+    @enable_GNSS_fusion.setter
+    def enable_GNSS_fusion(self, value: bool):
+        self.positionalTrackingFusionParameters.enable_GNSS_fusion = value
+
+    ##
+    # Distance necessary for initializing the transformation between cameras coordinate system and  GNSS coordinate system (north aligned)
+    @property
+    def gnss_initialisation_distance(self):
+        return self.positionalTrackingFusionParameters.gnss_initialisation_distance
+
+    @gnss_initialisation_distance.setter
+    def gnss_initialisation_distance(self, value: float):
+        self.positionalTrackingFusionParameters.gnss_initialisation_distance = value
+
+    ##
+    # Is the gnss fusion enabled
+    @property
+    def gnss_ignore_threshold(self):
+        return self.positionalTrackingFusionParameters.gnss_ignore_threshold
+
+    @gnss_ignore_threshold.setter
+    def gnss_ignore_threshold(self, value: float):
+        self.positionalTrackingFusionParameters.gnss_ignore_threshold = value
+
+##
+# Holds the options used to initialize the body tracking module of the \ref Fusion.
+# \ingroup Fusion_group
+cdef class BodyTrackingFusionParameters:
+    cdef c_BodyTrackingFusionParameters bodyTrackingFusionParameters
+
+    ##
+    # Defines if the object detection will track objects across images flow
+    @property
+    def enable_tracking(self):
+        return self.bodyTrackingFusionParameters.enable_tracking
+
+    @enable_tracking.setter
+    def enable_tracking(self, value: bool):
+        self.bodyTrackingFusionParameters.enable_tracking = value
+
+    ##
+    # Defines if the body fitting will be applied
+    @property
+    def enable_body_fitting(self):
+        return self.bodyTrackingFusionParameters.enable_body_fitting
+
+    @enable_body_fitting.setter
+    def enable_body_fitting(self, value: bool):
+        self.bodyTrackingFusionParameters.enable_body_fitting = value
+
+##
+# Holds the options used to change the behavior of the body tracking module at runtime.
+# \ingroup Fusion_group
+cdef class BodyTrackingFusionRuntimeParameters:
+    cdef c_BodyTrackingFusionRuntimeParameters bodyTrackingFusionRuntimeParameters
+
+    ##
+    # if the fused skeleton has less than skeleton_minimum_allowed_keypoints keypoints, it will be discarded
+    @property
+    def skeleton_minimum_allowed_keypoints(self):
+        return self.bodyTrackingFusionRuntimeParameters.skeleton_minimum_allowed_keypoints
+
+    @skeleton_minimum_allowed_keypoints.setter
+    def skeleton_minimum_allowed_keypoints(self, value: int):
+        self.bodyTrackingFusionRuntimeParameters.skeleton_minimum_allowed_keypoints = value
+
+    ##
+    # if a skeleton was detected in less than skeleton_minimum_allowed_camera cameras, it will be discarded
+    @property
+    def skeleton_minimum_allowed_camera(self):
+        return self.bodyTrackingFusionRuntimeParameters.skeleton_minimum_allowed_camera
+
+    @skeleton_minimum_allowed_camera.setter
+    def skeleton_minimum_allowed_camera(self, value: int):
+        self.bodyTrackingFusionRuntimeParameters.skeleton_minimum_allowed_camera = value
+
+    ##
+    # this value controls the smoothing of the tracked or fitted fused skeleton. it is ranged from 0 (low smoothing) and 1 (high smoothing)
+    @property
+    def skeleton_smoothing(self):
+        return self.bodyTrackingFusionRuntimeParameters.skeleton_smoothing
+
+    @skeleton_smoothing.setter
+    def skeleton_smoothing(self, value: float):
+        self.bodyTrackingFusionRuntimeParameters.skeleton_smoothing = value
+
+##
+# Holds the metrics of a sender in the fusion process.
+# \ingroup Fusion_group
+cdef class CameraMetrics :
+    cdef c_CameraMetrics cameraMetrics
+
+    ##
+    # gives the fps of the received data
+    @property
+    def received_fps(self):
+        return self.cameraMetrics.received_fps
+
+    @received_fps.setter
+    def received_fps(self, value: float):
+        self.cameraMetrics.received_fps = value
+
+    ##
+    # gives the latency (in second) of the received data
+    @property
+    def received_latency(self):
+        return self.cameraMetrics.received_latency
+
+    @received_latency.setter
+    def received_latency(self, value: float):
+        self.cameraMetrics.received_latency = value
+
+    ##
+    # gives the latency (in second) after Fusion synchronization
+    @property
+    def synced_latency(self):
+        return self.cameraMetrics.synced_latency
+
+    @synced_latency.setter
+    def synced_latency(self, value: float):
+        self.cameraMetrics.synced_latency = value
+
+    ##
+    # if no data present is set to false
+    @property
+    def is_present(self):
+        return self.cameraMetrics.is_present
+
+    @is_present.setter
+    def is_present(self, value: bool):
+        self.cameraMetrics.is_present = value
+
+    ##
+    # percent of detection par image during the last second in %, a low values means few detections occurs lately
+    @property
+    def ratio_detection(self):
+        return self.cameraMetrics.ratio_detection
+
+    @ratio_detection.setter
+    def ratio_detection(self, value: float):
+        self.cameraMetrics.ratio_detection = value
+
+    ##
+    # percent of detection par image during the last second in %, a low values means few detections occurs lately
+    @property
+    def delta_ts(self):
+        return self.cameraMetrics.delta_ts
+
+    @delta_ts.setter
+    def delta_ts(self, value: float):
+        self.cameraMetrics.delta_ts = value
+
+##
+# Holds the metrics of the fusion process.
+# \ingroup Fusion_group
+cdef class FusionMetrics:
+    cdef c_FusionMetrics fusionMetrics
+
+    ##
+    # reset the current metrics
+    def reset(self):
+        return self.fusionMetrics.reset()
+    
+    ##
+    # mean number of camera that provides data during the past second
+    @property
+    def mean_camera_fused(self):
+        return self.fusionMetrics.mean_camera_fused
+
+    @mean_camera_fused.setter
+    def mean_camera_fused(self, value: float):
+        self.fusionMetrics.mean_camera_fused = value
+
+    ##
+    # the standard deviation of the data timestamp fused, the lower the better
+    @property
+    def mean_stdev_between_camera(self):
+        return self.fusionMetrics.mean_stdev_between_camera
+
+    @mean_stdev_between_camera.setter
+    def mean_stdev_between_camera(self, value: float):
+        self.fusionMetrics.mean_stdev_between_camera = value
+
+    ##
+    # the sender metrics
+    @property
+    def camera_individual_stats(self):
+        cdef map[c_CameraIdentifier, c_CameraMetrics] temp_map = self.fusionMetrics.camera_individual_stats
+        cdef map[c_CameraIdentifier, c_CameraMetrics].iterator it = temp_map.begin()
+        returned_value = {}
+
+        while(it != temp_map.end()):
+            cam_id = CameraIdentifier()
+            cam_id.cameraIdentifier = <c_CameraIdentifier>(deref(it).first)
+            cam_metrics = CameraMetrics()
+            cam_metrics.cameraMetrics = <c_CameraMetrics>(deref(it).second)
+            returned_value[cam_id] = cam_metrics
+            postincrement(it) # Increment the iterator to the net element
+
+        return returned_value
+
+    @camera_individual_stats.setter
+    def camera_individual_stats(self, value: dict):
+        cdef map[c_CameraIdentifier, c_CameraMetrics] temp_map
+        for key in value:
+            if isinstance(key, CameraIdentifier) and isinstance(value[key], CameraMetrics):
+                cam_id = <CameraIdentifier>key
+                cam_metrics = <CameraMetrics>CameraMetrics()
+                temp_map[cam_id.cameraIdentifier] = cam_metrics.cameraMetrics
+
+        self.fusionMetrics.camera_individual_stats = temp_map
+
+##
+# Used to identify a specific camera in the Fusion API
+# \ingroup Fusion_group
+cdef class CameraIdentifier:
+    cdef c_CameraIdentifier cameraIdentifier
+
+    def __cinit__(self, serial_number : int = 0):
+        if serial_number == 0:
+            self.cameraIdentifier = c_CameraIdentifier()
+        self.cameraIdentifier = c_CameraIdentifier(serial_number)
+
+    @property
+    def serial_number(self):
+        return self.cameraIdentifier.sn
+
+    @serial_number.setter
+    def serial_number(self, value: int):
+        self.cameraIdentifier.sn = value
+
+##
+# Coordinates in ECEF format
+cdef class ECEF:
+    cdef c_ECEF ecef
+
+    ##
+    # x coordinate of ECEF
+    @property
+    def x(self):
+        return self.ecef.x
+
+    @x.setter
+    def x(self, value: double):
+        self.ecef.x = value
+
+    ##
+    # y coordinate of ECEF
+    @property
+    def y(self):
+        return self.ecef.y
+
+    @y.setter
+    def y(self, value: double):
+        self.ecef.y = value
+
+    ##
+    # z coordinate of ECEF
+    @property
+    def z(self):
+        return self.ecef.z
+
+    @z.setter
+    def z(self, value: double):
+        self.ecef.z = value
+
+##
+# Coordinates in LatLng format
+cdef class LatLng:
+    cdef c_LatLng latLng
+
+    ##
+    # Get the latitude coordinate
+    #
+    # \param in_radian: is the output should be in radian or degree
+    # \return float
+    def get_latitude(self, in_radian : bool = True):
+        return self.latLng.getLatitude(in_radian)
+
+    ##
+    # Get the longitude coordinate
+    #
+    # \param in_radian: is the output should be in radian or degree
+    # \return float
+    def get_longitude(self, in_radian=True):
+        return self.latLng.getLongitude(in_radian)
+
+    ##
+    # Get the altitude coordinate
+    #
+    # \return float
+    def get_altitude(self):
+        return self.latLng.getAltitude()
+    
+    ##
+    # Get the coordinates in radians (default) or in degrees
+    #
+    # \param latitude: latitude coordinate
+    # \param longitude: longitude coordinate
+    # \param altitude:  altitude coordinate
+    # \@param in_radian: should we expresse output in radians or in degrees
+    def get_coordinates(self, in_radian=True):
+        cdef double lat, lng, alt
+        self.latLng.getCoordinates(lat, lng, alt, in_radian)
+        return lat, lng , alt
+    
+    ##
+    # Set the coordinates in radians (default) or in degrees
+    #
+    # \param latitude: latitude coordinate
+    # \param longitude: longitude coordinate
+    # \param altitude:  altitude coordinate
+    # \@param in_radian: is input are in radians or in degrees
+    def set_coordinates(self, latitude: double, longitude: double, altitude: double, in_radian=True):
+        self.latLng.setCoordinates(latitude, longitude, altitude, in_radian)
+
+##
+# Coordinate in UTM format
+cdef class UTM:
+    cdef c_UTM utm
+
+    ##
+    # Northing coordinate
+    @property
+    def northing(self):
+        return self.utm.northing
+
+    @northing.setter
+    def northing(self, value: double):
+        self.utm.northing = value
+
+    ##
+    # Easting coordinate
+    @property
+    def easting(self):
+        return self.utm.easting
+
+    @easting.setter
+    def easting(self, value: double):
+        self.utm.easting = value
+
+    ##
+    # Gamma coordinate
+    @property
+    def gamma(self):
+        return self.utm.gamma
+
+    @gamma.setter
+    def gamma(self, value: double):
+        self.utm.gamma = value
+
+    ##
+    # UTMZone if the coordinate
+    @property
+    def UTM_zone(self):
+        return self.utm.UTMZone.decode()
+
+    @UTM_zone.setter
+    def UTM_zone(self, value: str):
+        self.utm.UTMZone = value.encode('utf-8')
+
+##
+# Purely static class for Geo functions
+# \ingroup Fusion_group
+cdef class GeoConverter:
+    ##
+    # Convert ECEF coordinates to Lat/Long coordinates
+    @staticmethod
+    def ecef2latlng(input: ECEF) -> LatLng:
+        cdef c_LatLng temp
+        c_GeoConverter.ecef2latlng(input.ecef, temp)
+        result = LatLng()
+        result.latLng = temp
+        return result
+
+    ##
+    # Convert ECEF coordinates to UTM coordinates
+    @staticmethod
+    def ecef2utm(input: ECEF) -> UTM:
+        cdef c_UTM temp
+        c_GeoConverter.ecef2utm(input.ecef, temp)
+        result = UTM()
+        result.utm.easting = temp.easting
+        result.utm.northing = temp.northing
+        result.utm.gamma = temp.gamma
+        result.utm.UTMZone = temp.UTMZone
+        return result
+
+    ##
+    # Convert Lat/Long coordinates to ECEF coordinates
+    @staticmethod
+    def latlng2ecef(input: LatLng) -> ECEF:
+        cdef c_ECEF temp
+        c_GeoConverter.latlng2ecef(input.latLng, temp)
+        result = ECEF()
+        result.ecef.x = temp.x
+        result.ecef.y = temp.y
+        result.ecef.z = temp.z
+        return result 
+
+    ##
+    # Convert Lat/Long coordinates to UTM coordinates
+    @staticmethod
+    def latlng2utm(input: LatLng) -> UTM:
+        cdef c_UTM temp
+        c_GeoConverter.latlng2utm(input.latLng, temp)
+        result = UTM()
+        result.utm.easting = temp.easting
+        result.utm.northing = temp.northing
+        result.utm.gamma = temp.gamma
+        result.utm.UTMZone = temp.UTMZone
+        return result
+
+    ##
+    # Convert UTM coordinates to ECEF coordinates
+    @staticmethod
+    def utm2ecef(input: UTM) -> ECEF:
+        cdef c_ECEF temp
+        c_GeoConverter.utm2ecef(input.utm, temp)
+        result = ECEF()
+        result.ecef.x = temp.x
+        result.ecef.y = temp.y
+        result.ecef.z = temp.z
+        return result 
+
+    ##
+    # Convert UTM coordinates to Lat/Long coordinates
+    @staticmethod
+    def utm2latlng(input: UTM) -> LatLng:
+        cdef c_LatLng temp
+        c_GeoConverter.utm2latlng(input.utm, temp)
+        result = LatLng()
+        result.latLng = temp
+        return result
+
+##
+# Holds Geo data
+# \ingroup Fusion_group
+cdef class GeoPose:
+    cdef c_GeoPose geopose
+    cdef Transform pose_data 
+
+    ##
+    # Default constructor
+    def __cinit__(self):
+        self.geopose = c_GeoPose()
+        self.pose_data = Transform()
+
+    ##
+    # the 4x4 Matrix defining the pose
+    @property
+    def pose_data(self):
+        for i in range(16):
+            self.pose_data.transform.m[i] = self.geopose.pose_data.m[i]
+
+        return self.pose_data
+
+    @pose_data.setter
+    def pose_data(self, transform : Transform):
+        self.geopose.pose_data = deref(transform.transform)
+
+    ##
+    # the pose covariance
+    @property
+    def pose_covariance(self):
+        arr = []
+        for i in range(39):
+            arr[i] = self.geopose.pose_covariance[i]
+        return arr
+
+    @pose_covariance.setter
+    def pose_covariance(self, value):
+        if isinstance(value, list):
+            if len(value) == 36:
+                for i in range(len(value)):
+                    self.geopose.pose_covariance[i] = value[i]
+            else:
+                raise IndexError("Value list must be of length 36.")
+        else:
+            raise TypeError("Argument must be list type.")
+
+    ##
+    # the horizontal accuracy
+    @property
+    def horizontal_accuracy(self):
+        return self.geopose.horizontal_accuracy
+
+    @horizontal_accuracy.setter
+    def horizontal_accuracy(self, value: double):
+        self.geopose.horizontal_accuracy = value
+
+    ##
+    # the vertical accuracy
+    @property
+    def vertical_accuracy(self):
+        return self.geopose.vertical_accuracy
+
+    @vertical_accuracy.setter
+    def vertical_accuracy(self, value: double):
+        self.geopose.vertical_accuracy = value
+
+    ##
+    # the latitude
+    @property
+    def latlng_coordinates(self):
+        result = LatLng()
+        result.latLng = self.geopose.latlng_coordinates
+        return result
+
+    @latlng_coordinates.setter
+    def latlng_coordinates(self, value: LatLng):
+        self.geopose.latlng_coordinates = value.latLng
+
+##
+# Contains all gnss data to be used for positional tracking as prior.
+# \ingroup Sensors_group
+cdef class GNSSData:
+
+    cdef c_GNSSData gnss_data
+
+    ##
+    # Get the coordinates of GNSSData. The LatLng coordinates could be expressed in degrees or radians.
+    #
+    # \param latitude: latitude coordinate
+    # \param longitude: longitude coordinate
+    # \param altitude: altitude coordinate
+    # \param is_radian: is the inputs are exppressed in radians or in degrees
+    def get_coordinates(self, in_radian=True):
+        cdef double lat, lng , alt
+        self.gnss_data.getCoordinates(lat, lng, alt, in_radian)
+        return lat, lng , alt
+    
+    ##
+    # Set the LatLng coordinates of GNSSData. The LatLng coordinates could be expressed in degrees or radians.
+    #
+    # \param latitude: latitude coordinate
+    # \param longitude: longitude coordinate
+    # \param altitude: altitude coordinate
+    # \param is_radian: should we express outpu in radians or in degrees
+    def set_coordinates(self, latitude: double, longitude: double, altitude: double, in_radian=True):
+        self.gnss_data.setCoordinates(latitude, longitude, altitude, in_radian)
+
+    ##
+    # latitude standard deviation
+    @property
+    def latitude_std(self):
+        return self.gnss_data.latitude_std
+
+    @latitude_std.setter
+    def latitude_std(self, value: double):
+        self.gnss_data.latitude_std = value
+
+    ##
+    # longitude standard deviation
+    @property
+    def longitude_std(self):
+        return self.gnss_data.longitude_std
+
+    @longitude_std.setter
+    def longitude_std(self, value: double):
+        self.gnss_data.longitude_std = value
+
+    ##
+    # altitude standard deviation
+    @property
+    def altitude_std(self):
+        return self.gnss_data.altitude_std
+
+    @altitude_std.setter
+    def altitude_std(self, value: double):
+        self.gnss_data.altitude_std = value
+
+    ##
+    # \ref Timestamp in the PC clock
+    @property
+    def ts(self):
+        ts = Timestamp()
+        ts.timestamp = self.gnss_data.ts
+        return  ts
+
+    @ts.setter
+    def ts(self, value: Timestamp):
+        self.gnss_data.ts = value.timestamp
+    
+    ##
+    # Position covariance in meter
+    @property
+    def position_covariances(self):
+        result = []
+        for i in range(9):
+                result.append(self.gnss_data.position_covariance[i])
+        return result
+
+    @position_covariances.setter
+    def position_covariances(self, value: list):
+        if isinstance(value, list):
+            if len(value) == 9:
+                for i in range(9):
+                    self.gnss_data.position_covariance[i] = value[i]
+                return
+        raise TypeError("Argument is not of 9-sized list.")
+
+##
+# Holds the options used to initialize the \ref Fusion object.
+# \ingroup Fusion_group
+cdef class InitFusionParameters:
+    cdef c_InitFusionParameters* initFusionParameters
+
+    def __cinit__(self, coordinate_unit : UNIT = UNIT.MILLIMETER, coordinate_system : COORDINATE_SYSTEM = COORDINATE_SYSTEM.IMAGE, output_performance_metrics : bool = False, verbose_ : bool = False, timeout_period_number : int = 20):
+        self.initFusionParameters = new c_InitFusionParameters(
+            <c_UNIT>(<int>coordinate_unit.value), 
+            <c_COORDINATE_SYSTEM>(<int>coordinate_system.value),  
+            output_performance_metrics, verbose_, 
+            timeout_period_number
+        )
+
+    def __dealloc__(self):
+        del self.initFusionParameters
+
+    ##
+    # This parameter allows you to select the unit to be used for all metric values of the SDK. (depth, point cloud, tracking, mesh, and others).
+    # default : \ref UNIT.MILLIMETER
+    @property
+    def coordinate_units(self):
+        return UNIT(<int>self.initFusionParameters.coordinate_units)
+
+    @coordinate_units.setter
+    def coordinate_units(self, value: UNIT):
+        self.initFusionParameters.coordinate_units = <c_UNIT>(<int>value.value)
+
+    ##
+    # Positional tracking, point clouds and many other features require a given \ref COORDINATE_SYSTEM to be used as reference.
+    # This parameter allows you to select the \ref COORDINATE_SYSTEM used by the \ref Camera to return its measures.
+    # This defines the order and the direction of the axis of the coordinate system.
+    # default : \ref COORDINATE_SYSTEM "COORDINATE_SYSTEM::IMAGE"
+    @property
+    def coordinate_system(self):
+        return UNIT(<int>self.initFusionParameters.coordinate_system)
+
+    @coordinate_system.setter
+    def coordinate_system(self, value: COORDINATE_SYSTEM):
+        self.initFusionParameters.coordinate_system = <c_COORDINATE_SYSTEM>(<int>value.value)
+
+    ##
+    # It allows users to extract some stats of the Fusion API like drop frame of each camera, latency, etc
+    @property
+    def output_performance_metrics(self):
+        return self.initFusionParameters.output_performance_metrics
+
+    @output_performance_metrics.setter
+    def output_performance_metrics(self, value: bool):
+        self.initFusionParameters.output_performance_metrics = value
+        
+    ##
+    # Enable the verbosity mode of the SDK
+    @property
+    def verbose(self):
+        return self.initFusionParameters.verbose
+
+    @verbose.setter
+    def verbose(self, value: bool):
+        self.initFusionParameters.verbose = value
+
+    ##
+    # If specified change the number of period necessary for a source to go in timeout without data. For example, if you set this to 5 then, if any source do not receive data during 5 period, these sources will go to timeout and will be ignored.
+    @property
+    def timeout_period_number(self):
+        return self.initFusionParameters.timeout_period_number
+
+    @timeout_period_number.setter
+    def timeout_period_number(self, value: int):
+        self.initFusionParameters.timeout_period_number = value
+
+
+##
+# Holds Fusion process data and functions
+# \ingroup Fusion_group
+cdef class Fusion:
+    cdef c_Fusion fusion
+
+    # def __cinit__(self):
+    #     self.fusion = c_Fusion()
+    
+    # def __dealloc__(self):
+    #     del self.fusion
+
+    ##
+    # FusionHandler initialisation
+    #
+    # \note Initializes memory/generic data
+    def init(self, init_fusion_parameters : InitFusionParameters):
+        return FUSION_ERROR_CODE(<int>self.fusion.init(deref(init_fusion_parameters.initFusionParameters)))
+
+    ##
+    # FusionHandler close.
+    #
+    # \note Free memory/generic data
+    def close(self):
+        return self.fusion.close()
+
+    ##
+    # adds a camera to the multi camera handler
+    # \param uuid : unique ID that is associated with the camera for easy access.
+    # \param json_config_filename : a json configuration file. it should contains the extrinsic calibration of each camera as well as the communication type and configuration of each camera in the system. The same file should be passed to sl::Camera::startPublishing(std::string json_config_filename) of each sender
+    def subscribe(self, uuid : CameraIdentifier, communication_parameters: CommunicationParameters, pose: Transform) -> FUSION_ERROR_CODE:
+        return FUSION_ERROR_CODE(<int>self.fusion.subscribe(uuid.cameraIdentifier, communication_parameters.communicationParameters, deref(pose.transform)))
+
+    def update_pose(self, uuid : CameraIdentifier, pose: Transform) -> FUSION_ERROR_CODE:
+        return FUSION_ERROR_CODE(<int>self.fusion.updatePose(uuid.cameraIdentifier, deref(pose.transform)))
+
+    ##
+    # get the metrics of the Fusion process, for the fused data as well as individual camera provider data
+    # \param metrics
+    # \return FUSION_STATUS
+    def get_process_metrics(self) -> (FUSION_ERROR_CODE, FusionMetrics):
+        cdef c_FusionMetrics temp_fusion_metrics
+        err = FUSION_ERROR_CODE(<int>self.fusion.getProcessMetrics(temp_fusion_metrics))
+        metrics = FusionMetrics()
+        metrics.fusionMetrics = temp_fusion_metrics
+        return err, metrics
+
+    ##
+    # returns the state of each connected data senders.
+    # \return the individual state of each connected senders
+    def get_sender_state(self) -> dict:
+        cdef map[c_CameraIdentifier, c_SENDER_ERROR_CODE] tmp
+        tmp = self.fusion.getSenderState()
+        cdef map[c_CameraIdentifier, c_SENDER_ERROR_CODE].iterator it = tmp.begin()
+        result = {}
+
+        while(it != tmp.end()):
+            cam = CameraIdentifier()
+            cam.cameraIdentifier = deref(it).first
+            err = SENDER_ERROR_CODE(<int>(<c_SENDER_ERROR_CODE>deref(it).second))
+            result[cam] = err
+            postincrement(it)
+        return result
+
+    ##
+    # Runs the main function of the Fusion, this trigger the retrieve and sync of all connected senders and updates the enables modules
+    # \return SUCCESS if it goes as it should, otherwise it returns an error code. 
+    def process(self) -> FUSION_ERROR_CODE:
+        return FUSION_ERROR_CODE(<int>self.fusion.process())
+    
+    ##
+    # enables Object detection fusion module
+    # \param parameters defined by \ref sl::ObjectDetectionFusionParameters
+    def enable_body_tracking(self, params : BodyTrackingFusionParameters) -> FUSION_ERROR_CODE:
+        return FUSION_ERROR_CODE(<int>self.fusion.enableBodyTracking(params.bodyTrackingFusionParameters))
+    
+    ##
+    # retrieves a list of objects (in sl::Objects class type) seen by all cameras and merged as if it was seen by a single super-camera.
+    # \note Internal calls retrieveObjects() for all listed cameras, then merged into a single sl::Objects
+    # \param objs: list of objects seen by all available cameras
+    # \note Only the 3d informations is available in the returned object.
+    # For this version, a person is detected if at least it is seen by 2 cameras.
+    def retrieve_bodies(self, bodies : Bodies, parameters : BodyTrackingFusionRuntimeParameters, uuid : CameraIdentifier = CameraIdentifier(0)) -> FUSION_ERROR_CODE:
+        return FUSION_ERROR_CODE(<int>self.fusion.retrieveBodies(bodies.bodies, parameters.bodyTrackingFusionRuntimeParameters, uuid.cameraIdentifier))
+    
+    ##
+    # disables object detection fusion module
+    def disable_body_tracking(self):
+        return self.fusion.disableBodyTracking()
+
+    ##
+    # enable positional tracking fusion.
+    # \note note that for the alpha version of the API, the positional tracking fusion doesn't support the area memory feature
+    # \param params positional tracking fusion parameters
+    # \return FUSION_STATUS
+    def enable_positionnal_tracking(self) -> FUSION_ERROR_CODE:
+        return FUSION_ERROR_CODE(<int>self.fusion.enablePositionalTracking())
+    
+    ##
+    # Add GNSS that will be used by fusion for computing fused pose.
+    # \param _gnss_data GPS data put in sl::GNSSData format
+    def ingest_gnss_data(self, gnss_data : GNSSData):
+        return self.fusion.ingestGNSSData(gnss_data.gnss_data)
+
+    ##
+    # Get the Fused Position of the camera system
+    # \param camera_pose will contain the camera pose in world position (world position is given by the calibration of the cameras system)
+    # \param reference_frame defines the reference from which you want the pose to be expressed. Default : \ref REFERENCE_FRAME "REFERENCE_FRAME::WORLD".
+    # \return POSITIONAL_TRACKING_STATE is the current state of the tracking process
+    def get_position(self, camera_pose : Pose, reference_frame : REFERENCE_FRAME = REFERENCE_FRAME.WORLD, uuid: CameraIdentifier = CameraIdentifier(), position_type : POSITION_TYPE = POSITION_TYPE.FUSION):
+        return POSITIONAL_TRACKING_STATE(<int>self.fusion.getPosition(camera_pose.pose, <c_REFERENCE_FRAME>(<int>reference_frame.value), uuid.cameraIdentifier, <c_POSITION_TYPE>(<int>position_type.value)))
+
+    ##
+    # returns the current GNSS data
+    # \param out [out]: the current GNSS data
+    # \return POSITIONAL_TRACKING_STATE is the current state of the tracking process
+    def get_current_gnss_data(self, gnss_data : GNSSData):
+        return POSITIONAL_TRACKING_STATE(<int>self.fusion.getCurrentGNSSData(gnss_data.gnss_data))
+
+    ##
+    # returns the current GeoPose
+    # \param pose [out]: the current GeoPose
+    # \return POSITIONAL_TRACKING_STATE is the current state of the tracking process
+    def get_geo_pose(self, pose : GeoPose) -> POSITIONAL_TRACKING_STATE:
+        return POSITIONAL_TRACKING_STATE(<int>self.fusion.getGeoPose(pose.geopose))
+
+    ##
+    # returns the current GeoPose
+    # \param in: the current GeoPose
+    # \param out [out]: the current GeoPose
+    # \return POSITIONAL_TRACKING_STATE is the current state of the tracking process
+    def geo_to_camera(self, input : LatLng, output : Pose) -> POSITIONAL_TRACKING_STATE:
+        return POSITIONAL_TRACKING_STATE(<int>self.fusion.Geo2Camera(input.latLng, output.pose))
+
+    ##
+    # returns the current GeoPose
+    # \param pose [out]: the current GeoPose
+    # \return POSITIONAL_TRACKING_STATE is the current state of the tracking process
+    def camera_to_geo(self, input : Pose, output : GeoPose) -> POSITIONAL_TRACKING_STATE:
+        return POSITIONAL_TRACKING_STATE(<int>self.fusion.Camera2Geo(input.pose, output.geopose))
+
+    ##
+    # disable the positional tracking 
+    def disable_positionnal_tracking(self):
+        return self.fusion.disablePositionalTracking()
+
