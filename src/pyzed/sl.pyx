@@ -37,6 +37,7 @@ from sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CO
                     , MODEL as c_MODEL, PositionalTrackingParameters as c_PositionalTrackingParameters
                     , Transform as c_Transform, Matrix4f as c_Matrix4f, Matrix3f as c_Matrix3f, Pose as c_Pose
                     , POSITIONAL_TRACKING_STATE as c_POSITIONAL_TRACKING_STATE
+                    , POSITIONAL_TRACKING_MODE as c_POSITIONAL_TRACKING_MODE
                     , AREA_EXPORTING_STATE as c_AREA_EXPORTING_STATE, SensorsData as c_SensorsData
                     , CAMERA_MOTION_STATE as c_CAMERA_MOTION_STATE, SpatialMappingParameters as c_SpatialMappingParameters
                     , MAPPING_RESOLUTION as c_MAPPING_RESOLUTION, MAPPING_RANGE as c_MAPPING_RANGE
@@ -89,7 +90,6 @@ from sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CO
 from cython.operator cimport (dereference as deref, postincrement)
 from libc.string cimport memcpy
 from cpython cimport bool
-
 import enum
 
 import numpy as np
@@ -990,7 +990,7 @@ class UNIT(enum.Enum):
 # 
 # | Enumerator |                         |
 # |------------|-------------------------|
-# | IMAGE | Standard coordinates system in computer vision. Used in OpenCV : see here : http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html |
+# | IMAGE | Standard coordinates system in computer vision. Used in OpenCV : see <a href="http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html">here</a>. |
 # | LEFT_HANDED_Y_UP | Left-Handed with Y up and Z forward. Used in Unity with DirectX. |
 # | RIGHT_HANDED_Y_UP | Right-Handed with Y pointing up and Z backward. Used in OpenGL. |
 # | RIGHT_HANDED_Z_UP | Right-Handed with Z pointing up and Y forward. Used in 3DSMax. |
@@ -1130,6 +1130,26 @@ class POSITIONAL_TRACKING_STATE(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_POSITIONAL_TRACKING_STATE>(<unsigned int>self.value))).decode()
+
+
+##
+#  Lists the mode of positional tracking that can be used.
+# \ingroup PositionalTracking_group
+#
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | STANDARD | Default mode, best compromise in performance and accuracy |
+# | QUALITY | Improve accuracy in more challenging scenes such as outdoor repetitive patterns like extensive fields. Currently works best with ULTRA depth mode, requires more compute power  |
+class POSITIONAL_TRACKING_MODE(enum.Enum):
+    STANDARD = <int>c_POSITIONAL_TRACKING_MODE.STANDARD
+    QUALITY = <int>c_POSITIONAL_TRACKING_MODE.QUALITY
+
+    def __str__(self):
+        return to_str(toString(<c_POSITIONAL_TRACKING_MODE>(<unsigned int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_POSITIONAL_TRACKING_MODE>(<unsigned int>self.value))).decode()
+
 ##
 # Lists the different states of spatial memory area export.
 # \ingroup SpatialMapping_group
@@ -1736,6 +1756,21 @@ cdef class ObjectData:
         for i in range(3):
             self.object_data.head_position[i] = head_position[i]
 
+    ##
+    # Position covariance
+    @property
+    def position_covariance(self):
+        cdef np.ndarray arr = np.zeros(6)
+        for i in range(6) :
+            arr[i] = self.object_data.position_covariance[i]
+        return arr
+
+    @position_covariance.setter
+    def position_covariance(self, np.ndarray position_covariance_):
+        for i in range(6) :
+            self.object_data.position_covariance[i] = position_covariance_[i]
+
+
 ##
 # Contains data of a detected object such as its bounding_box, label, id and its 3D position.
 # \ingroup Body_group
@@ -1884,6 +1919,55 @@ cdef class BodyData:
     @confidence.setter
     def confidence(self, float confidence):
         self.body_data.confidence = confidence
+
+    ##
+    # A sample of the associated position covariance
+    @property
+    def keypoints_covariance(self):
+        cdef np.ndarray arr = np.zeros((self.body_data.keypoint_covariances.size(), 6), dtype=np.float32)
+        for i in range(self.body_data.keypoint_covariances.size()):
+            for j in range(6):
+                arr[i,j] = self.body_data.keypoint_covariances[i][j]
+        return arr
+
+    ##
+    # Keypoint covariance
+    @property
+    def keypoints_covariance(self):
+        result = []
+        for i in range(6):
+            subresult = []
+            for j in range(6):
+                subresult.append(self.body_data.keypoint_covariances[i][j])
+            result.append(subresult)
+        return result
+
+    @keypoints_covariance.setter
+    def keypoints_covariance(self, value: list):
+        if isinstance(value, list):
+            if len(value) == 6:
+                for i in range(6):
+                    if len( value[i]) != 6:
+                        raise TypeError("Argument is not of 6x6 list.")
+                    for j in range(6):
+                        self.body_data.keypoint_covariances[i][j] = value[i][j]
+                return
+        raise TypeError("Argument is not of 6x6 list.")
+
+    ##
+    # Position covariance
+    @property
+    def position_covariance(self):
+        cdef np.ndarray arr = np.zeros(6)
+        for i in range(6) :
+            arr[i] = self.body_data.position_covariance[i]
+        return arr
+
+    @position_covariance.setter
+    def position_covariance(self, np.ndarray position_covariance_):
+        for i in range(6) :
+            self.body_data.position_covariance[i] = position_covariance_[i]
+
 
     ##
     # Defines for the bounding_box_2d the pixels which really belong to the object (set to 255) and those of the background (set to 0).
@@ -3644,8 +3728,8 @@ cdef class BodyTrackingRuntimeParameters:
     # Default constructor
     # \param detection_confidence_threshold : sets \ref detection_confidence_threshold. Default: 50
     # \param minimum_keypoints_threshold: sets \ref minimum_keypoints_threshold. Default: 0 (all skeletons are retrieved)
-    def __cinit__(self, detection_confidence_threshold=50, minimum_keypoints_threshold=0):
-        self.body_tracking_rt = new c_BodyTrackingRuntimeParameters(detection_confidence_threshold, minimum_keypoints_threshold)
+    def __cinit__(self, detection_confidence_threshold=50, minimum_keypoints_threshold=0, skeleton_smoothing=0):
+        self.body_tracking_rt = new c_BodyTrackingRuntimeParameters(detection_confidence_threshold, minimum_keypoints_threshold, skeleton_smoothing)
 
     def __dealloc__(self):
         del self.body_tracking_rt
@@ -3672,6 +3756,17 @@ cdef class BodyTrackingRuntimeParameters:
     @minimum_keypoints_threshold.setter
     def minimum_keypoints_threshold(self, int minimum_keypoints_threshold_):
         self.body_tracking_rt.minimum_keypoints_threshold = minimum_keypoints_threshold_
+
+    ##
+    # this value controls the smoothing of the fitted fused skeleton.
+    # it is ranged from 0 (low smoothing) and 1 (high smoothing)
+    @property
+    def skeleton_smoothing(self):
+        return self.body_tracking_rt.skeleton_smoothing
+
+    @skeleton_smoothing.setter
+    def skeleton_smoothing(self, float skeleton_smoothing_):
+        self.body_tracking_rt.skeleton_smoothing = skeleton_smoothing_
 
 
 # Returns the current timestamp at the time the function is called.
@@ -5445,6 +5540,16 @@ cdef class Chunk:
         return arr
 
     ##
+    # Colors are defined by three components, {b, g, r}. Colors are defined for each vertex.
+    @property
+    def colors(self):
+        cdef np.ndarray arr = np.zeros((self.chunk.colors.size(), 3), dtype = np.ubyte)
+        for i in range(self.chunk.colors.size()):
+            for j in range(3):
+                arr[i,j] = self.chunk.colors[i].ptr()[j]
+        return arr
+
+    ##
     # UVs define the 2D projection of each vertex onto the texture.
     # Values are normalized [0;1], starting from the bottom left corner of the texture (as requested by opengl).
     # In order to display a textured mesh you need to bind the Texture and then draw each triangle by picking its uv values.
@@ -5700,6 +5805,16 @@ cdef class Mesh:
         for i in range(self.mesh.normals.size()):
             for j in range(3):
                 arr[i,j] = self.mesh.normals[i].ptr()[j]
+        return arr
+
+    ##
+    # Colors are defined by three components, {b, g, r}. Colors are defined for each vertex.
+    @property
+    def colors(self):
+        cdef np.ndarray arr = np.zeros((self.mesh.colors.size(), 3), dtype=np.ubyte)
+        for i in range(self.mesh.colors.size()):
+            for j in range(3):
+                arr[i,j] = self.mesh.colors[i].ptr()[j]
         return arr
 
     ##
@@ -6656,16 +6771,17 @@ cdef class PositionalTrackingParameters:
     # \param _set_as_static : activates \ref set_as_static
     # \param _depth_min_range : activates \ref depth_min_range
     # \param _set_gravity_as_origin : This setting allows you to set the odometry world using sensors data.
+    # \param _mode : Positional tracking mode used. Can be used to improve accuracy in some type of scene at the cost of longer runtime
     # \code
     # params = sl.PositionalTrackingParameters(init_pos=Transform(), _enable_pose_smoothing=True)
     # \endcode
     def __cinit__(self, _init_pos=Transform(), _enable_memory=True, _enable_pose_smoothing=False, _area_path=None,
-                  _set_floor_as_origin=False, _enable_imu_fusion=True, _set_as_static=False, _depth_min_range=-1, _set_gravity_as_origin=True):
+                  _set_floor_as_origin=False, _enable_imu_fusion=True, _set_as_static=False, _depth_min_range=-1, _set_gravity_as_origin=True, _mode=POSITIONAL_TRACKING_MODE.STANDARD):
         if _area_path is None:
-            self.tracking = new c_PositionalTrackingParameters((<Transform>_init_pos).transform[0], _enable_memory, _enable_pose_smoothing, String(), _set_floor_as_origin, _enable_imu_fusion, _set_as_static, _depth_min_range, _set_gravity_as_origin)
+            self.tracking = new c_PositionalTrackingParameters((<Transform>_init_pos).transform[0], _enable_memory, _enable_pose_smoothing, String(), _set_floor_as_origin, _enable_imu_fusion, _set_as_static, _depth_min_range, _set_gravity_as_origin, <c_POSITIONAL_TRACKING_MODE>(<unsigned int>_mode.value))
         else :
             area_path = _area_path.encode()
-            self.tracking = new c_PositionalTrackingParameters((<Transform>_init_pos).transform[0], _enable_memory, _enable_pose_smoothing, String(<char*> area_path), _set_floor_as_origin, _enable_imu_fusion, _set_as_static, _depth_min_range, _set_gravity_as_origin)
+            self.tracking = new c_PositionalTrackingParameters((<Transform>_init_pos).transform[0], _enable_memory, _enable_pose_smoothing, String(<char*> area_path), _set_floor_as_origin, _enable_imu_fusion, _set_as_static, _depth_min_range, _set_gravity_as_origin, <c_POSITIONAL_TRACKING_MODE>(<unsigned int>_mode.value))
     
     def __dealloc__(self):
         del self.tracking
@@ -8297,13 +8413,13 @@ cdef class Camera:
     # \note Works only if the camera is opened in live mode.
     def set_camera_settings(self, settings: VIDEO_SETTINGS, value=-1):
         if isinstance(settings, VIDEO_SETTINGS) :
-            self.camera.setCameraSettings(<c_VIDEO_SETTINGS>(<int>settings.value), value)
+            return ERROR_CODE(<int>self.camera.setCameraSettings(<c_VIDEO_SETTINGS>(<int>settings.value), value))
         else:
             raise TypeError("Arguments must be of VIDEO_SETTINGS and boolean types.")
 
     def set_camera_settings_range(self, settings: VIDEO_SETTINGS, min=-1, max=-1):
         if isinstance(settings, VIDEO_SETTINGS) :
-            self.camera.setCameraSettings(<c_VIDEO_SETTINGS>(<int>settings.value), min, max)
+            return ERROR_CODE(<int>self.camera.setCameraSettings(<c_VIDEO_SETTINGS>(<int>settings.value), min, max))
         else:
             raise TypeError("Arguments must be of VIDEO_SETTINGS and boolean types.")
 
@@ -9562,7 +9678,10 @@ class FUSION_ERROR_CODE(enum.Enum):
     SUCCESS = <int>c_FUSION_ERROR_CODE.SUCCESS
     FUSION_ERRATIC_FPS = <int>c_FUSION_ERROR_CODE.FUSION_ERRATIC_FPS
     FUSION_FPS_TOO_LOW = <int>c_FUSION_ERROR_CODE.FUSION_FPS_TOO_LOW
-
+    NO_NEW_DATA_AVAILABLE = <int>c_FUSION_ERROR_CODE.NO_NEW_DATA_AVAILABLE
+    INVALID_TIMESTAMP = <int>c_FUSION_ERROR_CODE.INVALID_TIMESTAMP
+    INVALID_COVARIANCE = <int>c_FUSION_ERROR_CODE.INVALID_COVARIANCE
+    
     def __str__(self):
         return to_str(toString(<c_FUSION_ERROR_CODE>(<int>self.value))).decode()
 
@@ -10357,7 +10476,7 @@ cdef class GNSSData:
         return result
 
     @position_covariances.setter
-    def position_covariances(self, value: list):
+    def position_covariances(self, value:list[float]):
         if isinstance(value, list):
             if len(value) == 9:
                 for i in range(9):
@@ -10539,7 +10658,7 @@ cdef class Fusion:
     # Add GNSS that will be used by fusion for computing fused pose.
     # \param _gnss_data GPS data put in sl::GNSSData format
     def ingest_gnss_data(self, gnss_data : GNSSData):
-        return self.fusion.ingestGNSSData(gnss_data.gnss_data)
+        return FUSION_ERROR_CODE(<int>self.fusion.ingestGNSSData(gnss_data.gnss_data))
 
     ##
     # Get the Fused Position of the camera system

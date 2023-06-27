@@ -30,12 +30,12 @@ from libcpp.map cimport map
 cdef extern from "<array>" namespace "std" nogil:
   cdef cppclass array6 "std::array<float, 6>":
     array6() except+
-    int& operator[](size_t)
+    float& operator[](size_t)
 
 cdef extern from "<array>" namespace "std" nogil:
   cdef cppclass array9 "std::array<double, 9>":
     array9() except+
-    int& operator[](size_t)
+    double& operator[](size_t)
 
 cdef extern from "Utils.cpp" namespace "sl":
     string to_str(String sl_str)
@@ -355,6 +355,12 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     String toString(POSITIONAL_TRACKING_STATE o)
 
+    ctypedef enum POSITIONAL_TRACKING_MODE 'sl::POSITIONAL_TRACKING_MODE':
+        STANDARD 'sl::POSITIONAL_TRACKING_MODE::STANDARD'
+        QUALITY 'sl::POSITIONAL_TRACKING_MODE::QUALITY'
+
+    String toString(POSITIONAL_TRACKING_MODE o)
+
     ctypedef enum AREA_EXPORTING_STATE 'sl::AREA_EXPORTING_STATE':
         AREA_EXPORTING_STATE_SUCCESS 'sl::AREA_EXPORTING_STATE::SUCCESS'
         RUNNING 'sl::AREA_EXPORTING_STATE::RUNNING'
@@ -607,7 +613,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         OBJECT_ACTION_STATE action_state
         Vector3[float] position
         Vector3[float] velocity
-        vector[array6] position_covariance
+        float position_covariance[6]
         vector[Vector2[uint]] bounding_box_2d
         Mat mask
         float confidence
@@ -624,7 +630,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         OBJECT_ACTION_STATE action_state
         Vector3[float] position
         Vector3[float] velocity
-        vector[array6] position_covariance
+        float position_covariance[6]
         vector[Vector2[uint]] bounding_box_2d
         Mat mask
         float confidence
@@ -1097,6 +1103,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         vector[Vector4[float]] vertices
         vector[Vector3[uint]] triangles
         vector[Vector3[float]] normals
+        vector[Vector3[unsigned char]] colors
         vector[Vector2[float]] uv
         unsigned long long timestamp
         Vector3[float] barycenter
@@ -1120,6 +1127,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         vector[Vector4[float]] vertices
         vector[Vector3[uint]] triangles
         vector[Vector3[float]] normals
+        vector[Vector3[unsigned char]] colors
         vector[Vector2[float]] uv
         Mat texture
         size_t getNumberOfTriangles()
@@ -1305,6 +1313,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool set_as_static
         float depth_min_range
         bool set_gravity_as_origin
+        POSITIONAL_TRACKING_MODE mode
 
         PositionalTrackingParameters(Transform init_pos,
                            bool _enable_memory,
@@ -1314,7 +1323,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                            bool _enable_imu_fusion,
                            bool _set_as_static,
                            float _depth_min_range,
-                           bool _set_gravity_as_origin)
+                           bool _set_gravity_as_origin,
+                           POSITIONAL_TRACKING_MODE _mode)
 
         bool save(String filename)
         bool load(String filename)
@@ -1447,7 +1457,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
     cdef cppclass BodyTrackingRuntimeParameters:
         float detection_confidence_threshold
         int minimum_keypoints_threshold
-        BodyTrackingRuntimeParameters(float detection_confidence_threshold, int minimum_keypoints_threshold)
+        float skeleton_smoothing
+        BodyTrackingRuntimeParameters(float detection_confidence_threshold, int minimum_keypoints_threshold, float skeleton_smoothing)
 
     cdef cppclass Pose:
         Pose()
@@ -1720,6 +1731,9 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         SUCCESS 'sl::FUSION_ERROR_CODE::SUCCESS',
         FUSION_ERRATIC_FPS 'sl::FUSION_ERROR_CODE::FUSION_ERRATIC_FPS',
         FUSION_FPS_TOO_LOW 'sl::FUSION_ERROR_CODE::FUSION_FPS_TOO_LOW',
+        NO_NEW_DATA_AVAILABLE 'sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE',
+        INVALID_TIMESTAMP 'sl::FUSION_ERROR_CODE::INVALID_TIMESTAMP',
+        INVALID_COVARIANCE 'sl::FUSION_ERROR_CODE::INVALID_COVARIANCE',
 
     String toString(FUSION_ERROR_CODE o)
 
@@ -1843,7 +1857,7 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         FUSION_ERROR_CODE retrieveBodies(Bodies &objs, BodyTrackingFusionRuntimeParameters parameters, CameraIdentifier uuid)
         void disableBodyTracking()
         FUSION_ERROR_CODE enablePositionalTracking()
-        void ingestGNSSData(GNSSData &_gnss_data)
+        FUSION_ERROR_CODE ingestGNSSData(GNSSData &_gnss_data)
         POSITIONAL_TRACKING_STATE getPosition(Pose &camera_pose, REFERENCE_FRAME reference_frame, CameraIdentifier uuid, POSITION_TYPE position_type)
         POSITIONAL_TRACKING_STATE getCurrentGNSSData(GNSSData &out)
         POSITIONAL_TRACKING_STATE getGeoPose(GeoPose &pose)
