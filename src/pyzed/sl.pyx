@@ -71,7 +71,7 @@ from sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CO
                     , BODY_18_PARTS as c_BODY_18_PARTS, SIDE as c_SIDE, CameraInformation as c_CameraInformation, CUctx_st
                     , FLIP_MODE as c_FLIP_MODE, getResolution as c_getResolution, BatchParameters as c_BatchParameters
                     , ObjectsBatch as c_ObjectsBatch, BodiesBatch as c_BodiesBatch, getIdx as c_getIdx, BODY_FORMAT as c_BODY_FORMAT, BODY_KEYPOINTS_SELECTION as c_BODY_KEYPOINTS_SELECTION
-                    , BODY_34_PARTS as c_BODY_34_PARTS, BODY_38_PARTS as c_BODY_38_PARTS, BODY_70_PARTS as c_BODY_70_PARTS 
+                    , BODY_34_PARTS as c_BODY_34_PARTS, BODY_38_PARTS as c_BODY_38_PARTS
                     , generate_unique_id as c_generate_unique_id, CustomBoxObjectData as c_CustomBoxObjectData
                     , OBJECT_FILTERING_MODE as c_OBJECT_FILTERING_MODE
                     , COMM_TYPE as c_COMM_TYPE, FUSION_ERROR_CODE as c_FUSION_ERROR_CODE, SENDER_ERROR_CODE as c_SENDER_ERROR_CODE
@@ -173,6 +173,7 @@ cdef class Timestamp():
 #
 # | Enumerator                                         |                                                                                                                                                                 |
 # |----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+# | CAMERA_REBOOTING                                   | The ZED camera is currently rebooting. |
 # | SUCCESS                                            | Standard code for successful behavior.                                                                                                                          |
 # | FAILURE                                            | Standard code for unsuccessful behavior.                                                                                                                        |
 # | NO_GPU_COMPATIBLE                                  | No GPU found or CUDA capability of the device is not supported.                                                                                                 |
@@ -191,22 +192,22 @@ cdef class Timestamp():
 # | INVALID_COORDINATE_SYSTEM                          | The requested coordinate system is not available.                                                                                                               |
 # | INVALID_FIRMWARE                                   | The firmware of the ZED is out of date. Update to the latest version.                                                                                           |
 # | INVALID_FUNCTION_PARAMETERS                        | An invalid parameter has been set for the function.                                                                                                             |
-# | CUDA_ERROR | In grab() only, a CUDA error has been detected in the process. Activate verbose in sl.Camera.open for more info. |
-# | CAMERA_NOT_INITIALIZED | In grab() only, ZED SDK is not initialized. Probably a missing call to sl.Camera.open. |
-# | NVIDIA_DRIVER_OUT_OF_DATE | Your NVIDIA driver is too old and not compatible with your current CUDA version. |
-# | INVALID_FUNCTION_CALL | The call of the function is not valid in the current context. Could be a missing call of sl.Camera.open |
-# | CORRUPTED_SDK_INSTALLATION | The SDK wasn't able to load its dependencies, the installer should be launched. |
-# | INCOMPATIBLE_SDK_VERSION | The installed SDK is incompatible SDK used to compile the program. |
-# | INVALID_AREA_FILE | The given area file does not exist, check the path. |
-# | INCOMPATIBLE_AREA_FILE | The area file does not contain enought data to be used or the sl.DEPTH_MODE used during the creation of the area file is different from the one currently set. |
-# | CAMERA_FAILED_TO_SETUP | Failed to open the camera at the proper resolution. Try another resolution or make sure that the UVC driver is properly installed. |
-# | CAMERA_DETECTION_ISSUE | Your ZED can not be opened, try replugging it to another USB port or flipping the USB-C connector. |
-# | CANNOT_START_CAMERA_STREAM | Cannot start camera stream. Make sure your camera is not already used by another process or blocked by firewall or antivirus. |
-# | NO_GPU_DETECTED | No GPU found, CUDA is unable to list it. Can be a driver/reboot issue. |
-# | PLANE_NOT_FOUND | Plane not found, either no plane is detected in the scene, at the location or corresponding to the floor, or the floor plane doesn't match the prior given |
-# | MODULE_NOT_COMPATIBLE_WITH_CAMERA | The Object detection module is only compatible with the ZED2/ZED2i and ZED Mini |
-# | MOTION_SENSORS_REQUIRED | The module needs the sensors to be enabled (see \ref InitParameters.sensors_required) |
-# |MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION | The module needs a newer version of CUDA |
+# | CUDA_ERROR                                         | In grab() only, a CUDA error has been detected in the process. Activate verbose in sl.Camera.open for more info. |
+# | CAMERA_NOT_INITIALIZED                             | In grab() only, ZED SDK is not initialized. Probably a missing call to sl.Camera.open. |
+# | NVIDIA_DRIVER_OUT_OF_DATE                          | Your NVIDIA driver is too old and not compatible with your current CUDA version. |
+# | INVALID_FUNCTION_CALL                              | The call of the function is not valid in the current context. Could be a missing call of sl.Camera.open |
+# | CORRUPTED_SDK_INSTALLATION                         | The SDK wasn't able to load its dependencies or some assets are missing, the installer should be launched. |
+# | INCOMPATIBLE_SDK_VERSION                           | The installed SDK is incompatible SDK used to compile the program. |
+# | INVALID_AREA_FILE                                  | The given area file does not exist, check the path. |
+# | INCOMPATIBLE_AREA_FILE                             | The area file does not contain enough data to be used or the sl.DEPTH_MODE used during the creation of the area file is different from the one currently set. |
+# | CAMERA_FAILED_TO_SETUP                             | Failed to open the camera at the proper resolution. Try another resolution or make sure that the UVC driver is properly installed. |
+# | CAMERA_DETECTION_ISSUE                             | Your ZED can not be opened, try replugging it to another USB port or flipping the USB-C connector. |
+# | CANNOT_START_CAMERA_STREAM                         | Cannot start camera stream. Make sure your camera is not already used by another process or blocked by firewall or antivirus. |
+# | NO_GPU_DETECTED                                    | No GPU found, CUDA is unable to list it. Can be a driver/reboot issue. |
+# | PLANE_NOT_FOUND                                    | Plane not found, either no plane is detected in the scene, at the location or corresponding to the floor, or the floor plane doesn't match the prior given |
+# | MODULE_NOT_COMPATIBLE_WITH_CAMERA                  | The Object detection module is only compatible with the ZED2/ZED2i and ZED Mini |
+# | MOTION_SENSORS_REQUIRED                            | The module needs the sensors to be enabled (see \ref InitParameters.sensors_required) |
+# | MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION            | The module needs a newer version of CUDA |
 class ERROR_CODE(enum.Enum):
     CAMERA_REBOOTING = <int>c_ERROR_CODE.CAMERA_REBOOTING
     SUCCESS = <int>c_ERROR_CODE.SUCCESS
@@ -2395,157 +2396,6 @@ class BODY_38_PARTS(enum.Enum):
     RIGHT_HAND_PINKY_1 = <int>c_BODY_38_PARTS.RIGHT_HAND_PINKY_1 
     LAST = <int>c_BODY_38_PARTS.LAST
 
-##
-# \brief Semantic of human body parts and order of \ref sl.ObjectData.keypoint for [sl.BODY_FORMAT.POSE_70](\ref BODY_FORMAT)
-# \ingroup Body_group
-# 
-# | Enumerator |                         |
-# |------------|-------------------------|
-# | PELVIS |  |
-# | SPINE_1 |  |
-# | SPINE_2 |  |
-# | SPINE_3 |  |
-# | NECK |  |
-# | NOSE |  |
-# | LEFT_EYE |  |
-# | RIGHT_EYE |  |
-# | LEFT_EAR |  |
-# | RIGHT_EAR |  |
-# | LEFT_CLAVICLE |  |
-# | RIGHT_CLAVICLE |  |
-# | LEFT_SHOULDER |  |
-# | RIGHT_SHOULDER |  |
-# | LEFT_ELBOW |  |
-# | RIGHT_ELBOW |  |
-# | LEFT_WRIST |  |
-# | RIGHT_WRIST |  |
-# | LEFT_HIP |  |
-# | RIGHT_HIP |  |
-# | LEFT_KNEE |  |
-# | RIGHT_KNEE |  |
-# | LEFT_ANKLE |  |
-# | RIGHT_ANKLE |  |
-# | LEFT_BIG_TOE |  |
-# | RIGHT_BIG_TOE |  |
-# | LEFT_SMALL_TOE |  |
-# | RIGHT_SMALL_TOE |  |
-# | LEFT_HEEL |  |
-# | RIGHT_HEEL |  |
-# | LEFT_HAND_THUMB_1 |  |
-# | LEFT_HAND_THUMB_2 |  |
-# | LEFT_HAND_THUMB_3 |  |
-# | LEFT_HAND_THUMB_4 |  |
-# | LEFT_HAND_INDEX_1 |  |
-# | LEFT_HAND_INDEX_2 |  |
-# | LEFT_HAND_INDEX_3 |  |
-# | LEFT_HAND_INDEX_4 |  |
-# | LEFT_HAND_MIDDLE_1 |  |
-# | LEFT_HAND_MIDDLE_2 |  |
-# | LEFT_HAND_MIDDLE_3 |  |
-# | LEFT_HAND_MIDDLE_4 |  |
-# | LEFT_HAND_RING_1 |  |
-# | LEFT_HAND_RING_2 |  |
-# | LEFT_HAND_RING_3 |  |
-# | LEFT_HAND_RING_4 |  |
-# | LEFT_HAND_PINKY_1 |  |
-# | LEFT_HAND_PINKY_2 |  |
-# | LEFT_HAND_PINKY_3 |  |
-# | LEFT_HAND_PINKY_4 |  |
-# | RIGHT_HAND_THUMB_1 |  |
-# | RIGHT_HAND_THUMB_2 |  |
-# | RIGHT_HAND_THUMB_3 |  |
-# | RIGHT_HAND_THUMB_4 |  |
-# | RIGHT_HAND_INDEX_1 |  |
-# | RIGHT_HAND_INDEX_2 |  |
-# | RIGHT_HAND_INDEX_3 |  |
-# | RIGHT_HAND_INDEX_4 |  |
-# | RIGHT_HAND_MIDDLE_1 |  |
-# | RIGHT_HAND_MIDDLE_2 |  |
-# | RIGHT_HAND_MIDDLE_3 |  |
-# | RIGHT_HAND_MIDDLE_4 |  |
-# | RIGHT_HAND_RING_1 |  |
-# | RIGHT_HAND_RING_2 |  |
-# | RIGHT_HAND_RING_3 |  |
-# | RIGHT_HAND_RING_4 |  |
-# | RIGHT_HAND_PINKY_1 |  |
-# | RIGHT_HAND_PINKY_2 |  |
-# | RIGHT_HAND_PINKY_3 |  |
-# | RIGHT_HAND_PINKY_4 |  |
-class BODY_70_PARTS(enum.Enum):
-        PELVIS = <int>c_BODY_70_PARTS.PELVIS
-        SPINE_1 = <int>c_BODY_70_PARTS.SPINE_1 
-        SPINE_2 = <int>c_BODY_70_PARTS.SPINE_2 
-        SPINE_3 = <int>c_BODY_70_PARTS.SPINE_3 
-        NECK = <int>c_BODY_70_PARTS.NECK 
-        NOSE = <int>c_BODY_70_PARTS.NOSE 
-        LEFT_EYE = <int>c_BODY_70_PARTS.LEFT_EYE 
-        RIGHT_EYE = <int>c_BODY_70_PARTS.RIGHT_EYE 
-        LEFT_EAR = <int>c_BODY_70_PARTS.LEFT_EAR         
-        RIGHT_EAR = <int>c_BODY_70_PARTS.RIGHT_EAR         
-        LEFT_CLAVICLE = <int>c_BODY_70_PARTS.LEFT_CLAVICLE 
-        RIGHT_CLAVICLE = <int>c_BODY_70_PARTS.RIGHT_CLAVICLE  
-        LEFT_SHOULDER = <int>c_BODY_70_PARTS.LEFT_SHOULDER 
-        RIGHT_SHOULDER = <int>c_BODY_70_PARTS.RIGHT_SHOULDER 
-        LEFT_ELBOW = <int>c_BODY_70_PARTS.LEFT_ELBOW 
-        RIGHT_ELBOW = <int>c_BODY_70_PARTS.RIGHT_ELBOW 
-        LEFT_WRIST = <int>c_BODY_70_PARTS.LEFT_WRIST 
-        RIGHT_WRIST = <int>c_BODY_70_PARTS.RIGHT_WRIST
-        LEFT_HIP = <int>c_BODY_70_PARTS.LEFT_HIP 
-        RIGHT_HIP = <int>c_BODY_70_PARTS.RIGHT_HIP 
-        LEFT_KNEE = <int>c_BODY_70_PARTS.LEFT_KNEE 
-        RIGHT_KNEE = <int>c_BODY_70_PARTS.RIGHT_KNEE 
-        LEFT_ANKLE = <int>c_BODY_70_PARTS.LEFT_ANKLE 
-        RIGHT_ANKLE = <int>c_BODY_70_PARTS.RIGHT_ANKLE 
-        LEFT_BIG_TOE = <int>c_BODY_70_PARTS.LEFT_BIG_TOE 
-        RIGHT_BIG_TOE = <int>c_BODY_70_PARTS.RIGHT_BIG_TOE 
-        LEFT_SMALL_TOE = <int>c_BODY_70_PARTS.LEFT_SMALL_TOE 
-        RIGHT_SMALL_TOE = <int>c_BODY_70_PARTS.RIGHT_SMALL_TOE 
-        LEFT_HEEL = <int>c_BODY_70_PARTS.LEFT_HEEL 
-        RIGHT_HEEL = <int>c_BODY_70_PARTS.RIGHT_HEEL    
-
-        LEFT_HAND_THUMB_1 = <int>c_BODY_70_PARTS.LEFT_HAND_THUMB_1 
-        LEFT_HAND_THUMB_2 = <int>c_BODY_70_PARTS.LEFT_HAND_THUMB_2 
-        LEFT_HAND_THUMB_3 = <int>c_BODY_70_PARTS.LEFT_HAND_THUMB_3 
-        LEFT_HAND_THUMB_4 = <int>c_BODY_70_PARTS.LEFT_HAND_THUMB_4 
-        LEFT_HAND_INDEX_1 = <int>c_BODY_70_PARTS.LEFT_HAND_INDEX_1 
-        LEFT_HAND_INDEX_2 = <int>c_BODY_70_PARTS.LEFT_HAND_INDEX_2 
-        LEFT_HAND_INDEX_3 = <int>c_BODY_70_PARTS.LEFT_HAND_INDEX_3 
-        LEFT_HAND_INDEX_4 = <int>c_BODY_70_PARTS.LEFT_HAND_INDEX_4 
-        LEFT_HAND_MIDDLE_1 = <int>c_BODY_70_PARTS.LEFT_HAND_MIDDLE_1 
-        LEFT_HAND_MIDDLE_2 = <int>c_BODY_70_PARTS.LEFT_HAND_MIDDLE_2 
-        LEFT_HAND_MIDDLE_3 = <int>c_BODY_70_PARTS.LEFT_HAND_MIDDLE_3 
-        LEFT_HAND_MIDDLE_4 = <int>c_BODY_70_PARTS.LEFT_HAND_MIDDLE_4 
-        LEFT_HAND_RING_1 = <int>c_BODY_70_PARTS.LEFT_HAND_RING_1 
-        LEFT_HAND_RING_2 = <int>c_BODY_70_PARTS.LEFT_HAND_RING_2 
-        LEFT_HAND_RING_3 = <int>c_BODY_70_PARTS.LEFT_HAND_RING_3 
-        LEFT_HAND_RING_4 = <int>c_BODY_70_PARTS.LEFT_HAND_RING_4 
-        LEFT_HAND_PINKY_1 = <int>c_BODY_70_PARTS.LEFT_HAND_PINKY_1 
-        LEFT_HAND_PINKY_2 = <int>c_BODY_70_PARTS.LEFT_HAND_PINKY_2 
-        LEFT_HAND_PINKY_3 = <int>c_BODY_70_PARTS.LEFT_HAND_PINKY_3 
-        LEFT_HAND_PINKY_4 = <int>c_BODY_70_PARTS.LEFT_HAND_PINKY_4 
-
-        RIGHT_HAND_THUMB_1 = <int>c_BODY_70_PARTS.RIGHT_HAND_THUMB_1 
-        RIGHT_HAND_THUMB_2 = <int>c_BODY_70_PARTS.RIGHT_HAND_THUMB_2 
-        RIGHT_HAND_THUMB_3 = <int>c_BODY_70_PARTS.RIGHT_HAND_THUMB_3 
-        RIGHT_HAND_THUMB_4 = <int>c_BODY_70_PARTS.RIGHT_HAND_THUMB_4 
-        RIGHT_HAND_INDEX_1 = <int>c_BODY_70_PARTS.RIGHT_HAND_INDEX_1 
-        RIGHT_HAND_INDEX_2 = <int>c_BODY_70_PARTS.RIGHT_HAND_INDEX_2 
-        RIGHT_HAND_INDEX_3 = <int>c_BODY_70_PARTS.RIGHT_HAND_INDEX_3 
-        RIGHT_HAND_INDEX_4 = <int>c_BODY_70_PARTS.RIGHT_HAND_INDEX_4 
-        RIGHT_HAND_MIDDLE_1 = <int>c_BODY_70_PARTS.RIGHT_HAND_MIDDLE_1 
-        RIGHT_HAND_MIDDLE_2 = <int>c_BODY_70_PARTS.RIGHT_HAND_MIDDLE_2 
-        RIGHT_HAND_MIDDLE_3 = <int>c_BODY_70_PARTS.RIGHT_HAND_MIDDLE_3 
-        RIGHT_HAND_MIDDLE_4 = <int>c_BODY_70_PARTS.RIGHT_HAND_MIDDLE_4 
-        RIGHT_HAND_RING_1 = <int>c_BODY_70_PARTS.RIGHT_HAND_RING_1 
-        RIGHT_HAND_RING_2 = <int>c_BODY_70_PARTS.RIGHT_HAND_RING_2 
-        RIGHT_HAND_RING_3 = <int>c_BODY_70_PARTS.RIGHT_HAND_RING_3 
-        RIGHT_HAND_RING_4 = <int>c_BODY_70_PARTS.RIGHT_HAND_RING_4 
-        RIGHT_HAND_PINKY_1 = <int>c_BODY_70_PARTS.RIGHT_HAND_PINKY_1 
-        RIGHT_HAND_PINKY_2 = <int>c_BODY_70_PARTS.RIGHT_HAND_PINKY_2 
-        RIGHT_HAND_PINKY_3 = <int>c_BODY_70_PARTS.RIGHT_HAND_PINKY_3 
-        RIGHT_HAND_PINKY_4 = <int>c_BODY_70_PARTS.RIGHT_HAND_PINKY_4 
-
-        LAST = <int>c_BODY_70_PARTS.LAST
 
 ##
 # \brief List of supported skeleton body model
@@ -2556,12 +2406,10 @@ class BODY_70_PARTS(enum.Enum):
 # | BODY_18 | 18 keypoint model of COCO 18. \note local keypoint angle and position are not available with this format.  |
 # | BODY_34 | 34 keypoint model. \note local keypoint angle and position are available. \warning The SDK will automatically enable fitting. |
 # | BODY_38 | 38 keypoint model. \note local keypoint angle and position are available. |
-# | BODY_70 | 70 keypoint model. \note local keypoint angle and position are available. |
 class BODY_FORMAT(enum.Enum):
     BODY_18 = <int>c_BODY_FORMAT.BODY_18
     BODY_34 = <int>c_BODY_FORMAT.BODY_34
     BODY_38 = <int>c_BODY_FORMAT.BODY_38
-    BODY_70 = <int>c_BODY_FORMAT.BODY_70
     LAST = <int>c_BODY_FORMAT.LAST
 
 ##
@@ -2678,89 +2526,6 @@ BODY_38_BONES = [
         (BODY_38_PARTS.RIGHT_ANKLE, BODY_38_PARTS.RIGHT_BIG_TOE),
         (BODY_38_PARTS.RIGHT_ANKLE, BODY_38_PARTS.RIGHT_SMALL_TOE)
  ]
-
-##
-# \brief Links of human body keypoints for [sl.BODY_FORMAT.BODY_70](\ref BODY_FORMAT), useful for display.
-# \ingroup Body_group
-BODY_70_BONES = [
-
-        (BODY_70_PARTS.PELVIS, BODY_70_PARTS.SPINE_1),
-        (BODY_70_PARTS.SPINE_1, BODY_70_PARTS.SPINE_2),
-        (BODY_70_PARTS.SPINE_2, BODY_70_PARTS.SPINE_3),
-        (BODY_70_PARTS.SPINE_3, BODY_70_PARTS.NECK),
-        # Face
-        (BODY_70_PARTS.NECK, BODY_70_PARTS.NOSE),
-        (BODY_70_PARTS.NOSE, BODY_70_PARTS.LEFT_EYE),
-        (BODY_70_PARTS.LEFT_EYE, BODY_70_PARTS.LEFT_EAR),
-        (BODY_70_PARTS.NOSE, BODY_70_PARTS.RIGHT_EYE),
-        (BODY_70_PARTS.RIGHT_EYE, BODY_70_PARTS.RIGHT_EAR),
-        # Left Arm
-        (BODY_70_PARTS.SPINE_3, BODY_70_PARTS.LEFT_CLAVICLE),
-        (BODY_70_PARTS.LEFT_CLAVICLE, BODY_70_PARTS.LEFT_SHOULDER),
-        (BODY_70_PARTS.LEFT_SHOULDER, BODY_70_PARTS.LEFT_ELBOW),
-        (BODY_70_PARTS.LEFT_ELBOW, BODY_70_PARTS.LEFT_WRIST),
-        # Left Hand
-        (BODY_70_PARTS.LEFT_WRIST,          BODY_70_PARTS.LEFT_HAND_THUMB_1),
-        (BODY_70_PARTS.LEFT_HAND_THUMB_1,   BODY_70_PARTS.LEFT_HAND_THUMB_2),
-        (BODY_70_PARTS.LEFT_HAND_THUMB_2,   BODY_70_PARTS.LEFT_HAND_THUMB_3),
-        (BODY_70_PARTS.LEFT_HAND_THUMB_3,   BODY_70_PARTS.LEFT_HAND_THUMB_4),
-        (BODY_70_PARTS.LEFT_WRIST,          BODY_70_PARTS.LEFT_HAND_INDEX_1),
-        (BODY_70_PARTS.LEFT_HAND_INDEX_1,   BODY_70_PARTS.LEFT_HAND_INDEX_2),
-        (BODY_70_PARTS.LEFT_HAND_INDEX_2,   BODY_70_PARTS.LEFT_HAND_INDEX_3),
-        (BODY_70_PARTS.LEFT_HAND_INDEX_3,   BODY_70_PARTS.LEFT_HAND_INDEX_4),
-        (BODY_70_PARTS.LEFT_WRIST,          BODY_70_PARTS.LEFT_HAND_MIDDLE_1),
-        (BODY_70_PARTS.LEFT_HAND_MIDDLE_1,  BODY_70_PARTS.LEFT_HAND_MIDDLE_2),
-        (BODY_70_PARTS.LEFT_HAND_MIDDLE_2,  BODY_70_PARTS.LEFT_HAND_MIDDLE_3),
-        (BODY_70_PARTS.LEFT_HAND_MIDDLE_3,  BODY_70_PARTS.LEFT_HAND_MIDDLE_4),
-        (BODY_70_PARTS.LEFT_WRIST,          BODY_70_PARTS.LEFT_HAND_RING_1),
-        (BODY_70_PARTS.LEFT_HAND_RING_1,    BODY_70_PARTS.LEFT_HAND_RING_2),
-        (BODY_70_PARTS.LEFT_HAND_RING_2,    BODY_70_PARTS.LEFT_HAND_RING_3),
-        (BODY_70_PARTS.LEFT_HAND_RING_3,    BODY_70_PARTS.LEFT_HAND_RING_4),
-        (BODY_70_PARTS.LEFT_WRIST,          BODY_70_PARTS.LEFT_HAND_PINKY_1),
-        (BODY_70_PARTS.LEFT_HAND_PINKY_1,   BODY_70_PARTS.LEFT_HAND_PINKY_2),
-        (BODY_70_PARTS.LEFT_HAND_PINKY_2,   BODY_70_PARTS.LEFT_HAND_PINKY_3),
-        (BODY_70_PARTS.LEFT_HAND_PINKY_3,   BODY_70_PARTS.LEFT_HAND_PINKY_4),
-        # Right Arm
-        (BODY_70_PARTS.SPINE_3, BODY_70_PARTS.RIGHT_CLAVICLE),
-        (BODY_70_PARTS.RIGHT_CLAVICLE, BODY_70_PARTS.RIGHT_SHOULDER),
-        (BODY_70_PARTS.RIGHT_SHOULDER, BODY_70_PARTS.RIGHT_ELBOW),
-        (BODY_70_PARTS.RIGHT_ELBOW, BODY_70_PARTS.RIGHT_WRIST),
-        # Right Hand
-        (BODY_70_PARTS.RIGHT_WRIST,          BODY_70_PARTS.RIGHT_HAND_THUMB_1),
-        (BODY_70_PARTS.RIGHT_HAND_THUMB_1,   BODY_70_PARTS.RIGHT_HAND_THUMB_2),
-        (BODY_70_PARTS.RIGHT_HAND_THUMB_2,   BODY_70_PARTS.RIGHT_HAND_THUMB_3),
-        (BODY_70_PARTS.RIGHT_HAND_THUMB_3,   BODY_70_PARTS.RIGHT_HAND_THUMB_4),
-        (BODY_70_PARTS.RIGHT_WRIST,          BODY_70_PARTS.RIGHT_HAND_INDEX_1),
-        (BODY_70_PARTS.RIGHT_HAND_INDEX_1,   BODY_70_PARTS.RIGHT_HAND_INDEX_2),
-        (BODY_70_PARTS.RIGHT_HAND_INDEX_2,   BODY_70_PARTS.RIGHT_HAND_INDEX_3),
-        (BODY_70_PARTS.RIGHT_HAND_INDEX_3,   BODY_70_PARTS.RIGHT_HAND_INDEX_4),
-        (BODY_70_PARTS.RIGHT_WRIST,          BODY_70_PARTS.RIGHT_HAND_MIDDLE_1),
-        (BODY_70_PARTS.RIGHT_HAND_MIDDLE_1,  BODY_70_PARTS.RIGHT_HAND_MIDDLE_2),
-        (BODY_70_PARTS.RIGHT_HAND_MIDDLE_2,  BODY_70_PARTS.RIGHT_HAND_MIDDLE_3),
-        (BODY_70_PARTS.RIGHT_HAND_MIDDLE_3,  BODY_70_PARTS.RIGHT_HAND_MIDDLE_4),
-        (BODY_70_PARTS.RIGHT_WRIST,          BODY_70_PARTS.RIGHT_HAND_RING_1),
-        (BODY_70_PARTS.RIGHT_HAND_RING_1,    BODY_70_PARTS.RIGHT_HAND_RING_2),
-        (BODY_70_PARTS.RIGHT_HAND_RING_2,    BODY_70_PARTS.RIGHT_HAND_RING_3),
-        (BODY_70_PARTS.RIGHT_HAND_RING_3,    BODY_70_PARTS.RIGHT_HAND_RING_4),
-        (BODY_70_PARTS.RIGHT_WRIST,          BODY_70_PARTS.RIGHT_HAND_PINKY_1),
-        (BODY_70_PARTS.RIGHT_HAND_PINKY_1,   BODY_70_PARTS.RIGHT_HAND_PINKY_2),
-        (BODY_70_PARTS.RIGHT_HAND_PINKY_2,   BODY_70_PARTS.RIGHT_HAND_PINKY_3),
-        (BODY_70_PARTS.RIGHT_HAND_PINKY_3,   BODY_70_PARTS.RIGHT_HAND_PINKY_4),
-        # Left Leg
-        (BODY_70_PARTS.PELVIS, BODY_70_PARTS.LEFT_HIP),
-        (BODY_70_PARTS.LEFT_HIP, BODY_70_PARTS.LEFT_KNEE),
-        (BODY_70_PARTS.LEFT_KNEE, BODY_70_PARTS.LEFT_ANKLE),
-        (BODY_70_PARTS.LEFT_ANKLE, BODY_70_PARTS.LEFT_HEEL),
-        (BODY_70_PARTS.LEFT_ANKLE, BODY_70_PARTS.LEFT_BIG_TOE),
-        (BODY_70_PARTS.LEFT_ANKLE, BODY_70_PARTS.LEFT_SMALL_TOE),
-        # Right Leg
-        (BODY_70_PARTS.PELVIS, BODY_70_PARTS.RIGHT_HIP),
-        (BODY_70_PARTS.RIGHT_HIP, BODY_70_PARTS.RIGHT_KNEE),
-        (BODY_70_PARTS.RIGHT_KNEE, BODY_70_PARTS.RIGHT_ANKLE),
-        (BODY_70_PARTS.RIGHT_ANKLE, BODY_70_PARTS.RIGHT_HEEL),
-        (BODY_70_PARTS.RIGHT_ANKLE, BODY_70_PARTS.RIGHT_BIG_TOE),
-        (BODY_70_PARTS.RIGHT_ANKLE, BODY_70_PARTS.RIGHT_SMALL_TOE)
-]
 
 ##
 # Returns the associated index for a given \ref BODY_18_PARTS.
@@ -6165,6 +5930,7 @@ cdef class InitParameters:
     # \param optional_opencv_calibration_file : sets \ref optional_opencv_calibration_file
     # \param open_timeout_sec : sets \ref open_timeout_sec
     # \param async_grab_camera_recovery : sets \ref async_grab_camera_recovery
+    # \param grab_compute_capping_fps : sets \ref grab_compute_capping_fps
     #
     # \code
     # params = sl.InitParameters(camera_resolution=RESOLUTION.HD720, camera_fps=30, depth_mode=DEPTH_MODE.PERFORMANCE)
@@ -6178,7 +5944,7 @@ cdef class InitParameters:
                   camera_image_flip=FLIP_MODE.AUTO, enable_right_side_measure=False,
                   sdk_verbose_log_file="", depth_stabilization=1, input_t=InputType(),
                   optional_settings_path="",sensors_required=False,
-                  enable_image_enhancement=True, optional_opencv_calibration_file="", open_timeout_sec=5.0, async_grab_camera_recovery=False):
+                  enable_image_enhancement=True, optional_opencv_calibration_file="", open_timeout_sec=5.0, async_grab_camera_recovery=False, grab_compute_capping_fps=0):
         if (isinstance(camera_resolution, RESOLUTION) and isinstance(camera_fps, int) and
             isinstance(svo_real_time_mode, bool) and isinstance(depth_mode, DEPTH_MODE) and
             isinstance(coordinate_units, UNIT) and
@@ -6191,7 +5957,8 @@ cdef class InitParameters:
             isinstance(input_t, InputType) and isinstance(optional_settings_path, str) and
             isinstance(optional_opencv_calibration_file, str) and
             isinstance(open_timeout_sec, float) and
-            isinstance(async_grab_camera_recovery, bool)) :
+            isinstance(async_grab_camera_recovery, bool) and
+            isinstance(grab_compute_capping_fps, float)) :
 
             filelog = sdk_verbose_log_file.encode()
             fileoption = optional_settings_path.encode()
@@ -6204,7 +5971,7 @@ cdef class InitParameters:
                                             enable_right_side_measure,
                                             String(<char*> filelog), depth_stabilization,
                                             <CUcontext> 0, (<InputType>input_t).input, String(<char*> fileoption), sensors_required, enable_image_enhancement,
-                                            String(<char*> filecalibration), <float>(open_timeout_sec), async_grab_camera_recovery)
+                                            String(<char*> filecalibration), <float>(open_timeout_sec), async_grab_camera_recovery, <float>(grab_compute_capping_fps))
         else:
             raise TypeError("Argument is not of right type.")
 
@@ -6597,6 +6364,32 @@ cdef class InitParameters:
     def open_timeout_sec(self, value: float):
         self.init.open_timeout_sec = value
 
+    ##
+    # Define the behavior of the automatic camera recovery during grab() function call. When async is enabled and there's an issue with the communication with the camera
+    #  the grab() will exit after a short period and return the ERROR_CODE::CAMERA_REBOOTING warning. The recovery will run in the background until the correct communication is restored.
+    #  When async_grab_camera_recovery is false, the grab() function is blocking and will return only once the camera communication is restored or the timeout is reached. 
+    # The default behavior is synchronous, like previous ZED SDK versions
+    @property
+    def async_grab_camera_recovery(self):
+        return self.init.async_grab_camera_recovery
+
+    @async_grab_camera_recovery.setter
+    def async_grab_camera_recovery(self, value: bool):
+        self.init.async_grab_camera_recovery = value
+
+    ##
+    # Define a computation upper limit to the grab frequency. 
+    # This can be useful to get a known constant fixed rate or limit the computation load while keeping a short exposure time by setting a high camera capture framerate.
+    # \n The value should be inferior to the InitParameters::camera_fps and strictly positive. It has no effect when reading an SVO file.
+    # \n This is an upper limit and won't make a difference if the computation is slower than the desired compute capping fps.
+    # \note Internally the grab function always tries to get the latest available image while respecting the desired fps as much as possible.
+    @property
+    def grab_compute_capping_fps(self):
+        return self.init.grab_compute_capping_fps
+
+    @grab_compute_capping_fps.setter
+    def grab_compute_capping_fps(self, value: float):
+        self.init.grab_compute_capping_fps = value
 
     ##
     # Call of \ref InputType.set_from_camera_id function of \ref input
@@ -8603,6 +8396,7 @@ cdef class Camera:
         init.init.input = self.camera.getInitParameters().input
         init.init.optional_settings_path = self.camera.getInitParameters().optional_settings_path
         init.init.async_grab_camera_recovery = self.camera.getInitParameters().async_grab_camera_recovery
+        init.init.grab_compute_capping_fps = self.camera.getInitParameters().grab_compute_capping_fps
         return init
 
     ##
@@ -9885,16 +9679,6 @@ cdef class PositionalTrackingFusionParameters:
     @enable_GNSS_fusion.setter
     def enable_GNSS_fusion(self, value: bool):
         self.positionalTrackingFusionParameters.enable_GNSS_fusion = value
-
-    ##
-    # Distance necessary for initializing the transformation between cameras coordinate system and  GNSS coordinate system (north aligned)
-    @property
-    def gnss_initialisation_distance(self):
-        return self.positionalTrackingFusionParameters.gnss_initialisation_distance
-
-    @gnss_initialisation_distance.setter
-    def gnss_initialisation_distance(self, value: float):
-        self.positionalTrackingFusionParameters.gnss_initialisation_distance = value
 
     ##
     # Is the gnss fusion enabled

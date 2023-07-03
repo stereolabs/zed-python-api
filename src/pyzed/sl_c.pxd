@@ -805,87 +805,10 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         RIGHT_HAND_PINKY_1 'sl::BODY_38_PARTS::RIGHT_HAND_PINKY_1' 
         LAST 'sl::BODY_38_PARTS::LAST'
 
-    ctypedef enum BODY_70_PARTS 'sl::BODY_70_PARTS':
-        PELVIS 'sl::BODY_70_PARTS::PELVIS' 
-        SPINE_1 'sl::BODY_70_PARTS::SPINE_1' 
-        SPINE_2 'sl::BODY_70_PARTS::SPINE_2' 
-        SPINE_3 'sl::BODY_70_PARTS::SPINE_3' 
-        NECK 'sl::BODY_70_PARTS::NECK' 
-        NOSE 'sl::BODY_70_PARTS::NOSE' 
-        LEFT_EYE 'sl::BODY_70_PARTS::LEFT_EYE' 
-        RIGHT_EYE 'sl::BODY_70_PARTS::RIGHT_EYE' 
-        LEFT_EAR 'sl::BODY_70_PARTS::LEFT_EAR'         
-        RIGHT_EAR 'sl::BODY_70_PARTS::RIGHT_EAR'         
-        LEFT_CLAVICLE 'sl::BODY_70_PARTS::LEFT_CLAVICLE' 
-        RIGHT_CLAVICLE 'sl::BODY_70_PARTS::RIGHT_CLAVICLE'  
-        LEFT_SHOULDER 'sl::BODY_70_PARTS::LEFT_SHOULDER' 
-        RIGHT_SHOULDER 'sl::BODY_70_PARTS::RIGHT_SHOULDER' 
-        LEFT_ELBOW 'sl::BODY_70_PARTS::LEFT_ELBOW' 
-        RIGHT_ELBOW 'sl::BODY_70_PARTS::RIGHT_ELBOW' 
-        LEFT_WRIST 'sl::BODY_70_PARTS::LEFT_WRIST' 
-        RIGHT_WRIST 'sl::BODY_70_PARTS::RIGHT_WRIST'
-        LEFT_HIP 'sl::BODY_70_PARTS::LEFT_HIP' 
-        RIGHT_HIP 'sl::BODY_70_PARTS::RIGHT_HIP' 
-        LEFT_KNEE 'sl::BODY_70_PARTS::LEFT_KNEE' 
-        RIGHT_KNEE 'sl::BODY_70_PARTS::RIGHT_KNEE' 
-        LEFT_ANKLE 'sl::BODY_70_PARTS::LEFT_ANKLE' 
-        RIGHT_ANKLE 'sl::BODY_70_PARTS::RIGHT_ANKLE' 
-        LEFT_BIG_TOE 'sl::BODY_70_PARTS::LEFT_BIG_TOE' 
-        RIGHT_BIG_TOE 'sl::BODY_70_PARTS::RIGHT_BIG_TOE' 
-        LEFT_SMALL_TOE 'sl::BODY_70_PARTS::LEFT_SMALL_TOE' 
-        RIGHT_SMALL_TOE 'sl::BODY_70_PARTS::RIGHT_SMALL_TOE' 
-        LEFT_HEEL 'sl::BODY_70_PARTS::LEFT_HEEL' 
-        RIGHT_HEEL 'sl::BODY_70_PARTS::RIGHT_HEEL'    
-
-        LEFT_HAND_THUMB_1 'sl::BODY_70_PARTS::LEFT_HAND_THUMB_1' 
-        LEFT_HAND_THUMB_2 'sl::BODY_70_PARTS::LEFT_HAND_THUMB_2' 
-        LEFT_HAND_THUMB_3 'sl::BODY_70_PARTS::LEFT_HAND_THUMB_3' 
-        LEFT_HAND_THUMB_4 'sl::BODY_70_PARTS::LEFT_HAND_THUMB_4' 
-        LEFT_HAND_INDEX_1 'sl::BODY_70_PARTS::LEFT_HAND_INDEX_1' 
-        LEFT_HAND_INDEX_2 'sl::BODY_70_PARTS::LEFT_HAND_INDEX_2' 
-        LEFT_HAND_INDEX_3 'sl::BODY_70_PARTS::LEFT_HAND_INDEX_3' 
-        LEFT_HAND_INDEX_4 'sl::BODY_70_PARTS::LEFT_HAND_INDEX_4' 
-        LEFT_HAND_MIDDLE_1 'sl::BODY_70_PARTS::LEFT_HAND_MIDDLE_1' 
-        LEFT_HAND_MIDDLE_2 'sl::BODY_70_PARTS::LEFT_HAND_MIDDLE_2' 
-        LEFT_HAND_MIDDLE_3 'sl::BODY_70_PARTS::LEFT_HAND_MIDDLE_3' 
-        LEFT_HAND_MIDDLE_4 'sl::BODY_70_PARTS::LEFT_HAND_MIDDLE_4' 
-        LEFT_HAND_RING_1 'sl::BODY_70_PARTS::LEFT_HAND_RING_1' 
-        LEFT_HAND_RING_2 'sl::BODY_70_PARTS::LEFT_HAND_RING_2' 
-        LEFT_HAND_RING_3 'sl::BODY_70_PARTS::LEFT_HAND_RING_3' 
-        LEFT_HAND_RING_4 'sl::BODY_70_PARTS::LEFT_HAND_RING_4' 
-        LEFT_HAND_PINKY_1 'sl::BODY_70_PARTS::LEFT_HAND_PINKY_1' 
-        LEFT_HAND_PINKY_2 'sl::BODY_70_PARTS::LEFT_HAND_PINKY_2' 
-        LEFT_HAND_PINKY_3 'sl::BODY_70_PARTS::LEFT_HAND_PINKY_3' 
-        LEFT_HAND_PINKY_4 'sl::BODY_70_PARTS::LEFT_HAND_PINKY_4' 
-
-        RIGHT_HAND_THUMB_1 'sl::BODY_70_PARTS::RIGHT_HAND_THUMB_1' 
-        RIGHT_HAND_THUMB_2 'sl::BODY_70_PARTS::RIGHT_HAND_THUMB_2' 
-        RIGHT_HAND_THUMB_3 'sl::BODY_70_PARTS::RIGHT_HAND_THUMB_3' 
-        RIGHT_HAND_THUMB_4 'sl::BODY_70_PARTS::RIGHT_HAND_THUMB_4' 
-        RIGHT_HAND_INDEX_1 'sl::BODY_70_PARTS::RIGHT_HAND_INDEX_1' 
-        RIGHT_HAND_INDEX_2 'sl::BODY_70_PARTS::RIGHT_HAND_INDEX_2' 
-        RIGHT_HAND_INDEX_3 'sl::BODY_70_PARTS::RIGHT_HAND_INDEX_3' 
-        RIGHT_HAND_INDEX_4 'sl::BODY_70_PARTS::RIGHT_HAND_INDEX_4' 
-        RIGHT_HAND_MIDDLE_1 'sl::BODY_70_PARTS::RIGHT_HAND_MIDDLE_1' 
-        RIGHT_HAND_MIDDLE_2 'sl::BODY_70_PARTS::RIGHT_HAND_MIDDLE_2' 
-        RIGHT_HAND_MIDDLE_3 'sl::BODY_70_PARTS::RIGHT_HAND_MIDDLE_3' 
-        RIGHT_HAND_MIDDLE_4 'sl::BODY_70_PARTS::RIGHT_HAND_MIDDLE_4' 
-        RIGHT_HAND_RING_1 'sl::BODY_70_PARTS::RIGHT_HAND_RING_1' 
-        RIGHT_HAND_RING_2 'sl::BODY_70_PARTS::RIGHT_HAND_RING_2' 
-        RIGHT_HAND_RING_3 'sl::BODY_70_PARTS::RIGHT_HAND_RING_3' 
-        RIGHT_HAND_RING_4 'sl::BODY_70_PARTS::RIGHT_HAND_RING_4' 
-        RIGHT_HAND_PINKY_1 'sl::BODY_70_PARTS::RIGHT_HAND_PINKY_1' 
-        RIGHT_HAND_PINKY_2 'sl::BODY_70_PARTS::RIGHT_HAND_PINKY_2' 
-        RIGHT_HAND_PINKY_3 'sl::BODY_70_PARTS::RIGHT_HAND_PINKY_3' 
-        RIGHT_HAND_PINKY_4 'sl::BODY_70_PARTS::RIGHT_HAND_PINKY_4' 
-
-        LAST 'sl::BODY_70_PARTS::LAST'
-
     ctypedef enum BODY_FORMAT 'sl::BODY_FORMAT':
         BODY_18 'sl::BODY_FORMAT::BODY_18'
         BODY_34 'sl::BODY_FORMAT::BODY_34'
         BODY_38 'sl::BODY_FORMAT::BODY_38'
-        BODY_70 'sl::BODY_FORMAT::BODY_70'
         LAST 'sl::BODY_FORMAT::LAST'
 
     ctypedef enum BODY_KEYPOINTS_SELECTION 'sl::BODY_KEYPOINTS_SELECTION':
@@ -1243,6 +1166,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         String optional_opencv_calibration_file
         float open_timeout_sec
         bool async_grab_camera_recovery
+        float grab_compute_capping_fps
 
         InitParameters(RESOLUTION camera_resolution,
                        int camera_fps,
@@ -1266,7 +1190,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        bool enable_image_enhancement,
                        String optional_opencv_calibration_file,
                        float open_timeout_sec,
-                       bool async_grab_camera_recovery)
+                       bool async_grab_camera_recovery,
+                       float grab_compute_capping_fps)
 
         bool save(String filename)
         bool load(String filename)
