@@ -5944,7 +5944,8 @@ cdef class InitParameters:
                   camera_image_flip=FLIP_MODE.AUTO, enable_right_side_measure=False,
                   sdk_verbose_log_file="", depth_stabilization=1, input_t=InputType(),
                   optional_settings_path="",sensors_required=False,
-                  enable_image_enhancement=True, optional_opencv_calibration_file="", open_timeout_sec=5.0, async_grab_camera_recovery=False, grab_compute_capping_fps=0):
+                  enable_image_enhancement=True, optional_opencv_calibration_file="", 
+                  open_timeout_sec=5.0, async_grab_camera_recovery=False, grab_compute_capping_fps=0):
         if (isinstance(camera_resolution, RESOLUTION) and isinstance(camera_fps, int) and
             isinstance(svo_real_time_mode, bool) and isinstance(depth_mode, DEPTH_MODE) and
             isinstance(coordinate_units, UNIT) and
@@ -5958,7 +5959,7 @@ cdef class InitParameters:
             isinstance(optional_opencv_calibration_file, str) and
             isinstance(open_timeout_sec, float) and
             isinstance(async_grab_camera_recovery, bool) and
-            isinstance(grab_compute_capping_fps, float)) :
+            isinstance(grab_compute_capping_fps, float) or isinstance(grab_compute_capping_fps, int)) :
 
             filelog = sdk_verbose_log_file.encode()
             fileoption = optional_settings_path.encode()
@@ -5971,7 +5972,8 @@ cdef class InitParameters:
                                             enable_right_side_measure,
                                             String(<char*> filelog), depth_stabilization,
                                             <CUcontext> 0, (<InputType>input_t).input, String(<char*> fileoption), sensors_required, enable_image_enhancement,
-                                            String(<char*> filecalibration), <float>(open_timeout_sec), async_grab_camera_recovery, <float>(grab_compute_capping_fps))
+                                            String(<char*> filecalibration), <float>(open_timeout_sec), 
+                                            async_grab_camera_recovery, <float>(grab_compute_capping_fps))
         else:
             raise TypeError("Argument is not of right type.")
 
