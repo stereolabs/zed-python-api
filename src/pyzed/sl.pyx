@@ -4517,8 +4517,17 @@ cdef class Mat:
         else:
             shape = (self.mat.getHeight(), self.mat.getWidth(), self.mat.getChannels())
 
+        cdef size_t size = 0
+        if self.mat.getDataType() in (c_MAT_TYPE.U8_C1, c_MAT_TYPE.U8_C2, c_MAT_TYPE.U8_C3, c_MAT_TYPE.U8_C4):
+            size = self.mat.getHeight()*self.mat.getWidth()*self.mat.getChannels()
+        elif self.mat.getDataType() in (c_MAT_TYPE.F32_C1, c_MAT_TYPE.F32_C2, c_MAT_TYPE.F32_C3, c_MAT_TYPE.F32_C4):
+            size = self.mat.getHeight()*self.mat.getWidth()*self.mat.getChannels()*sizeof(float)
+        elif self.mat.getDataType() == c_MAT_TYPE.U16_C1:
+            size = self.mat.getHeight()*self.mat.getWidth()*self.mat.getChannels()*sizeof(ushort)
+        else:
+            raise RuntimeError("Unknown Mat data_type value: {0}".format(<int>self.mat.getDataType()))
+
         src_p = <np.npy_intp>self.get_pointer(memory_type=MEM.GPU)
-        cdef size_t size = shape[0] * shape[1] * self.mat.getPixelBytes()
         return cp.cuda.UnownedMemory(src_p, size, self), shape
 
     ##
@@ -4574,8 +4583,7 @@ cdef class Mat:
         if isinstance(memory_type, MEM):
             if memory_type.value == MEM.GPU.value:
                 dst_p = arr.data.ptr
-                src_p = self.get_pointer(memory_type=MEM.GPU)
-                #size = shape[0] * shape[1] * self.mat.getPixelBytes()
+                src_p = self.get_pointer(memory_type=memory_type)
                 TRANSFER_KIND_GPU_GPU = 3
                 cp.cuda.runtime.memcpy(dst_p, src_p, size, TRANSFER_KIND_GPU_GPU)
             else:
