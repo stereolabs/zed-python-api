@@ -77,7 +77,7 @@ def check_zed_sdk_version(file_path_):
     else:
         check_zed_sdk_version_private(file_path)
 
-def clean_cpp():
+def clean_cpp(rmslcpp: bool = False):
     if os.path.isfile("pyzed/camera.cpp"):
         os.remove("pyzed/camera.cpp")
     if os.path.isfile("pyzed/core.cpp"):
@@ -88,7 +88,7 @@ def clean_cpp():
         os.remove("pyzed/mesh.cpp")
     if os.path.isfile("pyzed/types.cpp"):
         os.remove("pyzed/types.cpp")
-    if os.path.isfile("pyzed/sl.cpp"):
+    if rmslcpp and os.path.isfile("pyzed/sl.cpp"):
         os.remove("pyzed/sl.cpp")
 
 if "clean" in "".join(sys.argv[1:]):
@@ -100,7 +100,7 @@ else:
 if "cleanall" in "".join(sys.argv[1:]):
     target = "clean"
     print("Deleting Cython files ..")
-    clean_cpp()
+    clean_cpp(rmslcpp=True)
     sys.argv[1] = "clean"
     if os.path.isdir("build"):
         shutil.rmtree("build")
