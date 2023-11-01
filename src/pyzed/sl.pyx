@@ -92,6 +92,8 @@ from libc.string cimport memcpy
 from cpython cimport bool
 import enum
 
+import cupy as cp
+
 import numpy as np
 cimport numpy as np
 #https://github.com/cython/cython/wiki/tutorials-numpy#c-api-initialization
@@ -1270,6 +1272,7 @@ class SVO_COMPRESSION_MODE(enum.Enum):
 # | CPU | CPU Memory (Processor side). |
 class MEM(enum.Enum):
     CPU = <int>c_MEM.CPU
+    GPU = <int>c_MEM.GPU
 
 ##
 # Lists available copy operation on \ref Mat .
@@ -4500,11 +4503,11 @@ cdef class Mat:
 
     ##
     # Cast the data of the \ref Mat in a Numpy array (with or without copy).
-    # \param memory_type : defines which memory should be read. Default: [MEM.CPU](\ref MEM) (you cannot change the default value)
+    # \param memory_type : defines which memory should be read. Default: [MEM.CPU](\ref MEM)
     # \param deep_copy : defines if the memory of the Mat need to be duplicated or not. The fastest is deep_copy at False but the sl::Mat memory must not be released to use the numpy array.
-    # \return A Numpy array containing the \ref Mat data.
+    # \return A Numpy/Cupy array (depending on /param memory_type) containing the \ref Mat data.
     def get_data(self, memory_type=MEM.CPU, deep_copy=False):
-        
+
         shape = None
         cdef np.npy_intp cython_shape[3]
         cython_shape[0] = <np.npy_intp> self.mat.getHeight()
@@ -4540,32 +4543,61 @@ cdef class Mat:
         else:
             npdim = 3
 
-        cdef np.ndarray arr = np.empty(shape, dtype=dtype)
-
-        if isinstance(memory_type, MEM):
-            if deep_copy:
-                if self.mat.getDataType() == c_MAT_TYPE.U8_C1:
-                    memcpy(<void*>arr.data, <void*>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-                elif self.mat.getDataType() == c_MAT_TYPE.U8_C2:
-                    memcpy(<void*>arr.data, <void*>getPointerUchar2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-                elif self.mat.getDataType() == c_MAT_TYPE.U8_C3:
-                    memcpy(<void*>arr.data, <void*>getPointerUchar3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-                elif self.mat.getDataType() == c_MAT_TYPE.U8_C4:
-                    memcpy(<void*>arr.data, <void*>getPointerUchar4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-                elif self.mat.getDataType() == c_MAT_TYPE.U16_C1:
-                    memcpy(<void*>arr.data, <void*>getPointerUshort1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-                elif self.mat.getDataType() == c_MAT_TYPE.F32_C1:
-                    memcpy(<void*>arr.data, <void*>getPointerFloat1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-                elif self.mat.getDataType() == c_MAT_TYPE.F32_C2:
-                    memcpy(<void*>arr.data, <void*>getPointerFloat2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-                elif self.mat.getDataType() == c_MAT_TYPE.F32_C3:
-                    memcpy(<void*>arr.data, <void*>getPointerFloat3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-                elif self.mat.getDataType() == c_MAT_TYPE.F32_C4:
-                    memcpy(<void*>arr.data, <void*>getPointerFloat4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-            else: # Thanks to BDO for the initial implementation!
-                arr = np.PyArray_SimpleNewFromData(npdim, cython_shape, nptype, <void*>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value)))
-        else:
+        if not isinstance(memory_type, MEM):
             raise TypeError("Argument is not of MEM type.")
+
+        if self.get_memory_type().value != memory_type.value:
+            raise ValueError("Provided MEM type doesn't match Mat's memory_type.")
+
+        cdef np.ndarray nparr  # Placeholder for the np.ndarray since memcpy on CPU only works on cdef types
+        arr = None  # Could be either an `np.ndarray` or a `cp.ndarray` 
+
+        ##
+        # Ref: https://stackoverflow.com/questions/71344734/cupy-array-construction-from-existing-gpu-pointer
+        # Ref: https://docs.cupy.dev/en/stable/reference/generated/cupy.cuda.runtime.memcpy.html
+        # Ref: https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/CUDA_Toolkit_Reference_Manual.pdf
+        if memory_type.value == MEM.GPU.value and deep_copy:
+            arr = cp.empty(shape, dtype=dtype)
+            dst_p = arr.data.ptr
+            src_p = self.get_pointer(memory_type=memory_type)
+            TRANSFER_KIND_GPU_GPU = 3
+            cp.cuda.runtime.memcpy(dst_p, src_p, size, TRANSFER_KIND_GPU_GPU)
+
+        ##
+        # Ref: https://github.com/cupy/cupy/issues/4644
+        # Ref: https://docs.cupy.dev/en/stable/user_guide/interoperability.html#device-memory-pointers
+        elif memory_type.value == MEM.GPU.value and not deep_copy:
+            src_p = self.get_pointer(memory_type=memory_type)
+            mem = cp.cuda.UnownedMemory(src_p, size, self)
+            memptr = cp.cuda.MemoryPointer(mem, offset=0)
+            arr = cp.ndarray(shape, dtype=dtype, memptr=memptr)
+
+        elif memory_type.value == MEM.CPU.value and deep_copy:
+            nparr = np.empty(shape, dtype=dtype)
+            if self.mat.getDataType() == c_MAT_TYPE.U8_C1:
+                memcpy(<void*>nparr.data, <void*>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            elif self.mat.getDataType() == c_MAT_TYPE.U8_C2:
+                memcpy(<void*>nparr.data, <void*>getPointerUchar2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            elif self.mat.getDataType() == c_MAT_TYPE.U8_C3:
+                memcpy(<void*>nparr.data, <void*>getPointerUchar3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            elif self.mat.getDataType() == c_MAT_TYPE.U8_C4:
+                memcpy(<void*>nparr.data, <void*>getPointerUchar4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            elif self.mat.getDataType() == c_MAT_TYPE.U16_C1:
+                memcpy(<void*>nparr.data, <void*>getPointerUshort1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            elif self.mat.getDataType() == c_MAT_TYPE.F32_C1:
+                memcpy(<void*>nparr.data, <void*>getPointerFloat1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            elif self.mat.getDataType() == c_MAT_TYPE.F32_C2:
+                memcpy(<void*>nparr.data, <void*>getPointerFloat2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            elif self.mat.getDataType() == c_MAT_TYPE.F32_C3:
+                memcpy(<void*>nparr.data, <void*>getPointerFloat3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            elif self.mat.getDataType() == c_MAT_TYPE.F32_C4:
+                memcpy(<void*>nparr.data, <void*>getPointerFloat4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            
+            # This is the workaround since cdef statements couldn't be performed in sub-scopes
+            arr = nparr
+        elif memory_type.value == MEM.CPU.value and not deep_copy:
+            # Thanks to BDO for the initial implementation!
+            arr = np.PyArray_SimpleNewFromData(npdim, cython_shape, nptype, <void*>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value)))        
 
         return arr
 
@@ -4655,7 +4687,7 @@ cdef class Mat:
     #
     # \param memory_type : Defines which memory you want to get. Default: [MEM.CPU](\ref MEM) (you cannot change the default value)
     # \return the pointer of the content of the \ref Mat.
-    def get_pointer(self, memory_type=MEM.CPU) :
+    def get_pointer(self, memory_type=MEM.CPU):
         ptr = <unsigned long long>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value))
         return ptr
 

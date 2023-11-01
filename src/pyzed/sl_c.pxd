@@ -527,6 +527,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     ctypedef enum MEM 'sl::MEM':
         CPU 'sl::MEM::CPU'
+        GPU 'sl::MEM::GPU'
 
     MEM operator|(MEM a, MEM b)
 
