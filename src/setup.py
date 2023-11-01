@@ -88,6 +88,8 @@ def clean_cpp():
         os.remove("pyzed/mesh.cpp")
     if os.path.isfile("pyzed/types.cpp"):
         os.remove("pyzed/types.cpp")
+    if os.path.isfile("pyzed/sl.cpp"):
+        os.remove("pyzed/sl.cpp")
 
 if "clean" in "".join(sys.argv[1:]):
     target = "clean"
