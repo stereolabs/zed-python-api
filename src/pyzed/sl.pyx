@@ -4549,6 +4549,7 @@ cdef class Mat:
         if self.get_memory_type().value != memory_type.value:
             raise ValueError("Provided MEM type doesn't match Mat's memory_type.")
 
+        cdef np.ndarray nparr  # Placeholder for the np.ndarray since memcpy on CPU only works on cdef types
         arr = None  # Could be either an `np.ndarray` or a `cp.ndarray` 
 
         ##
@@ -4572,26 +4573,28 @@ cdef class Mat:
             arr = cp.ndarray(shape, dtype=dtype, memptr=memptr)
 
         elif memory_type.value == MEM.CPU.value and deep_copy:
-            arr = np.empty(shape, dtype=dtype)
+            nparr = np.empty(shape, dtype=dtype)
             if self.mat.getDataType() == c_MAT_TYPE.U8_C1:
-                memcpy(<void*>arr.data, <void*>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                memcpy(<void*>nparr.data, <void*>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
             elif self.mat.getDataType() == c_MAT_TYPE.U8_C2:
-                memcpy(<void*>arr.data, <void*>getPointerUchar2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                memcpy(<void*>nparr.data, <void*>getPointerUchar2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
             elif self.mat.getDataType() == c_MAT_TYPE.U8_C3:
-                memcpy(<void*>arr.data, <void*>getPointerUchar3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                memcpy(<void*>nparr.data, <void*>getPointerUchar3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
             elif self.mat.getDataType() == c_MAT_TYPE.U8_C4:
-                memcpy(<void*>arr.data, <void*>getPointerUchar4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                memcpy(<void*>nparr.data, <void*>getPointerUchar4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
             elif self.mat.getDataType() == c_MAT_TYPE.U16_C1:
-                memcpy(<void*>arr.data, <void*>getPointerUshort1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                memcpy(<void*>nparr.data, <void*>getPointerUshort1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
             elif self.mat.getDataType() == c_MAT_TYPE.F32_C1:
-                memcpy(<void*>arr.data, <void*>getPointerFloat1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                memcpy(<void*>nparr.data, <void*>getPointerFloat1(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
             elif self.mat.getDataType() == c_MAT_TYPE.F32_C2:
-                memcpy(<void*>arr.data, <void*>getPointerFloat2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                memcpy(<void*>nparr.data, <void*>getPointerFloat2(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
             elif self.mat.getDataType() == c_MAT_TYPE.F32_C3:
-                memcpy(<void*>arr.data, <void*>getPointerFloat3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+                memcpy(<void*>nparr.data, <void*>getPointerFloat3(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
             elif self.mat.getDataType() == c_MAT_TYPE.F32_C4:
-                memcpy(<void*>arr.data, <void*>getPointerFloat4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
-
+                memcpy(<void*>nparr.data, <void*>getPointerFloat4(self.mat, <c_MEM>(<unsigned int>memory_type.value)), size)
+            
+            # This is the workaround since cdef statements couldn't be performed in sub-scopes
+            arr = nparr
         elif memory_type.value == MEM.CPU.value and not deep_copy:
             # Thanks to BDO for the initial implementation!
             arr = np.PyArray_SimpleNewFromData(npdim, cython_shape, nptype, <void*>getPointerUchar1(self.mat, <c_MEM>(<unsigned int>memory_type.value)))        
