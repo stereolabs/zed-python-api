@@ -28,7 +28,7 @@ import shutil
 import re
 import numpy
 
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 from Cython.Build import cythonize
 
 incDirs = ""
@@ -204,7 +204,7 @@ setup(name="pyzed",
       python_requires='>=3.6',
       install_requires=[
         'numpy>=1.13',
-        'cython>=0.28'],
+        'cython>=3.0.0'],
       extras_require={
         'sample': [
             'opencv-python',
