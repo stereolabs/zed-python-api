@@ -59,6 +59,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
 
     ctypedef enum ERROR_CODE "sl::ERROR_CODE" :
+        CORRUPTED_FRAME 'sl::ERROR_CODE::CORRUPTED_FRAME',
         CAMERA_REBOOTING 'sl::ERROR_CODE::CAMERA_REBOOTING',
         SUCCESS 'sl::ERROR_CODE::SUCCESS',
         FAILURE 'sl::ERROR_CODE::FAILURE',
@@ -389,6 +390,14 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     String toString(SPATIAL_MAPPING_STATE o)
 
+    ctypedef enum REGION_OF_INTEREST_AUTO_DETECTION_STATE 'sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE':
+        RUNNING 'sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::RUNNING'
+        READY 'sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::READY'
+        NOT_ENABLED 'sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::NOT_ENABLED'
+        REGION_OF_INTEREST_AUTO_DETECTION_STATE_LAST 'sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::LAST'
+
+    String toString(REGION_OF_INTEREST_AUTO_DETECTION_STATE o)
+
     ctypedef enum SVO_COMPRESSION_MODE 'sl::SVO_COMPRESSION_MODE':
         LOSSLESS 'sl::SVO_COMPRESSION_MODE::LOSSLESS'
         H264 'sl::SVO_COMPRESSION_MODE::H264'
@@ -419,6 +428,22 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         STREAM 'sl::INPUT_TYPE::STREAM'
         GMSL 'sl::INPUT_TYPE::GMSL'
         LAST 'sl::INPUT_TYPE::LAST'
+
+    ctypedef enum AI_MODELS 'sl::AI_MODELS':
+        MULTI_CLASS_DETECTION 'sl::AI_MODELS::MULTI_CLASS_DETECTION'
+        MULTI_CLASS_MEDIUM_DETECTION 'sl::AI_MODELS::MULTI_CLASS_MEDIUM_DETECTION'
+        MULTI_CLASS_ACCURATE_DETECTION 'sl::AI_MODELS::MULTI_CLASS_ACCURATE_DETECTION'
+        HUMAN_BODY_FAST_DETECTION 'sl::AI_MODELS::HUMAN_BODY_FAST_DETECTION'
+        HUMAN_BODY_MEDIUM_DETECTION 'sl::AI_MODELS::HUMAN_BODY_MEDIUM_DETECTION'
+        HUMAN_BODY_ACCURATE_DETECTION 'sl::AI_MODELS::HUMAN_BODY_ACCURATE_DETECTION'
+        HUMAN_BODY_38_FAST_DETECTION 'sl::AI_MODELS::HUMAN_BODY_38_FAST_DETECTION'
+        HUMAN_BODY_38_MEDIUM_DETECTION 'sl::AI_MODELS::HUMAN_BODY_38_MEDIUM_DETECTION'
+        HUMAN_BODY_38_ACCURATE_DETECTION 'sl::AI_MODELS:: HUMAN_BODY_38_ACCURATE_DETECTION'
+        PERSON_HEAD_DETECTION 'sl::AI_MODELS::PERSON_HEAD_DETECTION'
+        PERSON_HEAD_ACCURATE_DETECTION 'sl::AI_MODELS::PERSON_HEAD_ACCURATE_DETECTION'
+        REID_ASSOCIATION 'sl::AI_MODELS::REID_ASSOCIATION'
+        NEURAL_DEPTH 'sl::AI_MODELS::NEURAL_DEPTH'
+        LAST 'sl::AI_MODELS::LAST'
 
     ctypedef enum OBJECT_DETECTION_MODEL 'sl::OBJECT_DETECTION_MODEL':
         MULTI_CLASS_BOX_FAST 'sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST'
@@ -472,11 +497,12 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         float fy
         float cx
         float cy
-        double disto[5]
+        double disto[12]
         float v_fov
         float h_fov
         float d_fov
         Resolution image_size
+        float focal_length_metric
         CameraParameters scale(Resolution output_resolution) 
         void SetUp(float focal_x, float focal_y, float center_x, float center_y)
 
@@ -704,6 +730,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         vector[BodyData] body_list
         bool is_new
         bool is_tracked
+        BODY_FORMAT body_format
+        INFERENCE_PRECISION inference_precision_mode
         bool getBodyDataFromId(BodyData &bodyData, int bodyDataId)
 
     ctypedef enum BODY_18_PARTS 'sl::BODY_18_PARTS':
@@ -805,6 +833,12 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         RIGHT_HAND_PINKY_1 'sl::BODY_38_PARTS::RIGHT_HAND_PINKY_1' 
         LAST 'sl::BODY_38_PARTS::LAST'
 
+    ctypedef enum INFERENCE_PRECISION 'sl::INFERENCE_PRECISION':
+        FP32 'sl::INFERENCE_PRECISION::FP32'
+        FP16 'sl::INFERENCE_PRECISION::FP16'
+        INT8 'sl::INFERENCE_PRECISION::INT8'
+        LAST 'sl::INFERENCE_PRECISION::LAST'
+
     ctypedef enum BODY_FORMAT 'sl::BODY_FORMAT':
         BODY_18 'sl::BODY_FORMAT::BODY_18'
         BODY_34 'sl::BODY_FORMAT::BODY_34'
@@ -818,6 +852,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     int getIdx(BODY_18_PARTS part)
     int getIdx(BODY_34_PARTS part)
+    int getIdx(BODY_38_PARTS part)
 
     cdef cppclass Mat 'sl::Mat':
         String name
@@ -1167,6 +1202,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float open_timeout_sec
         bool async_grab_camera_recovery
         float grab_compute_capping_fps
+        bool enable_image_validity_check
 
         InitParameters(RESOLUTION camera_resolution,
                        int camera_fps,
@@ -1191,7 +1227,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        String optional_opencv_calibration_file,
                        float open_timeout_sec,
                        bool async_grab_camera_recovery,
-                       float grab_compute_capping_fps)
+                       float grab_compute_capping_fps,
+                       bool enable_image_validity_check)
 
         bool save(String filename)
         bool load(String filename)
@@ -1292,6 +1329,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float range_meter
         const interval allowed_resolution
         float resolution_meter
+        float stability_counter
 
         bool save(String filename)
         bool load(String filename)
@@ -1384,7 +1422,17 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         int minimum_keypoints_threshold
         float skeleton_smoothing
         BodyTrackingRuntimeParameters(float detection_confidence_threshold, int minimum_keypoints_threshold, float skeleton_smoothing)
+    
+    cdef cppclass PlaneDetectionParameters:
+        float max_distance_threshold
+        float normal_similarity_threshold
+        PlaneDetectionParameters()
 
+    cdef cppclass RegionOfInterestParameters:
+        float depth_far_threshold_meters
+        float image_height_ratio_cutoff
+        bool auto_apply
+    
     cdef cppclass Pose:
         Pose()
         Pose(const Pose &pose)
@@ -1402,6 +1450,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         int pose_confidence
         float pose_covariance[36]
+
+        float twist[6]
+        float twist_covariance[36]
 
     ctypedef enum CAMERA_MOTION_STATE 'sl::SensorsData::CAMERA_MOTION_STATE':
         STATIC 'sl::SensorsData::CAMERA_MOTION_STATE::STATIC'
@@ -1505,7 +1556,12 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE getCurrentMinMaxDepth(float& min, float& max)
 
         ERROR_CODE setRegionOfInterest(Mat &mat)
+        ERROR_CODE getRegionOfInterest(Mat &roi_mask, Resolution image_size)
+        ERROR_CODE startRegionOfInterestAutoDetection(RegionOfInterestParameters roi_param)
+        REGION_OF_INTEREST_AUTO_DETECTION_STATE getRegionOfInterestAutoDetectionStatus()
+
         ERROR_CODE startPublishing(CommunicationParameters parameters)
+        ERROR_CODE stopPublishing()
 
         void setSVOPosition(int frame_number)
         int getSVOPosition()
@@ -1519,6 +1575,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE getCameraSettings(VIDEO_SETTINGS setting, Rect &roi, SIDE eye)
 
         ERROR_CODE getCameraSettingsRange(VIDEO_SETTINGS settings, int &min, int &max)
+
+        bool isCameraSettingSupported(VIDEO_SETTINGS setting)
 
         float getCurrentFPS()
         Timestamp getTimestamp(TIME_REFERENCE reference_time)
@@ -1552,7 +1610,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE extractWholeSpatialMap(Mesh &mesh)
         ERROR_CODE extractWholeSpatialMap(FusedPointCloud &fpc)
 
-        ERROR_CODE findPlaneAtHit(Vector2[uint] coord, Plane &plane)
+        ERROR_CODE findPlaneAtHit(Vector2[uint] coord, Plane &plane, PlaneDetectionParameters plane_detection_parameters)
         ERROR_CODE findFloorPlane(Plane &plane, Transform &resetTrackingFloorFrame, float floor_height_prior, Rotation world_orientation_prior, float floor_height_prior_tolerance)
 
         ERROR_CODE enableRecording(RecordingParameters recording_params)
@@ -1570,9 +1628,10 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool isStreamingEnabled()
 
         ERROR_CODE enableObjectDetection(ObjectDetectionParameters object_detection_parameters)
-        void disableObjectDetection(unsigned int instance_module_id)
+        void disableObjectDetection(unsigned int instance_module_id, bool force_disable_all_instances)
         ERROR_CODE retrieveObjects(Objects &objects, ObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id)
         ERROR_CODE getObjectsBatch(vector[ObjectsBatch] &trajectories, unsigned int instance_module_id)
+        bool isObjectDetectionEnabled(unsigned int instance_id)
         ERROR_CODE ingestCustomBoxObjects(vector[CustomBoxObjectData] &objects_in, unsigned int instance_module_id)
         ObjectDetectionParameters getObjectDetectionParameters(unsigned int instance_module_id)
         void pauseObjectDetection(bool status, unsigned int instance_module_id)
@@ -1637,7 +1696,7 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
             COORDINATE_SYSTEM coordinate_system_,
             bool output_performance_metrics, 
             bool verbose_,
-            unsigned timeout_period_number
+            unsigned timeout_period_number,
             )
 
     cdef cppclass CameraIdentifier 'sl::CameraIdentifier':
@@ -1662,6 +1721,13 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
 
     String toString(FUSION_ERROR_CODE o)
 
+    ctypedef enum GNSS_CALIBRATION_STATE "sl::GNSS_CALIBRATION_STATE":
+        NOT_CALIBRATED 'sl::GNSS_CALIBRATION_STATE::NOT_CALIBRATED'
+        CALIBRATED 'sl::GNSS_CALIBRATION_STATE::CALIBRATED'
+        RE_CALIBRATION_IN_PROGRESS 'sl::GNSS_CALIBRATION_STATE::RE_CALIBRATION_IN_PROGRESS'
+
+    String toString(GNSS_CALIBRATION_STATE o)
+
     ctypedef enum SENDER_ERROR_CODE "sl::SENDER_ERROR_CODE":
         DISCONNECTED 'sl::SENDER_ERROR_CODE::DISCONNECTED',
         SUCCESS 'sl::SENDER_ERROR_CODE::SUCCESS',
@@ -1675,12 +1741,25 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         RAW 'sl::POSITION_TYPE::RAW',
         FUSION 'sl::POSITION_TYPE::FUSION',
         LAST 'sl::POSITION_TYPE::LAST'
-        
+    
+    cdef struct GNSSCalibrationParameters 'sl::GNSSCalibrationParameters':
+        float target_yaw_uncertainty
+        bool enable_translation_uncertainty_target
+        float target_translation_uncertainty
+        bool enable_reinitialization
+        float gnss_vio_reinit_threshold
+        bool enable_rolling_calibration
 
     cdef struct PositionalTrackingFusionParameters 'sl::PositionalTrackingFusionParameters':
         bool enable_GNSS_fusion
-        float gnss_initialisation_distance
-        float gnss_ignore_threshold
+        GNSSCalibrationParameters gnss_calibration_parameters
+
+    cdef struct SpatialMappingFusionParameters 'sl::SpatialMappingFusionParameters':
+        float resolution_meter
+        float range_meter
+        bool use_chunk_only
+        int max_memory_usage
+        SpatialMappingParameters map_type
 
     cdef struct BodyTrackingFusionParameters 'sl::BodyTrackingFusionParameters':
         bool enable_tracking
@@ -1754,6 +1833,7 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         double getAltitude()
 
         Transform pose_data
+        Timestamp timestamp
         float pose_covariance[36]
         double horizontal_accuracy
         double vertical_accuracy
@@ -1774,18 +1854,25 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         FUSION_ERROR_CODE init(InitFusionParameters init_parameters)
         void close()
         FUSION_ERROR_CODE subscribe(CameraIdentifier uuid, CommunicationParameters param, Transform pose)
+        FUSION_ERROR_CODE unsubscribe(CameraIdentifier uuid)
         FUSION_ERROR_CODE updatePose(CameraIdentifier uuid, Transform pose)
         FUSION_ERROR_CODE getProcessMetrics(FusionMetrics &metrics)
         map[CameraIdentifier, SENDER_ERROR_CODE] getSenderState()
         FUSION_ERROR_CODE process()
         FUSION_ERROR_CODE enableBodyTracking(BodyTrackingFusionParameters params)
         FUSION_ERROR_CODE retrieveBodies(Bodies &objs, BodyTrackingFusionRuntimeParameters parameters, CameraIdentifier uuid)
+
+        FUSION_ERROR_CODE retrieveImage(Mat &mat, CameraIdentifier uuid, Resolution resolution)
+        FUSION_ERROR_CODE retrieveMeasure(Mat &mat, CameraIdentifier uuid, MEASURE measure, Resolution resolution)
+
         void disableBodyTracking()
-        FUSION_ERROR_CODE enablePositionalTracking()
+        FUSION_ERROR_CODE enablePositionalTracking(PositionalTrackingFusionParameters parameters)
         FUSION_ERROR_CODE ingestGNSSData(GNSSData &_gnss_data)
         POSITIONAL_TRACKING_STATE getPosition(Pose &camera_pose, REFERENCE_FRAME reference_frame, CameraIdentifier uuid, POSITION_TYPE position_type)
         POSITIONAL_TRACKING_STATE getCurrentGNSSData(GNSSData &out)
-        POSITIONAL_TRACKING_STATE getGeoPose(GeoPose &pose)
-        POSITIONAL_TRACKING_STATE Geo2Camera(LatLng &input, Pose &out)
-        POSITIONAL_TRACKING_STATE Camera2Geo(Pose &input, GeoPose &out)      
+        GNSS_CALIBRATION_STATE getGeoPose(GeoPose &pose)
+        GNSS_CALIBRATION_STATE Geo2Camera(LatLng &input, Pose &out)
+        GNSS_CALIBRATION_STATE Camera2Geo(Pose &input, GeoPose &out)
+        GNSS_CALIBRATION_STATE getCurrentGNSSCalibrationSTD(float & yaw_std, float3 & position_std)
+        Transform getGeoTrackingCalibration();
         void disablePositionalTracking()
