@@ -1,6 +1,6 @@
 ########################################################################
 #
-# Copyright (c) 2022, STEREOLABS.
+# Copyright (c) 2024, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -21,11 +21,13 @@
 # File containing the Cython declarations to use the sl functions.
 
 from libcpp.string cimport string
+from libc.stdint cimport uint8_t
 from libcpp cimport bool
 from libcpp.pair cimport pair
 from libcpp.vector cimport vector
 from libc.string cimport const_char
 from libcpp.map cimport map
+from libcpp.unordered_set cimport unordered_set
 
 cdef extern from "<array>" namespace "std" nogil:
   cdef cppclass array6 "std::array<float, 6>":
@@ -95,6 +97,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         MODULE_NOT_COMPATIBLE_WITH_CAMERA 'sl::ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CAMERA',
         MOTION_SENSORS_REQUIRED 'sl::ERROR_CODE::MOTION_SENSORS_REQUIRED',
         MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION 'sl::ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION',
+        SENSORS_DATA_REQUIRED 'sl::ERROR_CODE::SENSORS_DATA_REQUIRED',
         LAST 'sl::ERROR_CODE::LAST'
 
 
@@ -142,6 +145,15 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         INPUT_TYPE input_type
 
     String toString(DeviceProperties o)
+
+    cdef cppclass SVOData:
+        SVOData()
+        bool setContent(string &s)
+        bool getContent(string &s)
+        Timestamp timestamp_ns
+        string key
+        vector[uint8_t] content
+
 
     cdef cppclass Vector2[T]:
         int size()
@@ -290,6 +302,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         QUALITY 'sl::DEPTH_MODE::QUALITY'
         ULTRA 'sl::DEPTH_MODE::ULTRA'
         NEURAL 'sl::DEPTH_MODE::NEURAL'
+        NEURAL_PLUS 'sl::DEPTH_MODE::NEURAL_PLUS'
         DEPTH_MODE_LAST 'sl::DEPTH_MODE::LAST'
 
     String toString(DEPTH_MODE o)
@@ -352,13 +365,88 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         OFF 'sl::POSITIONAL_TRACKING_STATE::OFF'
         FPS_TOO_LOW 'sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW'
         SEARCHING_FLOOR_PLANE 'sl::POSITIONAL_TRACKING_STATE::SEARCHING_FLOOR_PLANE'
+        UNAVAILABLE 'sl::POSITIONAL_TRACKING_STATE::UNAVAILABLE'
         POSITIONAL_TRACKING_STATE_LAST 'sl::POSITIONAL_TRACKING_STATE::LAST'
 
     String toString(POSITIONAL_TRACKING_STATE o)
 
+    ctypedef enum GNSS_STATUS 'sl::GNSS_STATUS':
+        UNKNOWN 'sl::GNSS_STATUS::UNKNOWN'
+        SINGLE 'sl::GNSS_STATUS::SINGLE'
+        DGNSS 'sl::GNSS_STATUS::DGNSS'
+        PPS 'sl::GNSS_STATUS::PPS'
+        DGNSS 'sl::GNSS_STATUS::DGNSS'
+        RTK_FLOAT 'sl::GNSS_STATUS::RTK_FLOAT'
+        RTK_FIX 'sl::GNSS_STATUS::RTK_FIX'
+        LAST 'sl::GNSS_STATUS::LAST'
+
+    String toString(GNSS_STATUS o)
+
+    ctypedef enum GNSS_MODE 'sl::GNSS_MODE':
+        UNKNOWN 'sl::GNSS_MODE::UNKNOWN'
+        NO_FIX 'sl::GNSS_MODE::NO_FIX'
+        FIX_2D 'sl::GNSS_MODE::FIX_2D'
+        FIX_3D 'sl::GNSS_MODE::FIX_3D'
+        LAST 'sl::GNSS_MODE::LAST'
+
+    String toString(GNSS_MODE o)
+
+    ctypedef enum GNSS_FUSION_STATUS 'sl::GNSS_FUSION_STATUS':
+        OK 'sl::GNSS_FUSION_STATUS::OK'
+        OFF 'sl::GNSS_FUSION_STATUS::OFF'
+        CALIBRATION_IN_PROGRESS 'sl::GNSS_FUSION_STATUS::CALIBRATION_IN_PROGRESS'
+        RECALIBRATION_IN_PROGRESS 'sl::GNSS_FUSION_STATUS::RECALIBRATION_IN_PROGRESS'
+        LAST 'sl::GNSS_FUSION_STATUS::LAST'
+
+    String toString(GNSS_FUSION_STATUS o)
+
+
+    ctypedef enum ODOMETRY_STATUS 'sl::ODOMETRY_STATUS':
+        OK 'sl::ODOMETRY_STATUS::OK'
+        UNAVAILABLE 'sl::ODOMETRY_STATUS::UNAVAILABLE'
+        LAST 'sl::ODOMETRY_STATUS::LAST'
+
+    String toString(ODOMETRY_STATUS o)
+
+    ctypedef enum SPATIAL_MEMORY_STATUS 'sl::SPATIAL_MEMORY_STATUS':
+        OK 'sl::SPATIAL_MEMORY_STATUS::OK'
+        LOOP_CLOSED 'sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED'
+        SEARCHING 'sl::SPATIAL_MEMORY_STATUS::SEARCHING'
+        LAST 'sl::SPATIAL_MEMORY_STATUS::LAST'
+
+    String toString(SPATIAL_MEMORY_STATUS o)
+
+    ctypedef enum POSITIONAL_TRACKING_FUSION_STATUS 'sl::POSITIONAL_TRACKING_FUSION_STATUS':
+        VISUAL_INERTIAL 'sl::POSITIONAL_TRACKING_FUSION_STATUS::VISUAL_INERTIAL'
+        VISUAL 'sl::POSITIONAL_TRACKING_FUSION_STATUS::VISUAL'
+        INERTIAL 'sl::POSITIONAL_TRACKING_FUSION_STATUS::INERTIAL'
+        GNSS 'sl::POSITIONAL_TRACKING_FUSION_STATUS::GNSS'
+        VISUAL_INERTIAL_GNSS 'sl::POSITIONAL_TRACKING_FUSION_STATUS::VISUAL_INERTIAL_GNSS'
+        VISUAL_GNSS 'sl::POSITIONAL_TRACKING_FUSION_STATUS::VISUAL_GNSS'
+        INERTIAL_GNSS 'sl::POSITIONAL_TRACKING_FUSION_STATUS::INERTIAL_GNSS'
+        UNAVAILABLE 'sl::POSITIONAL_TRACKING_FUSION_STATUS::UNAVAILABLE'
+        LAST 'sl::POSITIONAL_TRACKING_FUSION_STATUS::LAST'
+
+    String toString(POSITIONAL_TRACKING_FUSION_STATUS o)
+
+
+    cdef cppclass PositionalTrackingStatus 'sl::PositionalTrackingStatus':
+        ODOMETRY_STATUS odometry_status
+        SPATIAL_MEMORY_STATUS spatial_memory_status
+        POSITIONAL_TRACKING_FUSION_STATUS tracking_fusion_status
+
+    cdef cppclass FusedPositionalTrackingStatus 'sl::FusedPositionalTrackingStatus':
+        ODOMETRY_STATUS odometry_status
+        SPATIAL_MEMORY_STATUS spatial_memory_status
+        GNSS_STATUS gnss_status
+        GNSS_MODE gnss_mode
+        GNSS_FUSION_STATUS gnss_fusion_status
+        POSITIONAL_TRACKING_FUSION_STATUS tracking_fusion_status
+
+
     ctypedef enum POSITIONAL_TRACKING_MODE 'sl::POSITIONAL_TRACKING_MODE':
-        STANDARD 'sl::POSITIONAL_TRACKING_MODE::STANDARD'
-        QUALITY 'sl::POSITIONAL_TRACKING_MODE::QUALITY'
+        GEN_1 'sl::POSITIONAL_TRACKING_MODE::GEN_1'
+        GEN_2 'sl::POSITIONAL_TRACKING_MODE::GEN_2'
 
     String toString(POSITIONAL_TRACKING_MODE o)
 
@@ -443,6 +531,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         PERSON_HEAD_ACCURATE_DETECTION 'sl::AI_MODELS::PERSON_HEAD_ACCURATE_DETECTION'
         REID_ASSOCIATION 'sl::AI_MODELS::REID_ASSOCIATION'
         NEURAL_DEPTH 'sl::AI_MODELS::NEURAL_DEPTH'
+        NEURAL_PLUS_DEPTH 'sl::AI_MODELS::NEURAL_PLUS_DEPTH'
         LAST 'sl::AI_MODELS::LAST'
 
     ctypedef enum OBJECT_DETECTION_MODEL 'sl::OBJECT_DETECTION_MODEL':
@@ -571,6 +660,17 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         U8_C4 'sl::MAT_TYPE::U8_C4'
         U16_C1 'sl::MAT_TYPE::U16_C1'
         S8_C4 'sl::MAT_TYPE::S8_C4'
+
+    ctypedef enum MODULE 'sl::MODULE':
+        ALL 'sl::MODULE::ALL' = 0
+        DEPTH 'sl::MODULE::DEPTH' = 1
+        POSITIONAL_TRACKING 'sl::MODULE::POSITIONAL_TRACKING' = 2
+        OBJECT_DETECTION 'sl::MODULE::OBJECT_DETECTION' = 3
+        BODY_TRACKING 'sl::MODULE::BODY_TRACKING' = 4
+        SPATIAL_MAPPING 'sl::MODULE::SPATIAL_MAPPING' = 5
+        MODULE_LAST 'sl::MODULE::LAST' = 6
+
+    String toString(MODULE o)
 
     ctypedef enum OBJECT_CLASS 'sl::OBJECT_CLASS':
         PERSON 'sl::OBJECT_CLASS::PERSON' = 0
@@ -1364,7 +1464,6 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         BatchParameters(bool enable, float id_retention_time, float batch_duration)
 
     cdef cppclass ObjectDetectionParameters:
-        bool image_sync
         bool enable_tracking
         bool enable_segmentation
         OBJECT_DETECTION_MODEL detection_model
@@ -1374,8 +1473,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float prediction_timeout_s
         bool allow_reduced_precision_inference
         unsigned int instance_module_id
-        ObjectDetectionParameters(bool image_sync, 
-                bool enable_tracking, 
+        ObjectDetectionParameters(bool enable_tracking, 
                 bool enable_segmentation, 
                 OBJECT_DETECTION_MODEL detection_model, 
                 float max_range, 
@@ -1393,7 +1491,6 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ObjectDetectionRuntimeParameters(float detection_confidence_threshold, vector[OBJECT_CLASS] object_class_filter, map[OBJECT_CLASS,float] object_class_detection_confidence_threshold)
 
     cdef cppclass BodyTrackingParameters:
-        bool image_sync
         bool enable_tracking
         bool enable_segmentation
         BODY_TRACKING_MODEL detection_model
@@ -1404,8 +1501,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float prediction_timeout_s
         bool allow_reduced_precision_inference
         unsigned int instance_module_id
-        BodyTrackingParameters(bool image_sync, 
-                    bool enable_tracking, 
+        BodyTrackingParameters(bool enable_tracking, 
                     bool enable_segmentation, 
                     BODY_TRACKING_MODEL detection_model, 
                     bool enable_body_fitting, 
@@ -1431,7 +1527,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
     cdef cppclass RegionOfInterestParameters:
         float depth_far_threshold_meters
         float image_height_ratio_cutoff
-        bool auto_apply
+        unordered_set[MODULE] auto_apply_module
     
     cdef cppclass Pose:
         Pose()
@@ -1555,8 +1651,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE retrieveMeasure(Mat &mat, MEASURE measure, MEM type, Resolution resolution)
         ERROR_CODE getCurrentMinMaxDepth(float& min, float& max)
 
-        ERROR_CODE setRegionOfInterest(Mat &mat)
-        ERROR_CODE getRegionOfInterest(Mat &roi_mask, Resolution image_size)
+        ERROR_CODE setRegionOfInterest(Mat &mat, unordered_set[MODULE] modules)
+        ERROR_CODE getRegionOfInterest(Mat &roi_mask, Resolution image_size, MODULE module)
         ERROR_CODE startRegionOfInterestAutoDetection(RegionOfInterestParameters roi_param)
         REGION_OF_INTEREST_AUTO_DETECTION_STATE getRegionOfInterestAutoDetectionStatus()
 
@@ -1566,6 +1662,11 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         void setSVOPosition(int frame_number)
         int getSVOPosition()
         int getSVONumberOfFrames()
+
+        ERROR_CODE ingestDataIntoSVO(SVOData& data)
+        ERROR_CODE retrieveSVOData(string &key, map[Timestamp, SVOData] &data, Timestamp ts_begin, Timestamp ts_end)
+        vector[string] getSVODataKeys()
+
         ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, int &value)
         ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, int &min, int &max)
         ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, Rect roi, SIDE eye, bool reset)
@@ -1585,6 +1686,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         ERROR_CODE enablePositionalTracking(PositionalTrackingParameters tracking_params)
         POSITIONAL_TRACKING_STATE getPosition(Pose &camera_pose, REFERENCE_FRAME reference_frame)
+        PositionalTrackingStatus getPositionalTrackingStatus()
         ERROR_CODE saveAreaMap(String area_file_path)
         AREA_EXPORTING_STATE getAreaExportState()
 
@@ -1705,15 +1807,17 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         CameraIdentifier(unsigned long long sn_)
 
     ctypedef enum FUSION_ERROR_CODE "sl::FUSION_ERROR_CODE" :
-        WRONG_BODY_FORMAT 'sl::FUSION_ERROR_CODE::WRONG_BODY_FORMAT',
-        NOT_ENABLE 'sl::FUSION_ERROR_CODE::NOT_ENABLE',
-        INPUT_FEED_MISMATCH 'sl::FUSION_ERROR_CODE::INPUT_FEED_MISMATCH',
+        GNSS_DATA_NEED_FIX 'sl::FUSION_ERROR_CODE::GNSS_DATA_NEED_FIX',
+        GNSS_DATA_COVARIANCE_MUST_VARY 'sl::FUSION_ERROR_CODE::GNSS_DATA_COVARIANCE_MUST_VARY',
+        BODY_FORMAT_MISMATCH 'sl::FUSION_ERROR_CODE::BODY_FORMAT_MISMATCH',
+        MODULE_NOT_ENABLED 'sl::FUSION_ERROR_CODE::MODULE_NOT_ENABLED',
+        SOURCE_MISMATCH 'sl::FUSION_ERROR_CODE::SOURCE_MISMATCH',
         CONNECTION_TIMED_OUT 'sl::FUSION_ERROR_CODE::CONNECTION_TIMED_OUT',
         MEMORY_ALREADY_USED 'sl::FUSION_ERROR_CODE::MEMORY_ALREADY_USED',
-        BAD_IP_ADDRESS 'sl::FUSION_ERROR_CODE::BAD_IP_ADDRESS',
+        INVALID_IP_ADDRESS 'sl::FUSION_ERROR_CODE::INVALID_IP_ADDRESS',
         FAILURE 'sl::FUSION_ERROR_CODE::FAILURE',
         SUCCESS 'sl::FUSION_ERROR_CODE::SUCCESS',
-        FUSION_ERRATIC_FPS 'sl::FUSION_ERROR_CODE::FUSION_ERRATIC_FPS',
+        FUSION_INCONSISTENT_FPS 'sl::FUSION_ERROR_CODE::FUSION_INCONSISTENT_FPS',
         FUSION_FPS_TOO_LOW 'sl::FUSION_ERROR_CODE::FUSION_FPS_TOO_LOW',
         NO_NEW_DATA_AVAILABLE 'sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE',
         INVALID_TIMESTAMP 'sl::FUSION_ERROR_CODE::INVALID_TIMESTAMP',
@@ -1721,18 +1825,12 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
 
     String toString(FUSION_ERROR_CODE o)
 
-    ctypedef enum GNSS_CALIBRATION_STATE "sl::GNSS_CALIBRATION_STATE":
-        NOT_CALIBRATED 'sl::GNSS_CALIBRATION_STATE::NOT_CALIBRATED'
-        CALIBRATED 'sl::GNSS_CALIBRATION_STATE::CALIBRATED'
-        RE_CALIBRATION_IN_PROGRESS 'sl::GNSS_CALIBRATION_STATE::RE_CALIBRATION_IN_PROGRESS'
-
-    String toString(GNSS_CALIBRATION_STATE o)
 
     ctypedef enum SENDER_ERROR_CODE "sl::SENDER_ERROR_CODE":
         DISCONNECTED 'sl::SENDER_ERROR_CODE::DISCONNECTED',
         SUCCESS 'sl::SENDER_ERROR_CODE::SUCCESS',
         GRAB_ERROR 'sl::SENDER_ERROR_CODE::GRAB_ERROR',
-        ERRATIC_FPS 'sl::SENDER_ERROR_CODE::ERRATIC_FPS',
+        INCONSISTENT_FPS 'sl::SENDER_ERROR_CODE::INCONSISTENT_FPS',
         FPS_TOO_LOW 'sl::SENDER_ERROR_CODE::FPS_TOO_LOW',
 
     String toString(SENDER_ERROR_CODE o)  
@@ -1749,6 +1847,7 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         bool enable_reinitialization
         float gnss_vio_reinit_threshold
         bool enable_rolling_calibration
+        Vector3[float] gnss_antenna_position
 
     cdef struct PositionalTrackingFusionParameters 'sl::PositionalTrackingFusionParameters':
         bool enable_GNSS_fusion
@@ -1848,6 +1947,8 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         double longitude_std
         double latitude_std
         double altitude_std
+        GNSS_STATUS gnss_status
+        GNSS_MODE gnss_mode        
 
     cdef cppclass Fusion 'sl::Fusion':
         Fusion()
@@ -1869,10 +1970,11 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         FUSION_ERROR_CODE enablePositionalTracking(PositionalTrackingFusionParameters parameters)
         FUSION_ERROR_CODE ingestGNSSData(GNSSData &_gnss_data)
         POSITIONAL_TRACKING_STATE getPosition(Pose &camera_pose, REFERENCE_FRAME reference_frame, CameraIdentifier uuid, POSITION_TYPE position_type)
+        FusedPositionalTrackingStatus getFusedPositionalTrackingStatus()
         POSITIONAL_TRACKING_STATE getCurrentGNSSData(GNSSData &out)
-        GNSS_CALIBRATION_STATE getGeoPose(GeoPose &pose)
-        GNSS_CALIBRATION_STATE Geo2Camera(LatLng &input, Pose &out)
-        GNSS_CALIBRATION_STATE Camera2Geo(Pose &input, GeoPose &out)
-        GNSS_CALIBRATION_STATE getCurrentGNSSCalibrationSTD(float & yaw_std, float3 & position_std)
+        GNSS_FUSION_STATUS getGeoPose(GeoPose &pose)
+        GNSS_FUSION_STATUS Geo2Camera(LatLng &input, Pose &out)
+        GNSS_FUSION_STATUS Camera2Geo(Pose &input, GeoPose &out)
+        GNSS_FUSION_STATUS getCurrentGNSSCalibrationSTD(float & yaw_std, float3 & position_std)
         Transform getGeoTrackingCalibration();
         void disablePositionalTracking()

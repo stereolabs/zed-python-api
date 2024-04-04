@@ -1,6 +1,6 @@
 ########################################################################
 #
-# Copyright (c) 2022, STEREOLABS.
+# Copyright (c) 2024, STEREOLABS.
 #
 # All rights reserved.
 #
@@ -21,6 +21,7 @@
 # Source file of the types Python module.
 
 from libcpp.vector cimport vector
+from libcpp.unordered_set cimport unordered_set
 from libc.string cimport const_char
 from libcpp.string cimport string
 from libcpp.pair cimport pair
@@ -69,7 +70,7 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , setValueUchar1, setValueUchar2, setValueUchar3, setValueUchar4, setValueUshort1, setValueFloat1, setValueFloat2, setValueFloat3, setValueFloat4
                     , getValueUchar1, getValueUchar2, getValueUchar3, getValueUchar4, getValueUshort1, getValueFloat1, getValueFloat2, getValueFloat3, getValueFloat4
                     , getPointerUchar1, getPointerUchar2, getPointerUchar3, getPointerUchar4, getPointerUshort1, getPointerFloat1, getPointerFloat2, getPointerFloat3, getPointerFloat4, uint
-                    , ObjectData as c_ObjectData, BodyData as c_BodyData, OBJECT_CLASS as c_OBJECT_CLASS, OBJECT_SUBCLASS as c_OBJECT_SUBCLASS
+                    , ObjectData as c_ObjectData, BodyData as c_BodyData, OBJECT_CLASS as c_OBJECT_CLASS, MODULE as c_MODULE, OBJECT_SUBCLASS as c_OBJECT_SUBCLASS
                     , OBJECT_TRACKING_STATE as c_OBJECT_TRACKING_STATE, OBJECT_ACTION_STATE as c_OBJECT_ACTION_STATE
                     , BODY_18_PARTS as c_BODY_18_PARTS, SIDE as c_SIDE, CameraInformation as c_CameraInformation, CUctx_st
                     , FLIP_MODE as c_FLIP_MODE, getResolution as c_getResolution, BatchParameters as c_BatchParameters
@@ -83,14 +84,22 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , InitFusionParameters as c_InitFusionParameters, CameraIdentifier as c_CameraIdentifier
                     , BodyTrackingFusionParameters as c_BodyTrackingFusionParameters, BodyTrackingFusionRuntimeParameters as c_BodyTrackingFusionRuntimeParameters
                     , PositionalTrackingFusionParameters as c_PositionalTrackingFusionParameters, GNSSCalibrationParameters as c_GNSSCalibrationParameters, POSITION_TYPE as c_POSITION_TYPE
-                    , GNSS_CALIBRATION_STATE as c_GNSS_CALIBRATION_STATE
+                    , GNSS_FUSION_STATUS as c_GNSS_FUSION_STATUS
                     , CameraMetrics as c_CameraMetrics, FusionMetrics as c_FusionMetrics, GNSSData as c_GNSSData, Fusion as c_Fusion
                     , ECEF as c_ECEF, LatLng as c_LatLng, UTM as c_UTM
                     , GeoConverter as c_GeoConverter, GeoPose as c_GeoPose
                     , readFusionConfigurationFile as c_readFusionConfigurationFile
                     , readFusionConfigurationFile2 as c_readFusionConfigurationFile2
                     , writeConfigurationFile as c_writeConfigurationFile
-
+                    , SVOData as c_SVOData
+                    , PositionalTrackingStatus as c_PositionalTrackingStatus
+                    , ODOMETRY_STATUS as c_ODOMETRY_STATUS
+                    , SPATIAL_MEMORY_STATUS as c_SPATIAL_MEMORY_STATUS
+                    , POSITIONAL_TRACKING_FUSION_STATUS as c_POSITIONAL_TRACKING_FUSION_STATUS
+                    , FusedPositionalTrackingStatus as c_FusedPositionalTrackingStatus
+                    , GNSS_STATUS as c_GNSS_STATUS
+                    , GNSS_MODE as c_GNSS_MODE
+                    , GNSS_FUSION_STATUS as c_GNSS_FUSION_STATUS
                     )
 from cython.operator cimport (dereference as deref, postincrement)
 from libc.string cimport memcpy
@@ -251,6 +260,7 @@ class ERROR_CODE(enum.Enum):
     MODULE_NOT_COMPATIBLE_WITH_CAMERA = <int>c_ERROR_CODE.MODULE_NOT_COMPATIBLE_WITH_CAMERA
     MOTION_SENSORS_REQUIRED = <int>c_ERROR_CODE.MOTION_SENSORS_REQUIRED
     MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION = <int>c_ERROR_CODE.MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION
+    SENSORS_DATA_REQUIRED = <int>c_ERROR_CODE.SENSORS_DATA_REQUIRED
     LAST = <int>c_ERROR_CODE.LAST
 
     def __str__(self):
@@ -325,6 +335,7 @@ class INPUT_TYPE(enum.Enum):
 # | PERSON_HEAD_ACCURATE_DETECTION | Related to [sl.OBJECT_DETECTION_MODEL.PERSON_HEAD_BOX_ACCURATE](\ref OBJECT_DETECTION_MODEL) |
 # | REID_ASSOCIATION | Related to sl.BatchParameters.enable |
 # | NEURAL_DEPTH | Related to [sl.DEPTH_MODE.NEURAL](\ref DEPTH_MODE) |
+# | NEURAL_PLUS_DEPTH | Related to [sl.DEPTH_MODE.NEURAL_PLUS_DEPTH](\ref DEPTH_MODE) |
 class AI_MODELS(enum.Enum):
     MULTI_CLASS_DETECTION = <int>c_AI_MODELS.MULTI_CLASS_DETECTION
     MULTI_CLASS_MEDIUM_DETECTION = <int>c_AI_MODELS.MULTI_CLASS_MEDIUM_DETECTION
@@ -339,6 +350,7 @@ class AI_MODELS(enum.Enum):
     PERSON_HEAD_ACCURATE_DETECTION = <int>c_AI_MODELS.PERSON_HEAD_ACCURATE_DETECTION
     REID_ASSOCIATION = <int>c_AI_MODELS.REID_ASSOCIATION
     NEURAL_DEPTH = <int>c_AI_MODELS.NEURAL_DEPTH
+    NEURAL_PLUS_DEPTH = <int>c_AI_MODELS.NEURAL_PLUS_DEPTH
     LAST = <int>c_OBJECT_DETECTION_MODEL.LAST
 
 ##
@@ -1000,12 +1012,14 @@ class VIDEO_SETTINGS(enum.Enum):
 # | QUALITY    | Computation mode designed for challenging areas with untextured surfaces. |
 # | ULTRA      | Computation mode that favors edges and sharpness.\n Requires more GPU memory and computation power. |
 # | NEURAL     | End to End Neural disparity estimation.\n Requires AI module. |
+# | NEURAL_PLUS     | End to End Neural disparity estimation. More precise but requires more GPU memory and computation power. \n Requires AI module. |
 class DEPTH_MODE(enum.Enum):
     NONE = <int>c_DEPTH_MODE.NONE
     PERFORMANCE = <int>c_DEPTH_MODE.PERFORMANCE
     QUALITY = <int>c_DEPTH_MODE.QUALITY
     ULTRA = <int>c_DEPTH_MODE.ULTRA
     NEURAL = <int>c_DEPTH_MODE.NEURAL
+    NEURAL_PLUS = <int>c_DEPTH_MODE.NEURAL_PLUS
     LAST = <int>c_DEPTH_MODE.DEPTH_MODE_LAST
 
 ##
@@ -1030,7 +1044,7 @@ class UNIT(enum.Enum):
 
 ##
 # Lists available coordinates systems for positional tracking and 3D measures.
-# \image html CoordinateSystem.png
+# \image html CoordinateSystem.webp
 # \ingroup Core_group
 # 
 # | Enumerator |                         |
@@ -1162,12 +1176,14 @@ class VIEW(enum.Enum):
 # | OFF        | The positional tracking is not enabled. |
 # | FPS_TOO_LOW | The effective FPS is too low to give proper results for motion tracking.\n Consider using performance parameters (\ref DEPTH_MODE "sl.DEPTH_MODE.PERFORMANCE", low camera resolution (\ref RESOLUTION "sl.RESOLUTION.VGA/SVGA" or \ref RESOLUTION "sl.RESOLUTION.HD720"). |
 # | SEARCHING_FLOOR_PLANE | The camera is searching for the floor plane to locate itself with respect to it.\n The \ref REFERENCE_FRAME "sl.REFERENCE_FRAME.WORLD" will be set afterward. |
+# | UNAVAILABLE | The tracking module was unable to perform tracking from the previous frame to the current frame. |
 class POSITIONAL_TRACKING_STATE(enum.Enum):
     SEARCHING = <int>c_POSITIONAL_TRACKING_STATE.SEARCHING
     OK = <int>c_POSITIONAL_TRACKING_STATE.OK
     OFF = <int>c_POSITIONAL_TRACKING_STATE.OFF
     FPS_TOO_LOW = <int>c_POSITIONAL_TRACKING_STATE.FPS_TOO_LOW
     SEARCHING_FLOOR_PLANE = <int>c_POSITIONAL_TRACKING_STATE.SEARCHING_FLOOR_PLANE
+    UNAVAILABLE = <int>c_POSITIONAL_TRACKING_STATE.UNAVAILABLE
     LAST = <int>c_POSITIONAL_TRACKING_STATE.POSITIONAL_TRACKING_STATE_LAST
 
     def __str__(self):
@@ -1177,17 +1193,176 @@ class POSITIONAL_TRACKING_STATE(enum.Enum):
         return to_str(toString(<c_POSITIONAL_TRACKING_STATE>(<unsigned int>self.value))).decode()
 
 
+class ODOMETRY_STATUS(enum.Enum):
+    OK = <int>c_ODOMETRY_STATUS.OK
+    UNAVAILABLE = <int>c_ODOMETRY_STATUS.UNAVAILABLE
+    LAST = <int>c_ODOMETRY_STATUS.LAST
+
+    def __str__(self):
+        return to_str(toString(<c_ODOMETRY_STATUS>(<unsigned int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_ODOMETRY_STATUS>(<unsigned int>self.value))).decode()
+
+class SPATIAL_MEMORY_STATUS(enum.Enum):
+    OK = <int>c_SPATIAL_MEMORY_STATUS.OK
+    LOOP_CLOSED = <int>c_SPATIAL_MEMORY_STATUS.LOOP_CLOSED
+    SEARCHING = <int>c_SPATIAL_MEMORY_STATUS.SEARCHING
+    LAST = <int>c_SPATIAL_MEMORY_STATUS.LAST
+
+    def __str__(self):
+        return to_str(toString(<c_SPATIAL_MEMORY_STATUS>(<unsigned int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_SPATIAL_MEMORY_STATUS>(<unsigned int>self.value))).decode()
+
+class POSITIONAL_TRACKING_FUSION_STATUS(enum.Enum):
+    VISUAL_INERTIAL = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.VISUAL_INERTIAL
+    VISUAL = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.VISUAL
+    INERTIAL = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.INERTIAL
+    GNSS = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.GNSS
+    VISUAL_INERTIAL_GNSS = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.VISUAL_INERTIAL_GNSS
+    VISUAL_GNSS = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.VISUAL_GNSS
+    INERTIAL_GNSS = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.INERTIAL_GNSS
+    UNAVAILABLE = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.UNAVAILABLE
+    LAST = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.LAST
+
+    def __str__(self):
+        return to_str(toString(<c_POSITIONAL_TRACKING_FUSION_STATUS>(<unsigned int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_POSITIONAL_TRACKING_FUSION_STATUS>(<unsigned int>self.value))).decode()
+
+class GNSS_STATUS(enum.Enum):
+    UNKNOWN = <int>c_GNSS_STATUS.UNKNOWN
+    SINGLE = <int>c_GNSS_STATUS.SINGLE
+    DGNSS = <int>c_GNSS_STATUS.DGNSS
+    PPS = <int>c_GNSS_STATUS.PPS
+    RTK_FLOAT = <int>c_GNSS_STATUS.RTK_FLOAT
+    RTK_FIX = <int>c_GNSS_STATUS.RTK_FIX
+    LAST = <int>c_GNSS_STATUS.LAST
+
+    def __str__(self):
+        return to_str(toString(<c_GNSS_STATUS>(<unsigned int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_GNSS_STATUS>(<unsigned int>self.value))).decode()
+
+class GNSS_MODE(enum.Enum):
+    UNKNOWN = <int>c_GNSS_MODE.UNKNOWN
+    NO_FIX = <int>c_GNSS_MODE.NO_FIX
+    FIX_2D = <int>c_GNSS_MODE.FIX_2D
+    FIX_3D = <int>c_GNSS_MODE.FIX_3D
+    LAST = <int>c_GNSS_MODE.LAST
+
+    def __str__(self):
+        return to_str(toString(<c_GNSS_MODE>(<unsigned int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_GNSS_MODE>(<unsigned int>self.value))).decode()
+
+class GNSS_FUSION_STATUS(enum.Enum):
+    OK = <int>c_GNSS_FUSION_STATUS.OK
+    OFF = <int>c_GNSS_FUSION_STATUS.OFF
+    CALIBRATION_IN_PROGRESS = <int>c_GNSS_FUSION_STATUS.CALIBRATION_IN_PROGRESS
+    RECALIBRATION_IN_PROGRESS = <int>c_GNSS_FUSION_STATUS.RECALIBRATION_IN_PROGRESS
+    LAST = <int>c_GNSS_FUSION_STATUS.LAST
+    def __str__(self):
+        return to_str(toString(<c_GNSS_FUSION_STATUS>(<unsigned int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_GNSS_FUSION_STATUS>(<unsigned int>self.value))).decode()
+
+cdef class PositionalTrackingStatus:
+    cdef c_PositionalTrackingStatus positional_status
+
+    @property
+    def odometry_status(self) -> ODOMETRY_STATUS:
+        return ODOMETRY_STATUS(<int>self.positional_status.odometry_status)
+
+    @odometry_status.setter
+    def odometry_status(self, odometry_status):
+        self.positional_status.odometry_status = (<c_ODOMETRY_STATUS> (<unsigned int>odometry_status))
+
+    @property
+    def spatial_memory_status(self) -> SPATIAL_MEMORY_STATUS:
+        return SPATIAL_MEMORY_STATUS(<int>self.positional_status.spatial_memory_status)
+
+    @spatial_memory_status.setter
+    def spatial_memory_status(self, spatial_memory_status):
+        self.positional_status.spatial_memory_status = (<c_SPATIAL_MEMORY_STATUS> (<unsigned int>spatial_memory_status))
+
+    @property
+    def tracking_fusion_status(self) -> POSITIONAL_TRACKING_FUSION_STATUS:
+        return POSITIONAL_TRACKING_FUSION_STATUS(<int>self.positional_status.tracking_fusion_status)
+
+    @tracking_fusion_status.setter
+    def tracking_fusion_status(self, tracking_fusion_status):
+        self.positional_status.tracking_fusion_status = (<c_POSITIONAL_TRACKING_FUSION_STATUS> (<unsigned int>tracking_fusion_status))
+
+
+cdef class FusedPositionalTrackingStatus:
+    cdef c_FusedPositionalTrackingStatus positional_status
+
+    @property
+    def odometry_status(self) -> ODOMETRY_STATUS:
+        return ODOMETRY_STATUS(<int>self.positional_status.odometry_status)
+
+    @odometry_status.setter
+    def odometry_status(self, odometry_status):
+        self.positional_status.odometry_status = (<c_ODOMETRY_STATUS> (<unsigned int>odometry_status))
+
+    @property
+    def spatial_memory_status(self) -> SPATIAL_MEMORY_STATUS:
+        return SPATIAL_MEMORY_STATUS(<int>self.positional_status.spatial_memory_status)
+
+    @spatial_memory_status.setter
+    def spatial_memory_status(self, spatial_memory_status):
+        self.positional_status.spatial_memory_status = (<c_SPATIAL_MEMORY_STATUS> (<unsigned int>spatial_memory_status))
+
+    @property
+    def tracking_fusion_status(self) -> POSITIONAL_TRACKING_FUSION_STATUS:
+        return POSITIONAL_TRACKING_FUSION_STATUS(<int>self.positional_status.tracking_fusion_status)
+
+    @tracking_fusion_status.setter
+    def tracking_fusion_status(self, tracking_fusion_status):
+        self.positional_status.tracking_fusion_status = (<c_POSITIONAL_TRACKING_FUSION_STATUS> (<unsigned int>tracking_fusion_status))
+
+    @property
+    def gnss_status(self) -> GNSS_STATUS:
+        return GNSS_STATUS(<int>self.positional_status.gnss_status)
+
+    @gnss_status.setter
+    def gnss_status(self, gnss_status):
+        self.positional_status.gnss_status = (<c_GNSS_STATUS> (<unsigned int>gnss_status))
+
+    @property
+    def gnss_mode(self) -> GNSS_MODE:
+        return GNSS_STATUS(<int>self.positional_status.gnss_mode)
+
+    @gnss_mode.setter
+    def gnss_mode(self, gnss_mode):
+        self.positional_status.gnss_mode = (<c_GNSS_MODE> (<unsigned int>gnss_mode))
+
+    @property
+    def gnss_fusion_status(self) -> GNSS_FUSION_STATUS:
+        return GNSS_FUSION_STATUS(<int>self.positional_status.gnss_fusion_status)
+
+    @gnss_fusion_status.setter
+    def gnss_fusion_status(self, gnss_fusion_status):
+        self.positional_status.gnss_fusion_status = (<c_GNSS_FUSION_STATUS> (<unsigned int>gnss_fusion_status))
+
 ##
 # Lists the mode of positional tracking that can be used.
 # \ingroup PositionalTracking_group
 #
 # | Enumerator |                         |
 # |------------|-------------------------|
-# | STANDARD   | Default mode. Best compromise in performance and accuracy. |
-# | QUALITY    | Improve accuracy in more challenging scenes such as outdoor repetitive patterns like extensive fields.\n Currently works best with \ref DEPTH_MODE "sl.DEPTH_MODE.ULTRA" and requires more compute power. |
+# | GEN_1   | Default mode. Best compromise in performance and accuracy. |
+# | GEN_2   | Improve accuracy in more challenging scenes such as outdoor repetitive patterns like extensive fields.\n Currently works best with \ref DEPTH_MODE "sl.DEPTH_MODE.ULTRA" and requires more compute power. |
 class POSITIONAL_TRACKING_MODE(enum.Enum):
-    STANDARD = <int>c_POSITIONAL_TRACKING_MODE.STANDARD
-    QUALITY = <int>c_POSITIONAL_TRACKING_MODE.QUALITY
+    GEN_1 = <int>c_POSITIONAL_TRACKING_MODE.GEN_1
+    GEN_2 = <int>c_POSITIONAL_TRACKING_MODE.GEN_2
 
     def __str__(self):
         return to_str(toString(<c_POSITIONAL_TRACKING_MODE>(<unsigned int>self.value))).decode()
@@ -1410,6 +1585,34 @@ class SENSORS_UNIT(enum.Enum):
     HPA = <int>c_SENSORS_UNIT.HPA
     CELSIUS = <int>c_SENSORS_UNIT.CELSIUS
     HERTZ = <int>c_SENSORS_UNIT.HERTZ
+
+##
+# Lists available module
+#
+# \ingroup Video_group
+# 
+# | MODULE | Description |
+# |--------------|-------------|
+# | ALL       | All modules |
+# | DEPTH      | For the depth module (includes all 'measures' in retrieveMeasure) |
+# | POSITIONAL_TRACKING          | For the positional tracking module |
+# | OBJECT_DETECTION       | For the object detection module |
+# | BODY_TRACKING  | For the body tracking module |
+# | SPATIAL_MAPPING  | For the spatial mapping module |
+class MODULE(enum.Enum):
+    ALL = <int>c_MODULE.ALL
+    DEPTH = <int>c_MODULE.DEPTH
+    POSITIONAL_TRACKING = <int>c_MODULE.POSITIONAL_TRACKING
+    OBJECT_DETECTION = <int>c_MODULE.OBJECT_DETECTION
+    BODY_TRACKING = <int>c_MODULE.BODY_TRACKING
+    SPATIAL_MAPPING = <int>c_MODULE.SPATIAL_MAPPING
+    LAST = <int>c_MODULE.MODULE_LAST
+
+    def __str__(self):
+        return to_str(toString(<c_MODULE>(<unsigned int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_MODULE>(<unsigned int>self.value))).decode()
 
 ##
 # Lists available object classes.
@@ -3300,7 +3503,6 @@ cdef class ObjectDetectionParameters:
     ##
     # Default constructor.
     # All the parameters are set to their default values.
-    # \param image_sync : Activates \ref image_sync
     # \param enable_tracking : Activates \ref enable_tracking
     # \param enable_segmentation : Activates \ref enable_segmentation
     # \param detection_model : Chosen \ref detection_model
@@ -3310,14 +3512,14 @@ cdef class ObjectDetectionParameters:
     # \param prediction_timeout_s : Chosen \ref prediction_timeout_s
     # \param allow_reduced_precision_inference : Activates \ref allow_reduced_precision_inference
     # \param instance_module_id : Chosen \ref instance_module_id
-    def __cinit__(self, image_sync=True, enable_tracking=True
+    def __cinit__(self, enable_tracking=True
                 , enable_segmentation=False, detection_model=OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_FAST
                 , max_range=-1.0 , batch_trajectories_parameters=BatchParameters()
                 , filtering_mode = OBJECT_FILTERING_MODE.NMS3D
                 , prediction_timeout_s = 0.2
                 , allow_reduced_precision_inference = False
                 , instance_module_id = 0) -> ObjectDetectionParameters:
-        self.object_detection = new c_ObjectDetectionParameters(image_sync, enable_tracking
+        self.object_detection = new c_ObjectDetectionParameters(enable_tracking
                                                                 , enable_segmentation, <c_OBJECT_DETECTION_MODEL>(<unsigned int>detection_model.value)
                                                                 , max_range, (<BatchParameters>batch_trajectories_parameters).batch_params[0]
                                                                 , <c_OBJECT_FILTERING_MODE>(<unsigned int>filtering_mode.value)
@@ -3327,19 +3529,6 @@ cdef class ObjectDetectionParameters:
 
     def __dealloc__(self):
         del self.object_detection
-
-    ##
-    # Whether the object detection is synchronized to the image or runs in a separate thread.
-    # If set to true, the detection is run on every sl.Camera.grab().
-    # \n Otherwise, the thread runs at its own speed, which can lead to new detection once in a while.
-    # \n Default: True
-    @property
-    def image_sync(self) -> bool:
-        return self.object_detection.image_sync
-
-    @image_sync.setter
-    def image_sync(self, bool image_sync):
-        self.object_detection.image_sync = image_sync
 
     ##
     # Whether the object detection system includes object tracking capabilities across a sequence of images.
@@ -3568,7 +3757,6 @@ cdef class BodyTrackingParameters:
     ##
     # Default constructor.
     # All the parameters are set to their default values.
-    # \param image_sync : Activates \ref image_sync
     # \param enable_tracking : Activates \ref enable_tracking
     # \param enable_segmentation : Activates \ref enable_segmentation
     # \param detection_model : Chosen \ref detection_model
@@ -3579,13 +3767,13 @@ cdef class BodyTrackingParameters:
     # \param prediction_timeout_s : Chosen \ref prediction_timeout_s
     # \param allow_reduced_precision_inference : Activates \ref allow_reduced_precision_inference
     # \param instance_module_id : Chosen \ref instance_module_id
-    def __cinit__(self, image_sync=True, enable_tracking=True
+    def __cinit__(self, enable_tracking=True
                 , enable_segmentation=True, detection_model=BODY_TRACKING_MODEL.HUMAN_BODY_ACCURATE
                 , enable_body_fitting=False, max_range=-1.0
                 , body_format=BODY_FORMAT.BODY_18, body_selection=BODY_KEYPOINTS_SELECTION.FULL, prediction_timeout_s = 0.2
                 , allow_reduced_precision_inference = False
                 , instance_module_id = 0) -> BodyTrackingParameters:
-        self.bodyTrackingParameters = new c_BodyTrackingParameters(image_sync, enable_tracking
+        self.bodyTrackingParameters = new c_BodyTrackingParameters(enable_tracking
                                                                 , enable_segmentation
                                                                 , <c_BODY_TRACKING_MODEL>(<int>detection_model.value)
                                                                 , enable_body_fitting
@@ -3598,19 +3786,6 @@ cdef class BodyTrackingParameters:
 
     def __dealloc__(self):
         del self.bodyTrackingParameters
-
-    ##
-    # Whether the body tracking is synchronized to the image or runs in a separate thread.
-    # If set to true, the detection is run on every sl.Camera.grab().
-    # \n Otherwise, the thread runs at its own speed, which can lead to new detection once in a while.
-    # \n Default: True
-    @property
-    def image_sync(self) -> bool:
-        return self.bodyTrackingParameters.image_sync
-
-    @image_sync.setter
-    def image_sync(self, bool image_sync):
-        self.bodyTrackingParameters.image_sync = image_sync
 
     ##
     # Whether the body tracking system includes body/person tracking capabilities across a sequence of images.
@@ -3877,12 +4052,19 @@ cdef class RegionOfInterestParameters:
     # Once computed the ROI computed will be automatically applied
     # Default: Enabled
     @property
-    def auto_apply(self) -> bool:
-        return self.roi_params.auto_apply
+    def auto_apply_module(self) -> set[MODULE]:
+        auto_apply_module_out = set()
+        cdef unordered_set[c_MODULE].iterator it = self.roi_params.auto_apply_module.begin()
+        while(it != self.roi_params.auto_apply_module.end()):
+            auto_apply_module_out.add(MODULE(deref(it)))
+            postincrement(it)
+        return auto_apply_module_out
     
-    @auto_apply.setter
-    def auto_apply(self, bool auto_apply_):
-        self.roi_params.auto_apply = auto_apply_
+    @auto_apply_module.setter
+    def auto_apply_module(self, auto_apply_module):
+        self.roi_params.auto_apply_module.clear()
+        for v in auto_apply_module:
+            self.roi_params.auto_apply_module.insert(<c_MODULE> (<unsigned int>v.value))
 
 # Returns the current timestamp at the time the function is called.
 # \ingroup Core_group
@@ -4424,13 +4606,13 @@ cdef class SensorsConfiguration:
     def is_sensor_available(self, sensor_type) -> bool:
         if isinstance(sensor_type, SENSOR_TYPE):
             if sensor_type == SENSOR_TYPE.ACCELEROMETER:
-                return self.self.accelerometer_parameters.is_available
+                return self.accelerometer_parameters.is_available
             elif sensor_type == SENSOR_TYPE.GYROSCOPE:
-                return self.self.gyroscope_parameters.is_available
+                return self.gyroscope_parameters.is_available
             elif sensor_type == SENSOR_TYPE.MAGNETOMETER:
-                return self.self.magnetometer_parameters.is_available
+                return self.magnetometer_parameters.is_available
             elif sensor_type == SENSOR_TYPE.BAROMETER:
-                return self.self.barometer_parameters.is_available
+                return self.barometer_parameters.is_available
             else:
                 return False
         else:
@@ -4868,7 +5050,7 @@ cdef class Mat:
     ##
     # Returns the resolution (width and height) of the matrix.
     # \return Resolution of the matrix in pixels.
-    def get_resolution(self) -> int:
+    def get_resolution(self) -> Resolution:
         return Resolution(self.mat.getResolution().width, self.mat.getResolution().height)
 
     ##
@@ -6420,8 +6602,8 @@ cdef class InitParameters:
                   depth_mode=DEPTH_MODE.PERFORMANCE,
                   coordinate_units=UNIT.MILLIMETER,
                   coordinate_system=COORDINATE_SYSTEM.IMAGE,
-                  sdk_verbose=0, sdk_gpu_id=-1, depth_minimum_distance=-1.0, depth_maximum_distance=-1.0, camera_disable_self_calib=False,
-                  camera_image_flip=FLIP_MODE.AUTO, enable_right_side_measure=False,
+                  sdk_verbose=1, sdk_gpu_id=-1, depth_minimum_distance=-1.0, depth_maximum_distance=-1.0, camera_disable_self_calib=False,
+                  camera_image_flip=FLIP_MODE.OFF, enable_right_side_measure=False,
                   sdk_verbose_log_file="", depth_stabilization=1, input_t=InputType(),
                   optional_settings_path="",sensors_required=False,
                   enable_image_enhancement=True, optional_opencv_calibration_file="", 
@@ -6699,7 +6881,7 @@ cdef class InitParameters:
         self.init.depth_maximum_distance = value
 
     ##
-    # Defines if a flip of the images is needed.
+    # Disables the self-calibration process at camera opening.
     #
     # At initialization, sl.Camera runs a self-calibration process that corrects small offsets from the device's factory calibration.
     # \n A drawback is that calibration parameters will slightly change from one (live) run to another, which can be an issue for repeatability.
@@ -7017,7 +7199,7 @@ cdef class RuntimeParameters:
     # \param measure3D_reference_frame : Chosen \ref measure3D_reference_frame
     # \param remove_saturated_areas : Activates \ref remove_saturated_areas
     def __cinit__(self, enable_depth=True, enable_fill_mode=False,
-                  confidence_threshold = 100, texture_confidence_threshold = 100,
+                  confidence_threshold = 95, texture_confidence_threshold = 100,
                   measure3D_reference_frame=REFERENCE_FRAME.CAMERA, remove_saturated_areas = True) -> RuntimeParameters:
         if (isinstance(enable_depth, bool)
             and isinstance(enable_fill_mode, bool)
@@ -7162,7 +7344,7 @@ cdef class PositionalTrackingParameters:
     # \endcode
     def __cinit__(self, _init_pos=Transform(), _enable_memory=True, _enable_pose_smoothing=False, _area_path=None,
                   _set_floor_as_origin=False, _enable_imu_fusion=True, _set_as_static=False, _depth_min_range=-1,
-                  _set_gravity_as_origin=True, _mode=POSITIONAL_TRACKING_MODE.STANDARD) -> PositionalTrackingParameters:
+                  _set_gravity_as_origin=True, _mode=POSITIONAL_TRACKING_MODE.GEN_1) -> PositionalTrackingParameters:
         if _area_path is None:
             self.tracking = new c_PositionalTrackingParameters((<Transform>_init_pos).transform[0], _enable_memory, _enable_pose_smoothing, String(), _set_floor_as_origin, _enable_imu_fusion, _set_as_static, _depth_min_range, _set_gravity_as_origin, <c_POSITIONAL_TRACKING_MODE>(<unsigned int>_mode.value))
         else :
@@ -7322,14 +7504,14 @@ cdef class PositionalTrackingParameters:
     ##
     # Positional tracking mode used.
     # Can be used to improve accuracy in some types of scene at the cost of longer runtime.
-    # \n Default: [sl.POSITIONAL_TRACKING_MODE.STANDARD](\ref POSITIONAL_TRACKING_MODE)
+    # \n Default: [sl.POSITIONAL_TRACKING_MODE.GEN_1](\ref POSITIONAL_TRACKING_MODE)
     @property
     def mode(self) -> POSITIONAL_TRACKING_MODE:
         return POSITIONAL_TRACKING_MODE(<int>self.tracking.mode)
 
     @mode.setter
     def mode(self, value: POSITIONAL_TRACKING_MODE):
-        self.tracking.mode = <c_POSITIONAL_TRACKING_MODE>(<unsigned int>value)
+        self.tracking.mode = <c_POSITIONAL_TRACKING_MODE>(<unsigned int>value.value)
 
 ##
 # Lists the different encoding types for image streaming.
@@ -7434,7 +7616,7 @@ cdef class StreamingParameters:
     # \code
     # params = sl.StreamingParameters(port=30000)
     # \endcode
-    def __cinit__(self, codec=STREAMING_CODEC.H265, port=30000, bitrate=8000, gop_size=-1, adaptative_bitrate=False, chunk_size=32768,target_framerate=0) -> StreamingParameters:
+    def __cinit__(self, codec=STREAMING_CODEC.H265, port=30000, bitrate=0, gop_size=-1, adaptative_bitrate=False, chunk_size=16084,target_framerate=0) -> StreamingParameters:
             self.streaming = new c_StreamingParameters(<c_STREAMING_CODEC>(<unsigned int>codec.value), port, bitrate, gop_size, adaptative_bitrate, chunk_size,target_framerate)
 
     def __dealloc__(self):
@@ -7568,7 +7750,7 @@ cdef class RecordingParameters:
     # \code
     # params = sl.RecordingParameters(video_filename="record.svo",compression_mode=SVO_COMPRESSION_MODE.H264)
     # \endcode
-    def __cinit__(self, video_filename="myRecording.svo", compression_mode=SVO_COMPRESSION_MODE.H264, target_framerate=0,
+    def __cinit__(self, video_filename="myRecording.svo2", compression_mode=SVO_COMPRESSION_MODE.H264, target_framerate=0,
                     bitrate=0, transcode_streaming_input=False) -> RecordingParameters:
         if (isinstance(compression_mode, SVO_COMPRESSION_MODE)) :
             video_filename_c = video_filename.encode()
@@ -8720,11 +8902,8 @@ cdef class Camera:
     #           zed.retrieve_image(image, sl.VIEW.LEFT) # Get the left image     
     #           # Use the image for your application
     # \endcode
-    def grab(self, py_runtime=RuntimeParameters()) -> ERROR_CODE:
-        if py_runtime:
-            return ERROR_CODE(<int>self.camera.grab(deref((<RuntimeParameters>py_runtime).runtime)))
-        else:
-            print("RuntimeParameters must be initialized first with RuntimeParameters().")
+    def grab(self, py_runtime: RuntimeParameters = RuntimeParameters()) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.camera.grab(deref((py_runtime).runtime)))
 
     ##
     # Retrieves images from the camera (or SVO file).
@@ -8848,16 +9027,19 @@ cdef class Camera:
     # If empty, set all pixels as valid. The mask can be either at lower or higher resolution than the current images.
     # \return An ERROR_CODE if something went wrong.
     # \note The method support \ref MAT_TYPE "U8_C1/U8_C3/U8_C4" images type.
-    def set_region_of_interest(self, py_mat: Mat) -> ERROR_CODE:
-        return ERROR_CODE(<int>self.camera.setRegionOfInterest(py_mat.mat))
+    def set_region_of_interest(self, py_mat: Mat, modules=[MODULE.ALL]) -> ERROR_CODE:
+        cdef unordered_set[c_MODULE] modules_set
+        for v in modules:
+            modules_set.insert(<c_MODULE> (<unsigned int>v.value))
+        return ERROR_CODE(<int>self.camera.setRegionOfInterest(py_mat.mat, modules_set))
     
     ##
     # Get the previously set or computed region of interest
     # \param roi_mask: The \ref Mat returned
     # \param image_size: The optional size of the returned mask
     # \return An \ref ERROR_CODE if something went wrong.
-    def get_region_of_interest(self, py_mat: Mat, resolution=Resolution(0,0)) -> ERROR_CODE:
-        return ERROR_CODE(<int>self.camera.getRegionOfInterest(py_mat.mat, (<Resolution>resolution).resolution))
+    def get_region_of_interest(self, py_mat: Mat, resolution=Resolution(0,0), module=MODULE.ALL) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.camera.getRegionOfInterest(py_mat.mat, (<Resolution>resolution).resolution, (<c_MODULE>(<unsigned int>module.value))))
     
     ##
     # Start the auto detection of a region of interest to focus on for all the SDK, discarding other parts.
@@ -8977,6 +9159,72 @@ cdef class Camera:
         return self.camera.getSVONumberOfFrames()
 
     ##
+    # ingest a SVOData in the SVO file.
+    #
+    # \return An error code stating the success, or not.
+    #
+    # The method works only if the camera is open in SVO recording mode.
+    def ingest_data_into_svo(self, data: SVOData) -> ERROR_CODE:
+        if isinstance(data, SVOData) :
+            return ERROR_CODE(<int>self.camera.ingestDataIntoSVO(data.svo_data))
+        else:
+            raise TypeError("Arguments must be of SVOData.") 
+
+    ##
+    # Get the external channels that can be retrieved from the SVO file.
+    #
+    # \return a list of keys
+    #
+    # The method works only if the camera is open in SVO playback mode.
+    def get_svo_data_keys(self) -> list:
+        vect_ = self.camera.getSVODataKeys()
+        vect_python = []
+        for i in range(vect_.size()):
+            vect_python.append(vect_[i].decode())
+
+        return vect_python
+
+    ##
+    # retrieve SVO datas from the SVO file at the given channel key and in the given timestamp range.
+    #
+    # \return An error code stating the success, or not.
+    # \param key : The channel key.
+    # \param data : The dict to be filled with SVOData objects, with timestamps as keys.
+    # \param ts_begin : The beginning of the range.
+    # \param ts_end : The end of the range.
+    #
+    # The method works only if the camera is open in SVO playback mode.
+    def retrieve_svo_data(self, key: str, data: dict, ts_begin: Timestamp, ts_end: Timestamp) -> ERROR_CODE:
+        cdef map[c_Timestamp, c_SVOData] data_c
+        cdef map[c_Timestamp, c_SVOData].iterator it
+
+        if isinstance(key, str) :
+            if isinstance(data, dict) :
+                res = ERROR_CODE(<int>self.camera.retrieveSVOData(key.encode('utf-8'), data_c, ts_begin.timestamp, ts_end.timestamp))
+                it = data_c.begin()
+
+                while(it != data_c.end()):
+                    # let's pretend here I just want to print the key and the value
+                    # print(deref(it).first) # print the key        
+                    # print(deref(it).second) # print the associated value
+
+                    ts = Timestamp()
+                    ts.timestamp = deref(it).first
+                    content_c = SVOData()
+                    content_c.svo_data = deref(it).second
+                    data[ts] = content_c
+
+                    postincrement(it) # Increment the iterator to the net element
+
+                return res
+
+            else:
+                raise TypeError("The content must be a dict.") 
+        else:
+            raise TypeError("The key must be a string.") 
+        
+        return ERROR_CODE.FAILURE
+
     # Sets the value of the requested \ref VIDEO_SETTINGS "camera setting" (gain, brightness, hue, exposure, etc.).
     #
     # This method only applies for \ref VIDEO_SETTINGS that require a single value.
@@ -9281,6 +9529,7 @@ cdef class Camera:
         tracking.tracking.set_as_static = self.camera.getPositionalTrackingParameters().set_as_static
         tracking.tracking.depth_min_range = self.camera.getPositionalTrackingParameters().depth_min_range
         tracking.tracking.set_gravity_as_origin = self.camera.getPositionalTrackingParameters().set_gravity_as_origin
+        tracking.tracking.mode = self.camera.getPositionalTrackingParameters().mode
         return tracking
 
     ## 
@@ -9307,7 +9556,6 @@ cdef class Camera:
     # \return \ref ObjectDetectionParameters containing the parameters used for object detection initialization.
     def get_object_detection_parameters(self, instance_module_id=0) -> ObjectDetectionParameters:
         object_detection = ObjectDetectionParameters()
-        object_detection.object_detection.image_sync = self.camera.getObjectDetectionParameters(instance_module_id).image_sync
         object_detection.object_detection.enable_tracking = self.camera.getObjectDetectionParameters(instance_module_id).enable_tracking
         object_detection.object_detection.max_range = self.camera.getObjectDetectionParameters(instance_module_id).max_range
         object_detection.object_detection.prediction_timeout_s = self.camera.getObjectDetectionParameters(instance_module_id).prediction_timeout_s
@@ -9323,7 +9571,6 @@ cdef class Camera:
     # \return \ref BodyTrackingParameters containing the parameters used for body tracking initialization.
     def get_body_tracking_parameters(self, instance_id = 0) -> BodyTrackingParameters:
         body_params = BodyTrackingParameters()
-        body_params.bodyTrackingParameters.image_sync = self.camera.getBodyTrackingParameters(instance_id).image_sync
         body_params.bodyTrackingParameters.enable_tracking = self.camera.getBodyTrackingParameters(instance_id).enable_tracking
         body_params.bodyTrackingParameters.enable_segmentation = self.camera.getBodyTrackingParameters(instance_id).enable_segmentation
         body_params.bodyTrackingParameters.detection_model = self.camera.getBodyTrackingParameters(instance_id).detection_model
@@ -9435,10 +9682,6 @@ cdef class Camera:
     #
     # \n Detected objects can be retrieved using the \ref retrieve_bodies() method.
     #
-    # \n As detecting and tracking the objects is CPU and GPU-intensive, the module can be used synchronously or asynchronously using \ref BodyTrackingParameters.image_sync.
-    # - <b>Synchronous:</b> the \ref retrieve_bodies() method will be blocking during the detection.
-    # - <b>Asynchronous:</b> the detection is running in the background, and \ref retrieve_bodies() will immediately return the last objects detected.
-    #
     # \note - <b>This Deep Learning detection module is not available for \ref MODEL "MODEL.ZED" cameras (first generation ZED cameras).</b>
     # \note - This feature uses AI to locate objects and requires a powerful GPU. A GPU with at least 3GB of memory is recommended.
     #
@@ -9499,19 +9742,6 @@ cdef class Camera:
             return ERROR_CODE(<int>self.camera.enableBodyTracking(deref(body_tracking_parameters.bodyTrackingParameters)))
         else:
             raise TypeError("Argument is not of BodyTrackingParameters type.")
-
-    ##
-    # Pauses or resumes the body tracking processes.
-    #
-    # If the body tracking has been enabled with \ref BodyTrackingParameters.image_sync set to false (running asynchronously), this method will pause processing.
-    #
-    # While in pause, calling this method with <i>status = false</i> will resume the body tracking.
-    # \note The \ref retrieve_bodies method will keep on returning the last bodies detected while in pause.
-    #
-    # \param status : If True, body tracking is paused. If False, body tracking is resumed.
-    # \param instance_id : Id of the instance to pause/resume. Used when multiple instances of the body tracking module are enabled at the same time.
-    def pause_body_tracking(self, status : bool, instance_id : int = 0) -> None:
-        return self.camera.pauseBodyTracking(status, instance_id)
 
     ##
     # Disables the body tracking process.
@@ -9647,6 +9877,17 @@ cdef class Camera:
             return POSITIONAL_TRACKING_STATE(<int>self.camera.getPosition(py_pose.pose, <c_REFERENCE_FRAME>(<unsigned int>reference_frame.value)))
         else:
             raise TypeError("Argument is not of REFERENCE_FRAME type.")
+
+    ## 
+    # \brief Return the current status of positional tracking module.
+    # 
+    # \return sl::PositionalTrackingStatus current status of positional tracking module. 
+    # 
+    def get_positional_tracking_status(self) -> PositionalTrackingStatus:
+        status = PositionalTrackingStatus();
+        status.odometry_status = self.camera.getPositionalTrackingStatus().odometry_status
+        status.spatial_memory_status = self.camera.getPositionalTrackingStatus().spatial_memory_status
+        return status
 
     ##
     # Returns the state of the spatial memory export process.
@@ -10108,10 +10349,7 @@ cdef class Camera:
     # \n The full list of detectable objects is available through \ref OBJECT_CLASS and \ref OBJECT_SUBCLASS.
     # 
     # \n Detected objects can be retrieved using the \ref retrieve_objects() method.
-    #
-    # \n As detecting and tracking the objects is CPU and GPU-intensive, the module can be used synchronously or asynchronously using \ref ObjectDetectionParameters.image_sync .
-    # - <b>Synchronous:</b> the \ref retrieve_objects() method will be blocking during the detection.
-    # - <b>Asynchronous:</b> the detection is running in the background, and \ref retrieve_objects() will immediately return the last objects detected.
+    #  the \ref retrieve_objects() method will be blocking during the detection.
     # 
     # \note - <b>This Depth Learning detection module is not available \ref MODEL "MODEL.ZED" cameras.</b>
     # \note - This feature uses AI to locate objects and requires a powerful GPU. A GPU with at least 3GB of memory is recommended.
@@ -10148,7 +10386,6 @@ cdef class Camera:
     #
     #     # Set the object detection parameters
     #     object_detection_params = sl.ObjectDetectionParameters()
-    #     object_detection_params.image_sync = True
     #
     #     # Enable the object detection
     #     err = zed.enable_object_detection(object_detection_params)
@@ -10192,22 +10429,6 @@ cdef class Camera:
         else:
             raise TypeError("Argument is not of boolean type.")
 
-    ##
-    # Pauses or resumes the object detection processes.
-    #
-    # If the object detection has been enabled with \ref ObjectDetectionParameters.image_sync set to false (running asynchronously), this method will pause processing.
-    # 
-    # While in pause, calling this method with <i>status = false</i> will resume the object detection.
-    # \note The \ref retrieve_objects method will keep on returning the last objects detected while in pause.
-    #
-    # \param status : If True, object detection is paused. If False, object detection is resumed.
-    # \param instance_id : Id of the instance to pause/resume. Used when multiple instances of the object detection module are enabled at the same time.
-    def pause_object_detection(self, status: bool, instance_module_id=0) -> None:
-        if isinstance(status, bool):
-            self.camera.pauseObjectDetection(status, instance_module_id)
-        else:
-            raise TypeError("Argument is not of boolean type.")
-
 
     ##
     # Retrieve objects detected by the object detection module.
@@ -10233,9 +10454,9 @@ cdef class Camera:
     #         for i in range(len(object_list)):
     #             print(repr(object_list[i].label))
     # \endcode
-    def retrieve_objects(self, py_objects: Objects, object_detection_parameters=ObjectDetectionRuntimeParameters(), instance_module_id=0) -> ERROR_CODE:
+    def retrieve_objects(self, py_objects: Objects, object_detection_parameters : ObjectDetectionRuntimeParameters = ObjectDetectionRuntimeParameters(), instance_module_id=0) -> ERROR_CODE:
         if isinstance(py_objects, Objects) :
-            return ERROR_CODE(<int>self.camera.retrieveObjects((<Objects>py_objects).objects, deref((<ObjectDetectionRuntimeParameters>object_detection_parameters).object_detection_rt), instance_module_id))
+            return ERROR_CODE(<int>self.camera.retrieveObjects((<Objects>py_objects).objects, deref((object_detection_parameters).object_detection_rt), instance_module_id))
         else :
            raise TypeError("Argument is not of Objects type.") 
 
@@ -10320,7 +10541,8 @@ cdef class Camera:
             prop = DeviceProperties()
             prop.camera_state = CAMERA_STATE(<int> vect_[i].camera_state)
             prop.id = vect_[i].id
-            prop.path = vect_[i].path.get().decode()
+            if not vect_[i].path.empty():
+                prop.path = vect_[i].path.get().decode()
             prop.camera_model = MODEL(<int>vect_[i].camera_model)
             prop.serial_number = vect_[i].serial_number
             vect_python.append(prop)
@@ -10383,34 +10605,38 @@ class COMM_TYPE(enum.Enum):
 # 
 # | Enumerator     |                  |
 # |----------------|------------------|
-# | WRONG_BODY_FORMAT | The senders are using different body formats.\n Consider changing them. |
-# | NOT_ENABLE | The following module was not enabled. |
-# | INPUT_FEED_MISMATCH | Some sources are provided by SVO and others by LIVE stream. |
+# | GNSS_DATA_NEED_FIX | GNSS Data need fix status in order to run fusion. |
+# | GNSS_DATA_COVARIANCE_MUST_VARY | Ingested covariance data must vary between ingest. |
+# | BODY_FORMAT_MISMATCH | The senders are using different body formats.\n Consider changing them. |
+# | NOT_ENABLED | The following module was not enabled. |
+# | SOURCE_MISMATCH | Some sources are provided by SVO and others by LIVE stream. |
 # | CONNECTION_TIMED_OUT | Connection timed out. Unable to reach the sender.\n Verify the sender's IP/port. |
 # | SHARED_MEMORY_LEAK | Intra-process shared memory allocation issue.\n Multiple connections to the same data. |
-# | BAD_IP_ADDRESS | The provided IP address format is incorrect.\n Please provide the IP in the format 'a.b.c.d', where (a, b, c, d) are numbers between 0 and 255. |
+# | INVALID_IP_ADDRESS | The provided IP address format is incorrect.\n Please provide the IP in the format 'a.b.c.d', where (a, b, c, d) are numbers between 0 and 255. |
 # | CONNECTION_ERROR | Something goes bad in the connection between sender and receiver. |
 # | FAILURE | Standard code for unsuccessful behavior. |
 # | SUCCESS | Standard code for successful behavior. |
-# | FUSION_ERRATIC_FPS | Significant differences observed between sender's FPS. |
+# | FUSION_INCONSISTENT_FPS | Significant differences observed between sender's FPS. |
 # | FUSION_FPS_TOO_LOW | At least one sender has an FPS lower than 10 FPS. |
 # | INVALID_TIMESTAMP | Problem detected with the ingested timestamp.\n Sample data will be ignored. |
 # | INVALID_COVARIANCE | Problem detected with the ingested covariance.\n Sample data will be ignored. |
 # | NO_NEW_DATA_AVAILABLE | All data from all sources has been consumed.\n No new data is available for processing. |
 class FUSION_ERROR_CODE(enum.Enum):
-    WRONG_BODY_FORMAT = <int>c_FUSION_ERROR_CODE.WRONG_BODY_FORMAT
-    NOT_ENABLE = <int>c_FUSION_ERROR_CODE.NOT_ENABLE
-    INPUT_FEED_MISMATCH = <int>c_FUSION_ERROR_CODE.INPUT_FEED_MISMATCH
+    GNSS_DATA_NEED_FIX = <int>c_FUSION_ERROR_CODE.GNSS_DATA_NEED_FIX
+    GNSS_DATA_COVARIANCE_MUST_VARY = <int>c_FUSION_ERROR_CODE.GNSS_DATA_COVARIANCE_MUST_VARY
+    BODY_FORMAT_MISMATCH = <int>c_FUSION_ERROR_CODE.BODY_FORMAT_MISMATCH
+    MODULE_NOT_ENABLED = <int>c_FUSION_ERROR_CODE.MODULE_NOT_ENABLED
+    SOURCE_MISMATCH = <int>c_FUSION_ERROR_CODE.SOURCE_MISMATCH
     CONNECTION_TIMED_OUT = <int>c_FUSION_ERROR_CODE.CONNECTION_TIMED_OUT
     MEMORY_ALREADY_USED = <int>c_FUSION_ERROR_CODE.MEMORY_ALREADY_USED
-    BAD_IP_ADDRESS = <int>c_FUSION_ERROR_CODE.BAD_IP_ADDRESS
+    INVALID_IP_ADDRESS = <int>c_FUSION_ERROR_CODE.INVALID_IP_ADDRESS
     FAILURE = <int>c_FUSION_ERROR_CODE.FAILURE
     SUCCESS = <int>c_FUSION_ERROR_CODE.SUCCESS
-    FUSION_ERRATIC_FPS = <int>c_FUSION_ERROR_CODE.FUSION_ERRATIC_FPS
+    FUSION_INCONSISTENT_FPS = <int>c_FUSION_ERROR_CODE.FUSION_INCONSISTENT_FPS
     FUSION_FPS_TOO_LOW = <int>c_FUSION_ERROR_CODE.FUSION_FPS_TOO_LOW
-    NO_NEW_DATA_AVAILABLE = <int>c_FUSION_ERROR_CODE.NO_NEW_DATA_AVAILABLE
     INVALID_TIMESTAMP = <int>c_FUSION_ERROR_CODE.INVALID_TIMESTAMP
     INVALID_COVARIANCE = <int>c_FUSION_ERROR_CODE.INVALID_COVARIANCE
+    NO_NEW_DATA_AVAILABLE = <int>c_FUSION_ERROR_CODE.NO_NEW_DATA_AVAILABLE
     
     def __str__(self):
         return to_str(toString(<c_FUSION_ERROR_CODE>(<int>self.value))).decode()
@@ -10418,26 +10644,6 @@ class FUSION_ERROR_CODE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_FUSION_ERROR_CODE>(<int>self.value))).decode()
 
-##
-# Lists the different states of the GNSS calibration.
-#
-# \ingroup Fusion_group
-# 
-# | Enumerator     |                  |
-# |----------------|------------------|
-# | NOT_CALIBRATED | The GNSS/VIO calibration has not been completed yet.\n Please continue moving the robot while ingesting GNSS data to perform the calibration. |
-# | CALIBRATED | The GNSS/VIO calibration is completed. |
-# | RE_CALIBRATION_IN_PROGRESS | A GNSS/VIO re-calibration is in progress in the background.\n Current geo-tracking services may not be accurate. |
-class GNSS_CALIBRATION_STATE(enum.Enum):
-    NOT_CALIBRATED = <int>c_GNSS_CALIBRATION_STATE.NOT_CALIBRATED
-    CALIBRATED = <int>c_GNSS_CALIBRATION_STATE.CALIBRATED
-    RE_CALIBRATION_IN_PROGRESS = <int>c_GNSS_CALIBRATION_STATE.RE_CALIBRATION_IN_PROGRESS
-
-    def __str__(self):
-        return to_str(toString(<c_GNSS_CALIBRATION_STATE>(<int>self.value))).decode()
-
-    def __repr__(self):
-        return to_str(toString(<c_GNSS_CALIBRATION_STATE>(<int>self.value))).decode()
 
 ##
 # Lists the types of error that can be raised during the Fusion by senders.
@@ -10449,13 +10655,13 @@ class GNSS_CALIBRATION_STATE(enum.Enum):
 # | DISCONNECTED | The sender has been disconnected. |
 # | SUCCESS | Standard code for successful behavior. |
 # | GRAB_ERROR | The sender encountered a grab error. |
-# | ERRATIC_FPS | The sender does not run with a constant frame rate. |
+# | INCONSISTENT_FPS | The sender does not run with a constant frame rate. |
 # | FPS_TOO_LOW | The frame rate of the sender is lower than 10 FPS. |
 class SENDER_ERROR_CODE(enum.Enum):
     DISCONNECTED = <int>c_SENDER_ERROR_CODE.DISCONNECTED
     SUCCESS = <int>c_SENDER_ERROR_CODE.SUCCESS
     GRAB_ERROR = <int>c_SENDER_ERROR_CODE.GRAB_ERROR
-    ERRATIC_FPS = <int>c_SENDER_ERROR_CODE.ERRATIC_FPS
+    INCONSISTENT_FPS = <int>c_SENDER_ERROR_CODE.INCONSISTENT_FPS
     FPS_TOO_LOW = <int>c_SENDER_ERROR_CODE.FPS_TOO_LOW
 
     def __str__(self):
@@ -10710,6 +10916,24 @@ cdef class GNSSCalibrationParameters:
     @enable_rolling_calibration.setter
     def enable_rolling_calibration(self, value:bool):
         self.gnssCalibrationParameters.enable_rolling_calibration = value
+
+    ##
+    # Define a transform between the GNSS antenna and the camera system for the VIO / GNSS calibration.
+    #
+    # Default value is [0,0,0], this position can be refined by the calibration if enabled
+    ##
+    @property
+    def gnss_antenna_position(self) -> np.array[float]:
+        cdef np.ndarray gnss_antenna_position = np.zeros(3)
+        for i in range(3):
+            gnss_antenna_position[i] = self.gnssCalibrationParameters.gnss_antenna_position[i]
+        return gnss_antenna_position
+
+    @gnss_antenna_position.setter
+    def gnss_antenna_position(self, np.ndarray gnss_antenna_position):
+        for i in range(3):
+            self.gnssCalibrationParameters.gnss_antenna_position[i] = gnss_antenna_position[i]
+
 
 ##
 # Holds the options used for initializing the positional tracking fusion module.
@@ -11177,6 +11401,15 @@ cdef class GeoConverter:
 ##
 # Holds Geo reference position.
 # \ingroup Fusion_group
+# \brief Holds geographic reference position information.
+#
+# This class represents a geographic pose, including position, orientation, and accuracy information.
+# It is used for storing and manipulating geographic data, such as latitude, longitude, altitude,
+# pose matrices, covariances, and timestamps.
+# 
+# The pose data is defined in the East-North-Up (ENU) reference frame. The ENU frame is a local
+# Cartesian coordinate system commonly used in geodetic applications. In this frame, the X-axis
+# points towards the East, the Y-axis points towards the North, and the Z-axis points upwards.
 cdef class GeoPose:
     cdef c_GeoPose geopose
     cdef Transform pose_data 
@@ -11188,7 +11421,7 @@ cdef class GeoPose:
         self.pose_data = Transform()
 
     ##
-    # The 4x4 Matrix defining the pose in ENU.
+    # The 4x4 matrix defining the pose in the East-North-Up (ENU) coordinate system.
     @property
     def pose_data(self):
         for i in range(16):
@@ -11201,7 +11434,7 @@ cdef class GeoPose:
         self.geopose.pose_data = deref(transform.transform)
 
     ##
-    # The pose covariance in ENU.
+    # The pose covariance matrix in ENU.
     @property
     def pose_covariance(self):
         arr = []
@@ -11221,7 +11454,7 @@ cdef class GeoPose:
             raise TypeError("Argument must be list type.")
 
     ##
-    # The horizontal accuracy.
+    # The horizontal accuracy of the pose in meters.
     @property
     def horizontal_accuracy(self):
         return self.geopose.horizontal_accuracy
@@ -11231,7 +11464,7 @@ cdef class GeoPose:
         self.geopose.horizontal_accuracy = value
 
     ##
-    # The vertical accuracy.
+    # The vertical accuracy of the pose in meters.
     @property
     def vertical_accuracy(self):
         return self.geopose.vertical_accuracy
@@ -11241,7 +11474,7 @@ cdef class GeoPose:
         self.geopose.vertical_accuracy = value
 
     ##
-    # The latitude, longitude, altitude.
+    # The latitude, longitude, and altitude coordinates of the pose.
     @property
     def latlng_coordinates(self):
         result = LatLng()
@@ -11253,7 +11486,7 @@ cdef class GeoPose:
         self.geopose.latlng_coordinates = value.latLng
 
     ##
-    # The heading.
+    # The heading (orientation) of the pose in degrees (°). It indicates the direction in which the object or observer is facing, with 0 degrees corresponding to North and increasing in a clockwise direction.
     @property
     def heading(self):
         return self.geopose.heading
@@ -11263,7 +11496,7 @@ cdef class GeoPose:
         self.geopose.heading = value
 
     ##
-    # Timestamp of geopose.
+    # The timestamp associated with the GeoPose.
     @property
     def timestamp(self):
         timestamp = Timestamp()
@@ -11344,7 +11577,23 @@ cdef class GNSSData:
     @ts.setter
     def ts(self, value: Timestamp):
         self.gnss_data.ts = value.timestamp
-    
+
+    @property
+    def gnss_status(self) -> GNSS_STATUS:
+        return GNSS_STATUS(<int>self.gnss_data.gnss_status)
+
+    @gnss_status.setter
+    def gnss_status(self, gnss_status):
+        self.gnss_data.gnss_status = (<c_GNSS_STATUS> (<unsigned int>gnss_status))
+
+    @property
+    def gnss_mode(self) -> GNSS_MODE:
+        return GNSS_STATUS(<int>self.gnss_data.gnss_mode)
+
+    @gnss_mode.setter
+    def gnss_mode(self, gnss_mode):
+        self.gnss_data.gnss_mode = (<c_GNSS_MODE> (<unsigned int>gnss_mode))
+
     ##
     # Covariance of the position in meter (must be expressed in the ENU coordinate system).
     # For eph, epv GNSS sensors, set it as follow: ```{eph*eph, 0, 0, 0, eph*eph, 0, 0, 0, epv*epv}```.
@@ -11585,6 +11834,15 @@ cdef class Fusion:
     def get_position(self, camera_pose : Pose, reference_frame : REFERENCE_FRAME = REFERENCE_FRAME.WORLD, uuid: CameraIdentifier = CameraIdentifier(), position_type : POSITION_TYPE = POSITION_TYPE.FUSION):
         return POSITIONAL_TRACKING_STATE(<int>self.fusion.getPosition(camera_pose.pose, <c_REFERENCE_FRAME>(<int>reference_frame.value), uuid.cameraIdentifier, <c_POSITION_TYPE>(<int>position_type.value)))
 
+    def get_fused_positional_tracking_status(self) -> FusedPositionalTrackingStatus:
+        status = FusedPositionalTrackingStatus();
+        status.odometry_status = self.fusion.getFusedPositionalTrackingStatus().odometry_status
+        status.spatial_memory_status = self.fusion.getFusedPositionalTrackingStatus().spatial_memory_status
+        status.gnss_status = self.fusion.getFusedPositionalTrackingStatus().gnss_status
+        status.gnss_mode = self.fusion.getFusedPositionalTrackingStatus().gnss_mode
+        status.gnss_fusion_status = self.fusion.getFusedPositionalTrackingStatus().gnss_fusion_status
+        return status
+
     ##
     # Returns the last synchronized gnss data.
     # \param out [out]: Last synchronized gnss data.
@@ -11595,25 +11853,25 @@ cdef class Fusion:
     ##
     # Returns the current GeoPose.
     # \param pose [out]: The current GeoPose.
-    # \return GNSS_CALIBRATION_STATE is the current state of the tracking process.
-    def get_geo_pose(self, pose : GeoPose) -> GNSS_CALIBRATION_STATE:
-        return GNSS_CALIBRATION_STATE(<int>self.fusion.getGeoPose(pose.geopose))
+    # \return GNSS_FUSION_STATUS is the current state of the tracking process.
+    def get_geo_pose(self, pose : GeoPose) -> GNSS_FUSION_STATUS:
+        return GNSS_FUSION_STATUS(<int>self.fusion.getGeoPose(pose.geopose))
 
     ##
     # Convert latitude / longitude into position in sl::Fusion coordinate system.
     # \param input  [in]: The latitude / longitude to be converted in sl::Fusion coordinate system.
     # \param out [out]: Converted position in sl.Fusion coordinate system.
-    # \return GNSS_CALIBRATION_STATE is the current state of the tracking process.
-    def geo_to_camera(self, input : LatLng, output : Pose) -> GNSS_CALIBRATION_STATE:
-        return GNSS_CALIBRATION_STATE(<int>self.fusion.Geo2Camera(input.latLng, output.pose))
+    # \return GNSS_FUSION_STATUS is the current state of the tracking process.
+    def geo_to_camera(self, input : LatLng, output : Pose) -> GNSS_FUSION_STATUS:
+        return GNSS_FUSION_STATUS(<int>self.fusion.Geo2Camera(input.latLng, output.pose))
 
     ##
     # Convert a position in sl.Fusion coordinate system in global world coordinate.
     # \param pose [in]: Position to convert in global world coordinate. 
     # \param pose [out]: Converted position in global world coordinate. 
-    # \return GNSS_CALIBRATION_STATE is the current state of the tracking process.
-    def camera_to_geo(self, input : Pose, output : GeoPose) -> GNSS_CALIBRATION_STATE:
-        return GNSS_CALIBRATION_STATE(<int>self.fusion.Camera2Geo(input.pose, output.geopose))
+    # \return GNSS_FUSION_STATUS is the current state of the tracking process.
+    def camera_to_geo(self, input : Pose, output : GeoPose) -> GNSS_FUSION_STATUS:
+        return GNSS_FUSION_STATUS(<int>self.fusion.Camera2Geo(input.pose, output.geopose))
 
     ##
     # Disable the fusion positional tracking module.
@@ -11624,19 +11882,19 @@ cdef class Fusion:
         
     ##
     # Get the current calibration uncertainty obtained during calibration process.
-    # \return sl.GNSS_CALIBRATION_STATE representing current initialisation status.
+    # \return sl.GNSS_FUSION_STATUS representing current initialisation status.
     # \return Output yaw uncertainty.
     # \return Output position uncertainty.
     ##
-    def get_current_gnss_calibration_std(self) -> tuple[GNSS_CALIBRATION_STATE, float, np.array]:
+    def get_current_gnss_calibration_std(self) -> tuple[GNSS_FUSION_STATUS, float, np.array]:
         cdef float3 position_std
         cdef float yaw_std
-        gnss_calibration_state = GNSS_CALIBRATION_STATE(<int>self.fusion.getCurrentGNSSCalibrationSTD(yaw_std, position_std))
+        gnss_fusion_status = GNSS_FUSION_STATUS(<int>self.fusion.getCurrentGNSSCalibrationSTD(yaw_std, position_std))
         position_std_out = np.array([0,0,0], dtype=np.float64)
         position_std_out[0] = position_std[0]
         position_std_out[1] = position_std[1]
         position_std_out[2] = position_std[2]
-        return gnss_calibration_state, yaw_std, position_std_out
+        return gnss_fusion_status, yaw_std, position_std_out
 
     ##
     # Get the calibration found between VIO and GNSS.
@@ -11650,3 +11908,44 @@ cdef class Fusion:
         for i in range(16):
             tf_out.transform.m[i] = tmp.m[i]
         return tf_out
+
+##
+# Class containing SVO data to be ingested/retrieved to/from SVO.
+# \ingroup Core_group
+cdef class SVOData:
+
+    cdef c_SVOData svo_data
+
+    ##
+    # Get the content of the sl.SVOData as a string.
+    def get_content_as_string(self) -> str:
+        cdef string input
+        self.svo_data.getContent(input)
+        return input.decode()
+
+    ##
+    # Get the content of the sl.SVOData as a string.
+    def set_string_content(self, data: str) -> str:
+        self.svo_data.setContent(data.encode('utf-8'))
+
+    ##
+    # Timestamp of the data.
+    @property
+    def timestamp_ns(self) -> Timestamp:
+        ts = Timestamp()
+        ts.timestamp=self.svo_data.timestamp_ns
+        return ts
+
+    @timestamp_ns.setter
+    def timestamp_ns(self, timestamp : Timestamp):
+        self.svo_data.timestamp_ns.data_ns = timestamp.get_nanoseconds()
+
+    ##
+    # Key of the data.
+    @property
+    def key(self) -> str:
+        return self.svo_data.key.decode()
+
+    @key.setter
+    def key(self, key_value: str):
+        self.svo_data.key = key_value.encode('utf-8')
