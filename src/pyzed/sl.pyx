@@ -282,6 +282,9 @@ class ERROR_CODE(enum.Enum):
 # | ZED2i      | ZED 2i camera model |
 # | ZED_X      | ZED X camera model |
 # | ZED_XM     | ZED X Mini (ZED XM) camera model |
+# | VIRTUAL_ZED_X | Virtual ZED-X generated from 2 ZED-XOne |
+# | ZED_XONE_GS   | ZED XOne with global shutter AR0234 sensor |
+# | ZED_XONE_UHD  | ZED XOne with 4K rolling shutter IMX678 sensor |
 class MODEL(enum.Enum):
     ZED = <int>c_MODEL.ZED
     ZED_M = <int>c_MODEL.ZED_M
@@ -289,6 +292,9 @@ class MODEL(enum.Enum):
     ZED2i = <int>c_MODEL.ZED2i
     ZED_X = <int>c_MODEL.ZED_X
     ZED_XM = <int>c_MODEL.ZED_XM
+    VIRTUAL_ZED_X = <int>c_MODEL.VIRTUAL_ZED_X
+    ZED_XONE_GS = <int>c_MODEL.ZED_XONE_GS
+    ZED_XONE_UHD = <int>c_MODEL.ZED_XONE_UHD
     LAST = <int>c_MODEL.MODEL_LAST
 
     def __str__(self):
@@ -9450,8 +9456,11 @@ cdef class Camera:
     # \param min[out] : Minimum depth detected (in selected sl.UNIT).
     # \param max[out] : Maximum depth detected (in selected sl.UNIT).
     # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if values can be extracted, \ref ERROR_CODE "ERROR_CODE.FAILURE" otherwise.
-    def get_current_min_max_depth(self,min: float,max: float) -> ERROR_CODE:
-        return ERROR_CODE(<int>self.camera.getCurrentMinMaxDepth(min.float,max.float))
+    def get_current_min_max_depth(self) -> (ERROR_CODE, float, float):
+        cdef float min
+        cdef float max
+        error_code = ERROR_CODE(<int>self.camera.getCurrentMinMaxDepth(<float&>min, <float&>max))
+        return error_code, min, max
 
     ##
     # Returns the CameraInformation associated the camera being used.
@@ -11486,7 +11495,7 @@ cdef class GeoPose:
         self.geopose.latlng_coordinates = value.latLng
 
     ##
-    # The heading (orientation) of the pose in degrees (°). It indicates the direction in which the object or observer is facing, with 0 degrees corresponding to North and increasing in a clockwise direction.
+    # The heading (orientation) of the pose in radians (rad). It indicates the direction in which the object or observer is facing, with 0 degrees corresponding to North and increasing in a counter-clockwise direction.
     @property
     def heading(self):
         return self.geopose.heading
@@ -11578,6 +11587,8 @@ cdef class GNSSData:
     def ts(self, value: Timestamp):
         self.gnss_data.ts = value.timestamp
 
+    ##
+    # Represents the current status of GNSS. 
     @property
     def gnss_status(self) -> GNSS_STATUS:
         return GNSS_STATUS(<int>self.gnss_data.gnss_status)
@@ -11586,6 +11597,8 @@ cdef class GNSSData:
     def gnss_status(self, gnss_status):
         self.gnss_data.gnss_status = (<c_GNSS_STATUS> (<unsigned int>gnss_status))
 
+    ##
+    # Represents the current mode of GNSS.
     @property
     def gnss_mode(self) -> GNSS_MODE:
         return GNSS_STATUS(<int>self.gnss_data.gnss_mode)

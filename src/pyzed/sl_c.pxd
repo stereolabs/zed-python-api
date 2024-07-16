@@ -116,6 +116,9 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         ZED2i 'sl::MODEL::ZED2i',
         ZED_X 'sl::MODEL::ZED_X',
         ZED_XM 'sl::MODEL::ZED_XM',
+        VIRTUAL_ZED_X 'sl::MODEL::VIRTUAL_ZED_X',
+        ZED_XONE_GS 'sl::MODEL::ZED_XONE_GS',
+        ZED_XONE_UHD 'sl::MODEL::ZED_XONE_UHD',
         MODEL_LAST 'sl::MODEL::LAST'
 
     String toString(MODEL o)
