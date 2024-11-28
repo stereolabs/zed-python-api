@@ -28,6 +28,7 @@ from libcpp.vector cimport vector
 from libc.string cimport const_char
 from libcpp.map cimport map
 from libcpp.unordered_set cimport unordered_set
+from libcpp.unordered_map cimport unordered_map
 
 cdef extern from "<array>" namespace "std" nogil:
   cdef cppclass array6 "std::array<float, 6>":
@@ -61,6 +62,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
 
     ctypedef enum ERROR_CODE "sl::ERROR_CODE" :
+        CONFIGURATION_FALLBACK 'sl::ERROR_CODE::CONFIGURATION_FALLBACK',
+        SENSORS_DATA_REQUIRED 'sl::ERROR_CODE::SENSORS_DATA_REQUIRED',
         CORRUPTED_FRAME 'sl::ERROR_CODE::CORRUPTED_FRAME',
         CAMERA_REBOOTING 'sl::ERROR_CODE::CAMERA_REBOOTING',
         SUCCESS 'sl::ERROR_CODE::SUCCESS',
@@ -97,7 +100,6 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         MODULE_NOT_COMPATIBLE_WITH_CAMERA 'sl::ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CAMERA',
         MOTION_SENSORS_REQUIRED 'sl::ERROR_CODE::MOTION_SENSORS_REQUIRED',
         MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION 'sl::ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION',
-        SENSORS_DATA_REQUIRED 'sl::ERROR_CODE::SENSORS_DATA_REQUIRED',
         LAST 'sl::ERROR_CODE::LAST'
 
 
@@ -262,6 +264,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         BOTH 'sl::SIDE::BOTH'
 
     ctypedef enum RESOLUTION 'sl::RESOLUTION':
+        HD4K 'sl::RESOLUTION::HD4K'
+        QHDPLUS 'sl::RESOLUTION::QHDPLUS'
         HD2K 'sl::RESOLUTION::HD2K'
         HD1080 'sl::RESOLUTION::HD1080'
         HD1200 'sl::RESOLUTION::HD1200'
@@ -544,6 +548,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         PERSON_HEAD_BOX_FAST 'sl::OBJECT_DETECTION_MODEL::PERSON_HEAD_BOX_FAST'
         PERSON_HEAD_BOX_ACCURATE 'sl::OBJECT_DETECTION_MODEL::PERSON_HEAD_BOX_ACCURATE'
         CUSTOM_BOX_OBJECTS 'sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS'
+        CUSTOM_YOLOLIKE_BOX_OBJECTS 'sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS'
         LAST 'sl::OBJECT_DETECTION_MODEL::LAST'
 
     ctypedef enum BODY_TRACKING_MODEL 'sl::BODY_TRACKING_MODEL':
@@ -568,6 +573,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         double current_compression_ratio
         double average_compression_time
         double average_compression_ratio
+        int number_frames_ingested
+        int number_frames_encoded
 
 
     Timestamp getCurrentTimeStamp()
@@ -784,6 +791,20 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         int label
         float probability
         bool is_grounded
+        bool is_static
+        float tracking_timeout
+        float tracking_max_dist
+
+    cdef cppclass CustomMaskObjectData 'sl::CustomMaskObjectData':
+        String unique_object_id
+        vector[Vector2[uint]] bounding_box_2d
+        int label
+        float probability
+        bool is_grounded
+        bool is_static
+        float tracking_timeout
+        float tracking_max_dist
+        Mat box_mask
 
     cdef cppclass ObjectsBatch 'sl::ObjectsBatch':
         int id
@@ -1305,7 +1326,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float open_timeout_sec
         bool async_grab_camera_recovery
         float grab_compute_capping_fps
-        bool enable_image_validity_check
+        bool async_image_retrieval
+        int enable_image_validity_check
 
         InitParameters(RESOLUTION camera_resolution,
                        int camera_fps,
@@ -1331,7 +1353,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        float open_timeout_sec,
                        bool async_grab_camera_recovery,
                        float grab_compute_capping_fps,
-                       bool enable_image_validity_check)
+                       bool async_image_retrieval,
+                       int enable_image_validity_check)
 
         bool save(String filename)
         bool load(String filename)
@@ -1476,6 +1499,10 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float prediction_timeout_s
         bool allow_reduced_precision_inference
         unsigned int instance_module_id
+        String fused_objects_group_name
+        String custom_onnx_file
+        Resolution custom_onnx_dynamic_input_shape
+
         ObjectDetectionParameters(bool enable_tracking, 
                 bool enable_segmentation, 
                 OBJECT_DETECTION_MODEL detection_model, 
@@ -1484,7 +1511,10 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                 OBJECT_FILTERING_MODE filtering_mode, 
                 float prediction_timeout_s, 
                 bool allow_reduced_precision_inference,
-                unsigned int instance_module_id
+                unsigned int instance_module_id,
+                const String& fused_objects_group_name,
+                const String& custom_onnx_file_,
+                const Resolution& custom_onnx_dynamic_input_shape_
             )
 
     cdef cppclass ObjectDetectionRuntimeParameters:
@@ -1492,6 +1522,34 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         vector[OBJECT_CLASS] object_class_filter
         map[OBJECT_CLASS,float] object_class_detection_confidence_threshold
         ObjectDetectionRuntimeParameters(float detection_confidence_threshold, vector[OBJECT_CLASS] object_class_filter, map[OBJECT_CLASS,float] object_class_detection_confidence_threshold)
+
+    cdef cppclass CustomObjectDetectionProperties:
+        bool enabled
+        float detection_confidence_threshold
+        bool is_grounded
+        bool is_static
+        float tracking_timeout
+        float tracking_max_dist
+        float max_box_width_normalized
+        float min_box_width_normalized
+        float max_box_height_normalized
+        float min_box_height_normalized
+        CustomObjectDetectionProperties(bool enabled,
+                                        float detection_confidence_threshold,
+                                        bool is_grounded,
+                                        bool is_static,
+                                        float tracking_timeout,
+                                        float tracking_max_dist,
+                                        float max_box_width_normalized,
+                                        float min_box_width_normalized,
+                                        float max_box_height_normalized,
+                                        float min_box_height_normalized)
+
+    cdef cppclass CustomObjectDetectionRuntimeParameters:
+        CustomObjectDetectionProperties object_detection_properties
+        unordered_map[int, CustomObjectDetectionProperties] object_class_detection_properties
+        CustomObjectDetectionRuntimeParameters(CustomObjectDetectionProperties object_detection_properties,
+                                               unordered_map[int, CustomObjectDetectionProperties] object_class_detection_properties)
 
     cdef cppclass BodyTrackingParameters:
         bool enable_tracking
@@ -1737,7 +1795,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE retrieveObjects(Objects &objects, ObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id)
         ERROR_CODE getObjectsBatch(vector[ObjectsBatch] &trajectories, unsigned int instance_module_id)
         bool isObjectDetectionEnabled(unsigned int instance_id)
-        ERROR_CODE ingestCustomBoxObjects(vector[CustomBoxObjectData] &objects_in, unsigned int instance_module_id)
+        ERROR_CODE ingestCustomBoxObjects(const vector[CustomBoxObjectData] &objects_in, const unsigned int instance_module_id)
+        ERROR_CODE ingestCustomMaskObjects(const vector[CustomMaskObjectData] &objects_in, const unsigned int instance_module_id)
         ObjectDetectionParameters getObjectDetectionParameters(unsigned int instance_module_id)
         void pauseObjectDetection(bool status, unsigned int instance_module_id)
         void updateSelfCalibration()
@@ -1761,11 +1820,14 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         @staticmethod
         ERROR_CODE reboot(int sn, bool fullReboot)
 
+        @staticmethod
+        ERROR_CODE reboot_from_type "reboot" (INPUT_TYPE input)
+
 cdef extern from "Utils.cpp" namespace "sl":
     ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector, map[int,float] object_confidence_map)
 
 cdef extern from "sl/Fusion.hpp" namespace "sl":
-
+    
     cdef cppclass FusionConfiguration:
         int serial_number
         CommunicationParameters communication_parameters
@@ -1788,7 +1850,14 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
 
     FusionConfiguration readFusionConfigurationFile(string json_config_filename, int serial_number, COORDINATE_SYSTEM coord_system, UNIT unit)    
     vector[FusionConfiguration] readFusionConfigurationFile2 "readFusionConfigurationFile"(string json_config_filename, COORDINATE_SYSTEM coord_sys, UNIT unit)
+    vector[FusionConfiguration] readFusionConfiguration (string fusion_configuration, COORDINATE_SYSTEM coord_sys, UNIT unit)
     void writeConfigurationFile(string json_config_filename, vector[FusionConfiguration] &conf, COORDINATE_SYSTEM coord_sys, UNIT unit)
+
+    cdef struct SynchronizationParameter 'sl::SynchronizationParameter':
+        double windows_size
+        double data_source_timeout
+        bool keep_last_data
+        double maximum_lateness
 
     cdef cppclass InitFusionParameters 'sl::InitFusionParameters':
         UNIT coordinate_units
@@ -1796,12 +1865,14 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         bool output_performance_metrics
         bool verbose
         unsigned timeout_period_number
+        SynchronizationParameter synchronization_parameters
         InitFusionParameters(
             UNIT coordinate_units_,
             COORDINATE_SYSTEM coordinate_system_,
             bool output_performance_metrics, 
             bool verbose_,
             unsigned timeout_period_number,
+            SynchronizationParameter synchronization_parameters_
             )
 
     cdef cppclass CameraIdentifier 'sl::CameraIdentifier':
@@ -1855,6 +1926,9 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
     cdef struct PositionalTrackingFusionParameters 'sl::PositionalTrackingFusionParameters':
         bool enable_GNSS_fusion
         GNSSCalibrationParameters gnss_calibration_parameters
+        Transform base_footprint_to_world_transform
+        Transform base_footprint_to_baselink_transform
+        bool set_gravity_as_origin
 
     cdef struct SpatialMappingFusionParameters 'sl::SpatialMappingFusionParameters':
         float resolution_meter
@@ -1981,3 +2055,74 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         GNSS_FUSION_STATUS getCurrentGNSSCalibrationSTD(float & yaw_std, float3 & position_std)
         Transform getGeoTrackingCalibration();
         void disablePositionalTracking()
+
+cdef extern from "sl/CameraOne.hpp" namespace "sl":
+    cdef cppclass InitParametersOne 'sl::InitParametersOne':
+        RESOLUTION camera_resolution
+        int camera_fps
+        int camera_image_flip
+        bool svo_real_time_mode
+        UNIT coordinate_units
+        COORDINATE_SYSTEM coordinate_system
+        int sdk_verbose
+        String sdk_verbose_log_file
+        InputType input
+        String optional_settings_path
+        float open_timeout_sec
+        bool async_grab_camera_recovery
+
+    cdef cppclass CameraOne 'sl::CameraOne':
+        CameraOne()
+        void close()
+        ERROR_CODE open(InitParametersOne init_parameters_one)
+
+        InitParametersOne getInitParameters()
+
+        bool isOpened()
+        ERROR_CODE grab()
+        ERROR_CODE retrieveImage(Mat &mat, VIEW view, MEM type, Resolution resolution)
+        ERROR_CODE getSensorsData(SensorsData &imu_data, TIME_REFERENCE reference_time)
+
+        void setSVOPosition(int frame_number)
+        int getSVOPosition()
+        int getSVONumberOfFrames()
+
+        ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, int value)
+        ERROR_CODE setCameraSettingsRange "setCameraSettings"(VIDEO_SETTINGS settings, int &min, int &max)
+        ERROR_CODE setCameraSettingsROI "setCameraSettings"(VIDEO_SETTINGS settings, Rect roi, bool reset)
+
+        ERROR_CODE getCameraSettings(VIDEO_SETTINGS setting, int &settings)
+        ERROR_CODE getCameraSettings(VIDEO_SETTINGS setting, int &aec_min_val, int &aec_max_val)
+        ERROR_CODE getCameraSettings(VIDEO_SETTINGS setting, Rect &roi)
+
+        ERROR_CODE getCameraSettingsRange(VIDEO_SETTINGS settings, int &min, int &max)
+
+        bool isCameraSettingSupported(VIDEO_SETTINGS setting)
+
+        float getCurrentFPS()
+        Timestamp getTimestamp(TIME_REFERENCE reference_time)
+        unsigned int getFrameDroppedCount()
+        CameraInformation getCameraInformation(Resolution resizer)
+
+        ERROR_CODE enableRecording(RecordingParameters recording_params)
+
+        RecordingParameters getRecordingParameters()
+        StreamingParameters getStreamingParameters()
+
+        RecordingStatus getRecordingStatus()
+        void pauseRecording(bool status)
+
+        void disableRecording()
+
+        ERROR_CODE enableStreaming(StreamingParameters streaming_parameters)
+        void disableStreaming()
+        bool isStreamingEnabled()
+
+        @staticmethod
+        vector[DeviceProperties] getDeviceList()
+
+        @staticmethod
+        vector[StreamingProperties] getStreamingDeviceList()
+
+        @staticmethod
+        ERROR_CODE reboot()

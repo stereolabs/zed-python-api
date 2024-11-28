@@ -26,6 +26,7 @@ from libc.string cimport const_char
 from libcpp.string cimport string
 from libcpp.pair cimport pair
 from libcpp.map cimport map
+from libcpp.unordered_map cimport unordered_map
 from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CODE, toString
                     , InitParameters as c_InitParameters, INPUT_TYPE as c_INPUT_TYPE
                     , InputType as c_InputType, RESOLUTION as c_RESOLUTION, BUS_TYPE as c_BUS_TYPE
@@ -52,6 +53,7 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , AI_MODELS as c_AI_MODELS, BODY_TRACKING_MODEL as c_BODY_TRACKING_MODEL, OBJECT_DETECTION_MODEL as c_OBJECT_DETECTION_MODEL
                     , Objects as c_Objects, Bodies as c_Bodies, create_object_detection_runtime_parameters
                     , ObjectDetectionRuntimeParameters as c_ObjectDetectionRuntimeParameters, PlaneDetectionParameters as c_PlaneDetectionParameters
+                    , CustomObjectDetectionProperties as c_CustomObjectDetectionProperties, CustomObjectDetectionRuntimeParameters as c_CustomObjectDetectionRuntimeParameters
                     , RegionOfInterestParameters as c_RegionOfInterestParameters
                     , DeviceProperties as c_DeviceProperties, CAMERA_STATE as c_CAMERA_STATE
                     , StreamingProperties as c_StreamingProperties, FusedPointCloud as c_FusedPointCloud
@@ -77,17 +79,19 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , ObjectsBatch as c_ObjectsBatch, BodiesBatch as c_BodiesBatch, getIdx as c_getIdx
                     , INFERENCE_PRECISION as c_INFERENCE_PRECISION, BODY_FORMAT as c_BODY_FORMAT, BODY_KEYPOINTS_SELECTION as c_BODY_KEYPOINTS_SELECTION
                     , BODY_34_PARTS as c_BODY_34_PARTS, BODY_38_PARTS as c_BODY_38_PARTS
-                    , generate_unique_id as c_generate_unique_id, CustomBoxObjectData as c_CustomBoxObjectData
+                    , generate_unique_id as c_generate_unique_id, CustomBoxObjectData as c_CustomBoxObjectData, CustomMaskObjectData as c_CustomMaskObjectData
                     , OBJECT_FILTERING_MODE as c_OBJECT_FILTERING_MODE
                     , COMM_TYPE as c_COMM_TYPE, FUSION_ERROR_CODE as c_FUSION_ERROR_CODE, SENDER_ERROR_CODE as c_SENDER_ERROR_CODE
                     , FusionConfiguration as c_FusionConfiguration, CommunicationParameters as c_CommunicationParameters
                     , InitFusionParameters as c_InitFusionParameters, CameraIdentifier as c_CameraIdentifier
+                    , SynchronizationParameter as c_SynchronizationParameter
                     , BodyTrackingFusionParameters as c_BodyTrackingFusionParameters, BodyTrackingFusionRuntimeParameters as c_BodyTrackingFusionRuntimeParameters
                     , PositionalTrackingFusionParameters as c_PositionalTrackingFusionParameters, GNSSCalibrationParameters as c_GNSSCalibrationParameters, POSITION_TYPE as c_POSITION_TYPE
                     , GNSS_FUSION_STATUS as c_GNSS_FUSION_STATUS
                     , CameraMetrics as c_CameraMetrics, FusionMetrics as c_FusionMetrics, GNSSData as c_GNSSData, Fusion as c_Fusion
                     , ECEF as c_ECEF, LatLng as c_LatLng, UTM as c_UTM
                     , GeoConverter as c_GeoConverter, GeoPose as c_GeoPose
+                    , readFusionConfiguration as c_readFusionConfiguration
                     , readFusionConfigurationFile as c_readFusionConfigurationFile
                     , readFusionConfigurationFile2 as c_readFusionConfigurationFile2
                     , writeConfigurationFile as c_writeConfigurationFile
@@ -100,11 +104,14 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , GNSS_STATUS as c_GNSS_STATUS
                     , GNSS_MODE as c_GNSS_MODE
                     , GNSS_FUSION_STATUS as c_GNSS_FUSION_STATUS
+                    , CameraOne as c_CameraOne
+                    , InitParametersOne as c_InitParametersOne
                     )
 from cython.operator cimport (dereference as deref, postincrement)
 from libc.string cimport memcpy
 from cpython cimport bool
 import enum
+import json
 
 import numpy as np
 cimport numpy as np
@@ -187,7 +194,9 @@ cdef class Timestamp():
 #
 # | Enumerator                                         |                                                                                                                                                                 |
 # |----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-# | CORRUPTED_FRAME                                    | The image could be corrupted, Enabled with the parameter InitParameters.enable_image_validity_check.                                                         |
+# | CONFIGURATION_FALLBACK                             | The operation could not proceed with the target configuration but did success with a fallback.                                                         |
+# | SENSORS_DATA_REQUIRED                              | The input data does not contains the high frequency sensors data, this is usually because it requires newer SVO/Streaming. In order to work this modules needs inertial data present in it input.                                                |
+# | CORRUPTED_FRAME                                    | The image could be corrupted, Enabled with the parameter InitParameters.enable_image_validity_check.      
 # | CAMERA_REBOOTING                                   | The camera is currently rebooting.                                                                                                                              |
 # | SUCCESS                                            | Standard code for successful behavior.                                                                                                                          |
 # | FAILURE                                            | Standard code for unsuccessful behavior.                                                                                                                        |
@@ -224,6 +233,8 @@ cdef class Timestamp():
 # | MOTION_SENSORS_REQUIRED                            | The module needs the sensors to be enabled (see \ref InitParameters.sensors_required). |
 # | MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION            | The module needs a newer version of CUDA. |
 class ERROR_CODE(enum.Enum):
+    CONFIGURATION_FALLBACK = <int>c_ERROR_CODE.CONFIGURATION_FALLBACK
+    SENSORS_DATA_REQUIRED = <int>c_ERROR_CODE.SENSORS_DATA_REQUIRED
     CORRUPTED_FRAME = <int>c_ERROR_CODE.CORRUPTED_FRAME
     CAMERA_REBOOTING = <int>c_ERROR_CODE.CAMERA_REBOOTING
     SUCCESS = <int>c_ERROR_CODE.SUCCESS
@@ -260,7 +271,6 @@ class ERROR_CODE(enum.Enum):
     MODULE_NOT_COMPATIBLE_WITH_CAMERA = <int>c_ERROR_CODE.MODULE_NOT_COMPATIBLE_WITH_CAMERA
     MOTION_SENSORS_REQUIRED = <int>c_ERROR_CODE.MOTION_SENSORS_REQUIRED
     MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION = <int>c_ERROR_CODE.MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION
-    SENSORS_DATA_REQUIRED = <int>c_ERROR_CODE.SENSORS_DATA_REQUIRED
     LAST = <int>c_ERROR_CODE.LAST
 
     def __str__(self):
@@ -379,6 +389,7 @@ class OBJECT_DETECTION_MODEL(enum.Enum):
     PERSON_HEAD_BOX_FAST = <int>c_OBJECT_DETECTION_MODEL.PERSON_HEAD_BOX_FAST
     PERSON_HEAD_BOX_ACCURATE = <int>c_OBJECT_DETECTION_MODEL.PERSON_HEAD_BOX_ACCURATE
     CUSTOM_BOX_OBJECTS = <int>c_OBJECT_DETECTION_MODEL.CUSTOM_BOX_OBJECTS
+    CUSTOM_YOLOLIKE_BOX_OBJECTS = <int>c_OBJECT_DETECTION_MODEL.CUSTOM_YOLOLIKE_BOX_OBJECTS
     LAST = <int>c_OBJECT_DETECTION_MODEL.LAST
 
 ##
@@ -936,6 +947,8 @@ class SIDE(enum.Enum):
 #
 # | Enumerator |            |
 # |------------|------------|
+# | HD4K    | 3856x2180 for imx678 mono |
+# | QHDPLUS | 3800x1800 |
 # | HD2K    | 2208*1242 (x2) \n Available FPS: 15 |
 # | HD1080  | 1920*1080 (x2) \n Available FPS: 15, 30 |
 # | HD1200  | 1920*1200 (x2) \n Available FPS: 15, 30, 60 |
@@ -944,6 +957,8 @@ class SIDE(enum.Enum):
 # | VGA     | 672*376 (x2) \n Available FPS: 15, 30, 60, 100 |
 # | AUTO    | Select the resolution compatible with the camera: <ul><li>ZED X/X Mini: HD1200</li><li>other cameras: HD720</li></ul> |
 class RESOLUTION(enum.Enum):
+    HD4K = <int>c_RESOLUTION.HD4K
+    QHDPLUS = <int>c_RESOLUTION.QHDPLUS
     HD2K = <int>c_RESOLUTION.HD2K
     HD1080 = <int>c_RESOLUTION.HD1080
     HD1200 = <int>c_RESOLUTION.HD1200
@@ -1177,11 +1192,11 @@ class VIEW(enum.Enum):
 #
 # | Enumerator |                         |
 # |------------|-------------------------|
-# | SEARCHING  | The camera is searching for a previously known position to locate itself. |
-# | OK         | The positional tracking is working normally. |
-# | OFF        | The positional tracking is not enabled. |
-# | FPS_TOO_LOW | The effective FPS is too low to give proper results for motion tracking.\n Consider using performance parameters (\ref DEPTH_MODE "sl.DEPTH_MODE.PERFORMANCE", low camera resolution (\ref RESOLUTION "sl.RESOLUTION.VGA/SVGA" or \ref RESOLUTION "sl.RESOLUTION.HD720"). |
-# | SEARCHING_FLOOR_PLANE | The camera is searching for the floor plane to locate itself with respect to it.\n The \ref REFERENCE_FRAME "sl.REFERENCE_FRAME.WORLD" will be set afterward. |
+# | SEARCHING  | \warn DEPRECATED: This state is no longer in use. |
+# | OK         | The positional tracking is functioning normally. |
+# | OFF        | The positional tracking is currently disabled. |
+# | FPS_TOO_LOW | The effective FPS is too low to provide accurate motion tracking results. Consider adjusting performance parameters (e.g., depth mode, camera resolution) to improve tracking quality.|
+# | SEARCHING_FLOOR_PLANE | The camera is currently searching for the floor plane to establish its position relative to it. The world reference frame will be set afterward. |
 # | UNAVAILABLE | The tracking module was unable to perform tracking from the previous frame to the current frame. |
 class POSITIONAL_TRACKING_STATE(enum.Enum):
     SEARCHING = <int>c_POSITIONAL_TRACKING_STATE.SEARCHING
@@ -1199,6 +1214,14 @@ class POSITIONAL_TRACKING_STATE(enum.Enum):
         return to_str(toString(<c_POSITIONAL_TRACKING_STATE>(<unsigned int>self.value))).decode()
 
 
+##
+# Report the status of current odom tracking.
+# \ingroup PositionalTracking_group
+#
+# | Enumerator |                            |
+# |:----------:|:---------------------------|
+# | OK         | The positional tracking module successfully tracked from the previous frame to the current frame. |
+# | UNAVAILABLE | The positional tracking module failed to track from the previous frame to the current frame. |
 class ODOMETRY_STATUS(enum.Enum):
     OK = <int>c_ODOMETRY_STATUS.OK
     UNAVAILABLE = <int>c_ODOMETRY_STATUS.UNAVAILABLE
@@ -1210,6 +1233,15 @@ class ODOMETRY_STATUS(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_ODOMETRY_STATUS>(<unsigned int>self.value))).decode()
 
+##
+# Report the status of current map tracking.
+# \ingroup PositionalTracking_group
+#
+# | Enumerator  |                            |
+# |:-----------:|:---------------------------|
+# | OK          | The positional tracking module is operating normally. |
+# | LOOP_CLOSED | The positional tracking module detected a loop and corrected its position. |
+# | SEARCHING   | The positional tracking module is searching for recognizable areas in the global map to relocate.  |
 class SPATIAL_MEMORY_STATUS(enum.Enum):
     OK = <int>c_SPATIAL_MEMORY_STATUS.OK
     LOOP_CLOSED = <int>c_SPATIAL_MEMORY_STATUS.LOOP_CLOSED
@@ -1222,6 +1254,20 @@ class SPATIAL_MEMORY_STATUS(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_SPATIAL_MEMORY_STATUS>(<unsigned int>self.value))).decode()
 
+##
+# Report the status of the positional tracking fusion.
+# \ingroup PositionalTracking_group
+#
+# | Enumerator |                            |
+# |:----------:|:---------------------------|
+# | VISUAL_INERTIAL | The positional tracking module is fusing visual and inertial data. |
+# | VISUAL | The positional tracking module is fusing visual data only. |
+# | INERTIAL | The positional tracking module is fusing inertial data only. |
+# | GNSS | The positional tracking module is fusing GNSS data only. |
+# | VISUAL_INERTIAL_GNSS | The positional tracking module is fusing visual, inertial, and GNSS data. |
+# | VISUAL_GNSS | The positional tracking module is fusing visual and GNSS data. |
+# | INERTIAL_GNSS | The positional tracking module is fusing inertial and GNSS data. |
+# | UNAVAILABLE | The positional tracking module is unavailable. |
 class POSITIONAL_TRACKING_FUSION_STATUS(enum.Enum):
     VISUAL_INERTIAL = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.VISUAL_INERTIAL
     VISUAL = <int>c_POSITIONAL_TRACKING_FUSION_STATUS.VISUAL
@@ -1239,6 +1285,18 @@ class POSITIONAL_TRACKING_FUSION_STATUS(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_POSITIONAL_TRACKING_FUSION_STATUS>(<unsigned int>self.value))).decode()
 
+##
+# Lists that represents the status of the of GNSS signal.
+# \ingroup Sensors_group
+#
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | UNKNOWN    | No GNSS fix data is available. |
+# | SINGLE    | Single Point Positioning. |
+# | DGNSS | Differential GNSS. |
+# | PPS | Precise Positioning Service. |
+# | RTK_FLOAT | Real Time Kinematic Float. |
+# | RTK_FIX |  Real Time Kinematic Fixed. |
 class GNSS_STATUS(enum.Enum):
     UNKNOWN = <int>c_GNSS_STATUS.UNKNOWN
     SINGLE = <int>c_GNSS_STATUS.SINGLE
@@ -1254,6 +1312,16 @@ class GNSS_STATUS(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_GNSS_STATUS>(<unsigned int>self.value))).decode()
 
+##
+# Lists that represents the mode of GNSS signal.
+# \ingroup Sensors_group
+#
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | UNKNOWN    | No GNSS fix data is available. |
+# | NO_FIX    | No GNSS fix is available. |
+# | FIX_2D | 2D GNSS fix, providing latitude and longitude coordinates but without altitude information. |
+# | FIX_3D | 3D GNSS fix, providing latitude, longitude, and altitude coordinates. |
 class GNSS_MODE(enum.Enum):
     UNKNOWN = <int>c_GNSS_MODE.UNKNOWN
     NO_FIX = <int>c_GNSS_MODE.NO_FIX
@@ -1266,7 +1334,16 @@ class GNSS_MODE(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_GNSS_MODE>(<unsigned int>self.value))).decode()
-
+##
+# Lists that represents the current GNSS fusion status
+# \ingroup Sensors_group
+#
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | OK    | The GNSS fusion module is calibrated and working successfully. |
+# | OFF    | The GNSS fusion module is not enabled. |
+# | CALIBRATION_IN_PROGRESS | Calibration of the GNSS/VIO fusion module is in progress. |
+# | RECALIBRATION_IN_PROGRESS | Re-alignment of GNSS/VIO data is in progress, leading to potentially inaccurate global position. |
 class GNSS_FUSION_STATUS(enum.Enum):
     OK = <int>c_GNSS_FUSION_STATUS.OK
     OFF = <int>c_GNSS_FUSION_STATUS.OFF
@@ -1279,9 +1356,14 @@ class GNSS_FUSION_STATUS(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_GNSS_FUSION_STATUS>(<unsigned int>self.value))).decode()
 
+##
+# Lists the different status of the positional tracking
+# \ingroup Positional_tracking_group
 cdef class PositionalTrackingStatus:
     cdef c_PositionalTrackingStatus positional_status
 
+    ##
+    # Represents the current state of Visual-Inertial Odometry (VIO) tracking between the previous frame and the current frame.
     @property
     def odometry_status(self) -> ODOMETRY_STATUS:
         return ODOMETRY_STATUS(<int>self.positional_status.odometry_status)
@@ -1290,6 +1372,8 @@ cdef class PositionalTrackingStatus:
     def odometry_status(self, odometry_status):
         self.positional_status.odometry_status = (<c_ODOMETRY_STATUS> (<unsigned int>odometry_status))
 
+    ##
+    # Represents the current state of camera tracking in the global map.
     @property
     def spatial_memory_status(self) -> SPATIAL_MEMORY_STATUS:
         return SPATIAL_MEMORY_STATUS(<int>self.positional_status.spatial_memory_status)
@@ -1298,6 +1382,8 @@ cdef class PositionalTrackingStatus:
     def spatial_memory_status(self, spatial_memory_status):
         self.positional_status.spatial_memory_status = (<c_SPATIAL_MEMORY_STATUS> (<unsigned int>spatial_memory_status))
 
+    ##
+    # Represents the current state of the positional tracking fusion.
     @property
     def tracking_fusion_status(self) -> POSITIONAL_TRACKING_FUSION_STATUS:
         return POSITIONAL_TRACKING_FUSION_STATUS(<int>self.positional_status.tracking_fusion_status)
@@ -1364,8 +1450,8 @@ cdef class FusedPositionalTrackingStatus:
 #
 # | Enumerator |                         |
 # |------------|-------------------------|
-# | GEN_1   | Default mode. Best compromise in performance and accuracy. |
-# | GEN_2   | Improve accuracy in more challenging scenes such as outdoor repetitive patterns like extensive fields.\n Currently works best with \ref DEPTH_MODE "sl.DEPTH_MODE.ULTRA" and requires more compute power. |
+# | GEN_1   | Default mode. Best compromise in performance. |
+# | GEN_2   | Next generation of positional tracking, allow better accuracy. |
 class POSITIONAL_TRACKING_MODE(enum.Enum):
     GEN_1 = <int>c_POSITIONAL_TRACKING_MODE.GEN_1
     GEN_2 = <int>c_POSITIONAL_TRACKING_MODE.GEN_2
@@ -1815,7 +1901,6 @@ cdef class ObjectData:
     def unique_object_id(self, str id_):
         self.object_data.unique_object_id.set(id_.encode())
 
-
     ##
     # Object raw label.
     # It is forwarded from sl.CustomBoxObjectData when using [sl.OBJECT_DETECTION_MODEL.CUSTOM_BOX_OBJECTS](\ref OBJECT_DETECTION_MODEL).
@@ -1826,7 +1911,6 @@ cdef class ObjectData:
     @raw_label.setter
     def raw_label(self, int raw_label):
         self.object_data.raw_label = raw_label
-
 
     ##
     # Object class/category to identify the object type.
@@ -1840,7 +1924,7 @@ cdef class ObjectData:
             self.object_data.label = <c_OBJECT_CLASS>(<unsigned int>label.value)
         else:
             raise TypeError("Argument is not of OBJECT_CLASS type.")
-   
+
     ##
     # Object sub-class/sub-category to identify the object type.
     @property
@@ -1853,7 +1937,7 @@ cdef class ObjectData:
             self.object_data.sublabel = <c_OBJECT_SUBCLASS>(<unsigned int>sublabel.value)
         else:
             raise TypeError("Argument is not of OBJECT_SUBCLASS type.")
-    
+
     ##
     # Object tracking state.
     @property
@@ -2495,6 +2579,177 @@ cdef class CustomBoxObjectData:
     @is_grounded.setter
     def is_grounded(self, bool is_grounded):
         self.custom_box_object_data.is_grounded = is_grounded
+
+    ##
+    # Provide hypothesis about the object staticity to improve the object tracking.
+    #  - true: the object will be assumed to never move nor being moved.
+    #  - false: the object will be assumed to be able to move or being moved.
+    @property
+    def is_static(self) -> bool:
+        return self.custom_box_object_data.is_static
+
+    @is_static.setter
+    def is_static(self, bool is_static):
+        self.custom_box_object_data.is_static = is_static
+
+    ##
+    # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time.
+    #  By default, let the tracker decide internally based on the internal sub class of the tracked object.
+    #  Only valid for static object.
+    @property
+    def tracking_timeout(self) -> float:
+        return self.custom_box_object_data.tracking_timeout
+
+    @tracking_timeout.setter
+    def tracking_timeout(self, float tracking_timeout):
+        self.custom_box_object_data.tracking_timeout = tracking_timeout
+
+    ##
+    # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters.
+    #  By default, do not discard tracked object based on distance.
+    #  Only valid for static object.
+    @property
+    def tracking_max_dist(self) -> float:
+        return self.custom_box_object_data.tracking_max_dist
+
+    @tracking_max_dist.setter
+    def tracking_max_dist(self, float tracking_max_dist):
+        self.custom_box_object_data.tracking_max_dist = tracking_max_dist
+
+##
+# Class storing externally detected objects.
+# \ingroup Object_group
+#
+# The objects can be ingested with sl.Camera.ingest_custom_mask_objects() to extract 3D and tracking information over time.
+cdef class CustomMaskObjectData:
+    cdef c_CustomMaskObjectData custom_mask_object_data
+
+    ##
+    # Unique id to help identify and track AI detections.
+    # It can be either generated externally, or by using \ref generate_unique_id() or left empty.
+    @property
+    def unique_object_id(self) -> str:
+        if not self.custom_mask_object_data.unique_object_id.empty():
+            return self.custom_mask_object_data.unique_object_id.get().decode()
+        else:
+            return ""
+
+    @unique_object_id.setter
+    def unique_object_id(self, str id_):
+        self.custom_mask_object_data.unique_object_id.set(id_.encode())
+
+    ##
+    # 2D bounding box of the object represented as four 2D points starting at the top left corner and rotation clockwise.
+    # \note Expressed in pixels on the original image resolution, ```[0, 0]``` is the top left corner.
+    # \code
+    # A ------ B
+    # | Object |
+    # D ------ C
+    # \endcode
+    @property
+    def bounding_box_2d(self) -> np.array[int][int]:
+        cdef np.ndarray arr = np.zeros((self.custom_mask_object_data.bounding_box_2d.size(), 2))
+        for i in range(self.custom_mask_object_data.bounding_box_2d.size()):
+            for j in range(2):
+                arr[i,j] = self.custom_mask_object_data.bounding_box_2d[i].ptr()[j]
+        return arr
+
+    @bounding_box_2d.setter
+    def bounding_box_2d(self, np.ndarray coordinates):
+        cdef Vector2[unsigned int] vec
+        self.custom_mask_object_data.bounding_box_2d.clear()
+        for i in range(4):
+            vec[0] = coordinates[i][0]
+            vec[1] = coordinates[i][1]
+            self.custom_mask_object_data.bounding_box_2d.push_back(vec)
+
+    ##
+    # Object label.
+    # This information is passed-through and can be used to improve object tracking.
+    # \note It should define an object class. This means that any similar object (in classification) should share the same label number.
+    @property
+    def label(self) -> int:
+        return self.custom_mask_object_data.label
+
+    @label.setter
+    def label(self, int label):
+        self.custom_mask_object_data.label = label
+
+    ##
+    # Detection confidence value of the object.
+    # \note The value should be in ```[0-1]```.
+    # \note It can be used to improve the object tracking.
+    @property
+    def probability(self) -> float:
+        return self.custom_mask_object_data.probability
+
+    @probability.setter
+    def probability(self, float probability):
+        self.custom_mask_object_data.probability = probability
+
+    ##
+    # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking.
+    # - true: 2 DoF projected alongside the floor plane. Case for object standing on the ground such as person, vehicle, etc. 
+    # \n The projection implies that the objects cannot be superposed on multiple horizontal levels. 
+    # - false: 6 DoF (full 3D movements are allowed).
+    #
+    # \note This parameter cannot be changed for a given object tracking id.
+    # \note It is advised to set it by labels to avoid issues.
+    @property
+    def is_grounded(self) -> bool:
+        return self.custom_mask_object_data.is_grounded
+
+    @is_grounded.setter
+    def is_grounded(self, bool is_grounded):
+        self.custom_mask_object_data.is_grounded = is_grounded
+
+    ##
+    # Provide hypothesis about the object staticity to improve the object tracking.
+    #  - true: the object will be assumed to never move nor being moved.
+    #  - false: the object will be assumed to be able to move or being moved.
+    @property
+    def is_static(self) -> bool:
+        return self.custom_box_object_data.is_static
+
+    @is_static.setter
+    def is_static(self, bool is_static):
+        self.custom_box_object_data.is_static = is_static
+
+    ##
+    # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time.
+    #  By default, let the tracker decide internally based on the internal sub class of the tracked object.
+    #  Only valid for static object.
+    @property
+    def tracking_timeout(self) -> float:
+        return self.custom_box_object_data.tracking_timeout
+
+    @tracking_timeout.setter
+    def tracking_timeout(self, float tracking_timeout):
+        self.custom_box_object_data.tracking_timeout = tracking_timeout
+
+    ##
+    # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters.
+    #  By default, do not discard tracked object based on distance.
+    #  Only valid for static object.
+    @property
+    def tracking_max_dist(self) -> float:
+        return self.custom_box_object_data.tracking_max_dist
+
+    @tracking_max_dist.setter
+    def tracking_max_dist(self, float tracking_max_dist):
+        self.custom_box_object_data.tracking_max_dist = tracking_max_dist
+
+    ##
+    # Mask defining which pixels which belong to the object (in \ref bounding_box_2d and set to 255) and those of the background (set to 0).
+    @property
+    def box_mask(self) -> Mat:
+        mat = Mat()
+        mat.mat = self.custom_mask_object_data.box_mask
+        return mat
+
+    @box_mask.setter
+    def box_mask(self, Mat mat):
+        self.custom_mask_object_data.box_mask = mat.mat
 
 ##
 # \brief Semantic of human body parts and order of \ref sl.BodyData.keypoint for \ref BODY_FORMAT "sl.BODY_FORMAT.BODY_18".
@@ -3524,14 +3779,26 @@ cdef class ObjectDetectionParameters:
                 , filtering_mode = OBJECT_FILTERING_MODE.NMS3D
                 , prediction_timeout_s = 0.2
                 , allow_reduced_precision_inference = False
-                , instance_module_id = 0) -> ObjectDetectionParameters:
+                , instance_module_id = 0
+                , fused_objects_group_name = ""
+                , custom_onnx_file = ""
+                , custom_onnx_dynamic_input_shape = Resolution(512, 512)
+                
+                ) -> ObjectDetectionParameters:
+        res = c_Resolution(custom_onnx_dynamic_input_shape.width, custom_onnx_dynamic_input_shape.height)
+        fused_objects_group_name = (<str>fused_objects_group_name).encode()
+        custom_onnx_filename = (<str>custom_onnx_file).encode()
         self.object_detection = new c_ObjectDetectionParameters(enable_tracking
                                                                 , enable_segmentation, <c_OBJECT_DETECTION_MODEL>(<unsigned int>detection_model.value)
                                                                 , max_range, (<BatchParameters>batch_trajectories_parameters).batch_params[0]
                                                                 , <c_OBJECT_FILTERING_MODE>(<unsigned int>filtering_mode.value)
                                                                 , prediction_timeout_s
                                                                 , allow_reduced_precision_inference
-                                                                , instance_module_id)
+                                                                , instance_module_id
+                                                                , String(<char*>fused_objects_group_name)
+                                                                , String(<char*>custom_onnx_filename)
+                                                                , res
+                                                                )
 
     def __dealloc__(self):
         del self.object_detection
@@ -3571,6 +3838,63 @@ cdef class ObjectDetectionParameters:
             self.object_detection.detection_model = <c_OBJECT_DETECTION_MODEL>(<unsigned int>detection_model.value)
         else :
             raise TypeError()
+
+    ##
+    # In a multi camera setup, specify which group this model belongs to.
+    # 
+    #   In a multi camera setup, multiple cameras can be used to detect objects and multiple detector having similar output layout can see the same object.
+    #   Therefore, Fusion will fuse together the outputs received by multiple detectors only if they are part of the same \ref fused_objects_group_name.
+    # 
+    #   \note This parameter is not used when not using a multi-camera setup and must be set in a multi camera setup.
+    @property
+    def fused_objects_group_name(self) -> str:
+        if not self.object_detection.fused_objects_group_name.empty():
+            return self.object_detection.fused_objects_group_name.get().decode()
+        else:
+            return ""
+
+    @fused_objects_group_name.setter
+    def fused_objects_group_name(self, fused_objects_group_name: str):
+        self.object_detection.fused_objects_group_name.set(fused_objects_group_name.encode())
+
+    ##
+    # Path to the YOLO-like onnx file for custom object detection ran in the ZED SDK.
+    # 
+    # When `detection_model` is \ref OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS, a onnx model must be passed so that the ZED SDK can optimize it for your GPU and run inference on it.
+    # 
+    # The resulting optimized model will be saved for re-use in the future.
+    # 
+    #   \attention - The model must be a YOLO-like model.
+    #   \attention - The caching uses the `custom_onnx_file` string along with your GPU specs to decide whether to use the cached optmized model or to optimize the passed onnx model.
+    #                If you want to use a different model (i.e. an onnx with different weights), you must use a different `custom_onnx_file` string or delete the cached optimized model in
+    #                <ZED Installation path>/resources.
+    # 
+    #   \note This parameter is useless when detection_model is not \ref OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS.
+    @property
+    def custom_onnx_file(self) -> str:
+        if not self.object_detection.custom_onnx_file.empty():
+            return self.object_detection.custom_onnx_file.get().decode()
+        else:
+            return ""
+
+    @custom_onnx_file.setter
+    def custom_onnx_file(self, custom_onnx_file: str):
+        self.object_detection.custom_onnx_file.set(custom_onnx_file.encode())
+
+    ##
+    # \brief Resolution to the YOLO-like onnx file for custom object detection ran in the ZED SDK. This resolution defines the input tensor size for dynamic shape ONNX model only. The batch and channel dimensions are automatically handled, it assumes it's color images like default YOLO models.
+    # 
+    #   \note This parameter is only used when detection_model is \ref OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS and the provided ONNX file is using dynamic shapes.
+    #   \attention - Multiple model only support squared images
+    # 
+    #   \default Squared images 512x512 (input tensor will be 1x3x512x512)
+    @property
+    def custom_onnx_dynamic_input_shape(self) -> sl.Resolution:
+        return self.object_detection.custom_onnx_dynamic_input_shape
+
+    @custom_onnx_dynamic_input_shape.setter
+    def custom_onnx_dynamic_input_shape(self, custom_onnx_dynamic_input_shape: sl.Resolution):
+        self.object_detection.custom_onnx_dynamic_input_shape = custom_onnx_dynamic_input_shape
 
     ##
     # Upper depth range for detections.
@@ -3662,7 +3986,37 @@ cdef class ObjectDetectionParameters:
     def instance_module_id(self, unsigned int instance_module_id):
         self.object_detection.instance_module_id = instance_module_id
 
+    ##
+    # Path to the YOLO-like onnx file for custom object detection ran in the ZED SDK.
+    # When `detection_model` is \ref OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS, a onnx model must be passed so that the ZED SDK can optimize it for your GPU and run inference on it.
+    # The resulting optimized model will be saved for re-use in the future.
+    # \note The model must be a YOLO-like model.
+    # \note The caching uses the `custom_onnx_file` string along with your GPU specs to decide whether to use the cached optmized model or to optimize the passed onnx model. If you want to use a different model (i.e. an onnx with different weights), you must use a different `custom_onnx_file` string or delete the cached optimized model in <ZED Installation path>/resources.
+    # \note This parameter is useless when detection_model is not \ref OBJECT_DETECTION_MODEL.CUSTOM_YOLOLIKE_BOX_OBJECTS.
+    @property
+    def custom_onnx_file(self) -> str:
+        return to_str(self.object_detection.custom_onnx_file).decode()
+    
+    @custom_onnx_file.setter
+    def custom_onnx_file(self, custom_onnx_file: str):
+        custom_onnx_filename = (<str>custom_onnx_file).encode()
+        self.object_detection.custom_onnx_file = String(<char*>custom_onnx_filename)
 
+    ##
+    # Resolution to the YOLO-like onnx file for custom object detection ran in the ZED SDK. This resolution defines the input tensor size for dynamic shape ONNX model only. The batch and channel dimensions are automatically handled, it assumes it's color images like default YOLO models.
+    # \note This parameter is only used when detection_model is \ref OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS and the provided ONNX file is using dynamic shapes.
+    # \note - Multiple model only support squared images
+    @property
+    def custom_onnx_dynamic_input_shape(self) -> Resolution:
+        res = Resolution()
+        res.width = self.object_detection.custom_onnx_dynamic_input_shape.width
+        res.height = self.object_detection.custom_onnx_dynamic_input_shape.height
+        return res
+
+    @custom_onnx_dynamic_input_shape.setter
+    def custom_onnx_dynamic_input_shape(self, custom_onnx_dynamic_input_shape: Resolution):
+        self.object_detection.custom_onnx_dynamic_input_shape.width = custom_onnx_dynamic_input_shape.width
+        self.object_detection.custom_onnx_dynamic_input_shape.height = custom_onnx_dynamic_input_shape.height
 
 ##
 # Class containing a set of runtime parameters for the object detection module.
@@ -3751,6 +4105,269 @@ cdef class ObjectDetectionRuntimeParameters:
         for k,v in object_class_detection_confidence_threshold_dict.items():
             self.object_detection_rt.object_class_detection_confidence_threshold[<c_OBJECT_CLASS>(<unsigned int>k.value)] = v
 
+
+##
+# Class containing a set of runtime properties of a certain class ID for the object detection module using a custom model.
+# \ingroup Object_group
+#
+# The default constructor sets all parameters to their default settings.
+# \note Parameters can be adjusted by the user.
+cdef class CustomObjectDetectionProperties:
+    cdef c_CustomObjectDetectionProperties* custom_object_detection_props
+
+    ##
+    # Default constructor.
+    # All the parameters are set to their default values.
+    # \param detection_confidence_threshold : Chosen \ref detection_confidence_threshold
+    # \param object_class_filter : Chosen \ref object_class_filter
+    # \param object_class_detection_confidence_threshold : Chosen \ref object_class_detection_confidence_threshold
+    def __cinit__(self,
+                  enabled=False,
+                  detection_confidence_threshold=20.,
+                  is_grounded=True,
+                  is_static=False,
+                  tracking_timeout=-1.,
+                  tracking_max_dist=-1.,
+                  max_box_width_normalized=-1.,
+                  min_box_width_normalized=-1.,
+                  max_box_height_normalized=-1.,
+                  min_box_height_normalized=-1.
+    ) -> CustomObjectDetectionProperties:
+        self.custom_object_detection_props = new c_CustomObjectDetectionProperties(enabled,
+                                                                                   detection_confidence_threshold,
+                                                                                   is_grounded,
+                                                                                   is_static,
+                                                                                   tracking_timeout,
+                                                                                   tracking_max_dist,
+                                                                                   max_box_width_normalized,
+                                                                                   min_box_width_normalized,
+                                                                                   max_box_height_normalized,
+                                                                                   min_box_height_normalized)
+
+    def __dealloc__(self):
+        if self.custom_object_detection_props is not NULL:
+            del self.custom_object_detection_props
+
+    ##
+    # Whether the object object is kept or not
+    @property
+    def enabled(self) -> bool:
+        return self.custom_object_detection_props.enabled
+
+    @enabled.setter
+    def enabled(self, bool enabled):
+        self.custom_object_detection_props.enabled = enabled
+
+    ##
+    # Confidence threshold.
+    #
+    # From 1 to 100, with 1 meaning a low threshold, more uncertain objects and 99 very few but very precise objects.
+    # Default: 20.f
+    #
+    # \note If the scene contains a lot of objects, increasing the confidence can slightly speed up the process, since every object instance is tracked.
+    @property
+    def detection_confidence_threshold(self) -> float:
+        return self.custom_object_detection_props.detection_confidence_threshold
+
+    @detection_confidence_threshold.setter
+    def detection_confidence_threshold(self, float detection_confidence_threshold):
+        self.custom_object_detection_props.detection_confidence_threshold = detection_confidence_threshold
+
+    ##
+    # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking.
+    # - true: 2 DoF projected alongside the floor plane. Case for object standing on the ground such as person, vehicle, etc.
+    #         The projection implies that the objects cannot be superposed on multiple horizontal levels.
+    # - false: 6 DoF (full 3D movements are allowed).
+    #
+    # \note This parameter cannot be changed for a given object tracking id.
+    # \note It is advised to set it by labels to avoid issues.
+    @property
+    def is_grounded(self) -> bool:
+        return self.custom_object_detection_props.is_grounded
+
+    @is_grounded.setter
+    def is_grounded(self, bool is_grounded):
+        self.custom_object_detection_props.is_grounded = is_grounded
+
+    ##
+    # Provide hypothesis about the object staticity to improve the object tracking.
+    #   - true: the object will be assumed to never move nor being moved.
+    #   - false: the object will be assumed to be able to move or being moved.
+    @property
+    def is_static(self) -> bool:
+        return self.custom_object_detection_props.is_static
+
+    @is_static.setter
+    def is_static(self, bool is_static):
+        self.custom_object_detection_props.is_static = is_static
+
+    ##
+    # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time.
+    #
+    # By default, let the tracker decide internally based on the internal sub class of the tracked object.
+    # Only valid for static object.
+    @property
+    def tracking_timeout(self) -> float:
+        return self.custom_object_detection_props.tracking_timeout
+
+    @tracking_timeout.setter
+    def tracking_timeout(self, float tracking_timeout):
+        self.custom_object_detection_props.tracking_timeout = tracking_timeout
+
+    ##
+    # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters.
+    #
+    # By default, do not discard tracked object based on distance.
+    # Only valid for static object.
+    @property
+    def tracking_max_dist(self) -> float:
+        return self.custom_object_detection_props.tracking_max_dist
+
+    @tracking_max_dist.setter
+    def tracking_max_dist(self, float tracking_max_dist):
+        self.custom_object_detection_props.tracking_max_dist = tracking_max_dist
+
+    ##
+    # Maximum allowed width normalized to the image size.
+    #
+    # Any prediction bigger than that will be filtered out.
+    # Default: -1 (no filtering)
+    @property
+    def max_box_width_normalized(self) -> float:
+        return self.custom_object_detection_props.max_box_width_normalized
+
+    @max_box_width_normalized.setter
+    def max_box_width_normalized(self, float max_box_width_normalized):
+        self.custom_object_detection_props.max_box_width_normalized = max_box_width_normalized
+
+    ##
+    # Minimum allowed width normalized to the image size.
+    #
+    # Any prediction smaller than that will be filtered out.
+    # Default: -1 (no filtering)
+    @property
+    def min_box_width_normalized(self) -> float:
+        return self.custom_object_detection_props.min_box_width_normalized
+
+    @min_box_width_normalized.setter
+    def min_box_width_normalized(self, float min_box_width_normalized):
+        self.custom_object_detection_props.min_box_width_normalized = min_box_width_normalized
+
+    ##
+    # Maximum allowed height normalized to the image size.
+    #
+    # Any prediction bigger than that will be filtered out.
+    # Default: -1 (no filtering)
+    @property
+    def max_box_height_normalized(self) -> float:
+        return self.custom_object_detection_props.max_box_height_normalized
+
+    @max_box_height_normalized.setter
+    def max_box_height_normalized(self, float max_box_height_normalized):
+        self.custom_object_detection_props.max_box_height_normalized = max_box_height_normalized
+
+    ##
+    # Minimum allowed height normalized to the image size.
+    #
+    # Any prediction smaller than that will be filtered out.
+    # Default: -1 (no filtering)
+    @property
+    def min_box_height_normalized(self) -> float:
+        return self.custom_object_detection_props.min_box_height_normalized
+
+    @min_box_height_normalized.setter
+    def min_box_height_normalized(self, float min_box_height_normalized):
+        self.custom_object_detection_props.min_box_height_normalized = min_box_height_normalized
+
+
+##
+# Class containing a set of runtime parameters for the object detection module using your own model ran by the SDK.
+# \ingroup Object_group
+#
+# The default constructor sets all parameters to their default settings.
+# \note Parameters can be adjusted by the user.
+cdef class CustomObjectDetectionRuntimeParameters:
+    cdef c_CustomObjectDetectionRuntimeParameters* custom_object_detection_rt
+
+    ##
+    # Default constructor.
+    # \param object_detection_properties : Global object properties, when not specified in \ref object_class_detection_properties
+    # \param object_class_detection_confidence_threshold : Object properties per classes
+    def __cinit__(self,
+                  CustomObjectDetectionProperties object_detection_properties = None,
+                  dict object_class_detection_properties = None
+    ) -> CustomObjectDetectionRuntimeParameters:
+        if object_detection_properties is None:
+            object_detection_properties = CustomObjectDetectionProperties()
+
+        cdef unordered_map[int, c_CustomObjectDetectionProperties] object_class_detection_properties_cpy
+        object_class_detection_properties_cpy = unordered_map[int, c_CustomObjectDetectionProperties]()
+
+        if object_class_detection_properties is not None:
+            for k, v in object_class_detection_properties.items():
+                object_class_detection_properties_cpy[<int>k.value] = deref((<CustomObjectDetectionProperties>v).custom_object_detection_props)
+
+        self.custom_object_detection_rt = new c_CustomObjectDetectionRuntimeParameters(
+            deref((<CustomObjectDetectionProperties>object_detection_properties).custom_object_detection_props),
+            object_class_detection_properties_cpy)
+
+    def __dealloc__(self):
+        if self.custom_object_detection_rt is not NULL:
+            del self.custom_object_detection_rt
+
+    ##
+    # Global object detection properties.
+    #
+    # \note \ref object_detection_properties is used as a fallback when sl::CustomObjectDetectionRuntimeParameters.object_class_detection_properties is partially set.
+    @property
+    def object_detection_properties(self) -> CustomObjectDetectionProperties:
+        props = CustomObjectDetectionProperties(
+            self.custom_object_detection_rt.object_detection_properties.enabled,
+            self.custom_object_detection_rt.object_detection_properties.detection_confidence_threshold,
+            self.custom_object_detection_rt.object_detection_properties.is_grounded,
+            self.custom_object_detection_rt.object_detection_properties.is_static,
+            self.custom_object_detection_rt.object_detection_properties.tracking_timeout,
+            self.custom_object_detection_rt.object_detection_properties.tracking_max_dist,
+            self.custom_object_detection_rt.object_detection_properties.max_box_width_normalized,
+            self.custom_object_detection_rt.object_detection_properties.min_box_width_normalized,
+            self.custom_object_detection_rt.object_detection_properties.max_box_height_normalized,
+            self.custom_object_detection_rt.object_detection_properties.min_box_height_normalized
+        )
+        return props
+
+    @object_detection_properties.setter
+    def object_detection_properties(self, CustomObjectDetectionProperties object_detection_properties):
+        self.custom_object_detection_props.object_detection_properties = object_detection_properties
+
+    ##
+    # Per class object detection properties.
+    @property
+    def object_class_detection_properties(self) -> dict:
+        object_class_detection_properties_dict = {}
+        cdef pair[int, c_CustomObjectDetectionProperties] it
+
+        for it in self.custom_object_detection_rt.object_class_detection_properties:
+            object_class_detection_properties_dict[it.first] = CustomObjectDetectionProperties(
+                it.second.enabled,
+                it.second.detection_confidence_threshold,
+                it.second.is_grounded,
+                it.second.is_static,
+                it.second.tracking_timeout,
+                it.second.tracking_max_dist,
+                it.second.max_box_width_normalized,
+                it.second.min_box_width_normalized,
+                it.second.max_box_height_normalized,
+                it.second.min_box_height_normalized
+            )
+        return object_class_detection_properties_dict
+
+    @object_class_detection_properties.setter
+    def object_class_detection_properties(self, dict object_class_detection_properties):
+        self.custom_object_detection_rt.object_class_detection_properties.clear()
+        for k, v in object_class_detection_properties.items():
+            self.custom_object_detection_rt.object_class_detection_properties [<int>k.value] = deref((<CustomObjectDetectionProperties>v).custom_object_detection_props)
+
+
 ##
 # Class containing a set of parameters for the body tracking module.
 # \ingroup Body_group
@@ -3791,7 +4408,8 @@ cdef class BodyTrackingParameters:
                                                                 , instance_module_id)
 
     def __dealloc__(self):
-        del self.bodyTrackingParameters
+        if self.bodyTrackingParameters is not NULL:
+            del self.bodyTrackingParameters
 
     ##
     # Whether the body tracking system includes body/person tracking capabilities across a sequence of images.
@@ -6536,7 +7154,7 @@ cdef class InputType:
 #        def main() :
 #            zed = sl.Camera() # Create a ZED camera object
 #
-#            init_params = sl.InitParameters() # Set initial parameters
+#            init_params = sl.InitParameters()   # Set initial parameters
 #            init_params.sdk_verbose = 0  # Disable verbose mode
 #
 #            # Use the camera in LIVE mode
@@ -6599,6 +7217,7 @@ cdef class InitParameters:
     # \param open_timeout_sec : Sets \ref open_timeout_sec
     # \param async_grab_camera_recovery : Sets \ref async_grab_camera_recovery
     # \param grab_compute_capping_fps : Sets \ref grab_compute_capping_fps
+    # \param enable_image_validity_check : Sets \ref enable_image_validity_check
     #
     # \code
     # params = sl.InitParameters(camera_resolution=sl.RESOLUTION.HD720, camera_fps=30, depth_mode=sl.DEPTH_MODE.PERFORMANCE)
@@ -6614,7 +7233,7 @@ cdef class InitParameters:
                   optional_settings_path="",sensors_required=False,
                   enable_image_enhancement=True, optional_opencv_calibration_file="", 
                   open_timeout_sec=5.0, async_grab_camera_recovery=False, grab_compute_capping_fps=0,
-                  enable_image_validity_check=False) -> InitParameters:
+                  enable_image_validity_check=False, async_image_retrieval=False) -> InitParameters:
         if (isinstance(camera_resolution, RESOLUTION) and isinstance(camera_fps, int) and
             isinstance(svo_real_time_mode, bool) and isinstance(depth_mode, DEPTH_MODE) and
             isinstance(coordinate_units, UNIT) and
@@ -6629,7 +7248,8 @@ cdef class InitParameters:
             isinstance(open_timeout_sec, float) and
             isinstance(async_grab_camera_recovery, bool) and
             isinstance(grab_compute_capping_fps, float) or isinstance(grab_compute_capping_fps, int) and
-            isinstance(enable_image_validity_check, bool)) :
+            isinstance(async_image_retrieval, bool) and
+            isinstance(enable_image_validity_check, int) or isinstance(enable_image_validity_check, bool)) :
 
             filelog = sdk_verbose_log_file.encode()
             fileoption = optional_settings_path.encode()
@@ -6643,8 +7263,8 @@ cdef class InitParameters:
                                             String(<char*> filelog), depth_stabilization,
                                             <CUcontext> 0, (<InputType>input_t).input, String(<char*> fileoption), sensors_required, enable_image_enhancement,
                                             String(<char*> filecalibration), <float>(open_timeout_sec), 
-                                            async_grab_camera_recovery, <float>(grab_compute_capping_fps),
-                                            enable_image_validity_check)
+                                            async_grab_camera_recovery, <float>(grab_compute_capping_fps), <bool>(async_image_retrieval),
+                                            <int>(enable_image_validity_check))
         else:
             raise TypeError("Argument is not of right type.")
 
@@ -6659,7 +7279,7 @@ cdef class InitParameters:
     # \warning In case a file already exists, the method will return False and existing file will not be updated
     #
     # \code
-    # init_params = sl.InitParameters() # Set initial parameters
+    # init_params = sl.InitParameters()  # Set initial parameters
     # init_params.sdk_verbose = 1 # Enable verbose mode
     # init_params.set_from_svo_file("/path/to/file.svo") # Selects the and SVO file to be read
     # init_params.save("initParameters.conf") # Export the parameters into a file
@@ -6674,7 +7294,7 @@ cdef class InitParameters:
     # \return True if the file was successfully loaded, otherwise false.
     #
     # \code
-    # init_params = sl.InitParameters() # Set initial parameters
+    # init_params = sl.InitParameters()  # Set initial parameters
     # init_params.load("initParameters.conf") # Load the init_params from a previously exported file
     # \endcode
     def load(self, filename: str) -> bool:
@@ -6715,6 +7335,19 @@ cdef class InitParameters:
     @camera_fps.setter
     def camera_fps(self, int value):
         self.init.camera_fps = value
+
+    ##
+    # Enable async image retrieval.
+    #
+    # If set to true will camera image retrieve at a framerate different from \ref grab() application framerate. This is useful for recording SVO or sending camera stream at different rate than application.
+    # \n Default: false
+    @property
+    def async_image_retrieval(self) -> bool:
+        return self.init.async_image_retrieval
+
+    @async_image_retrieval.setter
+    def async_image_retrieval(self, bool value):
+        self.init.async_image_retrieval = value
 
     ##
     # Requires the successful opening of the motion sensors before opening the camera.
@@ -7151,11 +7784,11 @@ cdef class InitParameters:
     # \n This version doesn't detect frame tearing currently.
     # \n Default: False (disabled)
     @property
-    def enable_image_validity_check(self) -> bool:
+    def enable_image_validity_check(self) -> int:
         return self.init.enable_image_validity_check
 
     @enable_image_validity_check.setter
-    def enable_image_validity_check(self, value: bool):
+    def enable_image_validity_check(self, value: int):
         self.init.enable_image_validity_check = value
 
     ##
@@ -7286,7 +7919,7 @@ cdef class RuntimeParameters:
     #
     # Each depth pixel has a corresponding confidence (\ref MEASURE "sl.MEASURE.CONFIDENCE") in the range [1, 100].
     # \n Decreasing this value will remove depth data from both objects edges and low textured areas, to keep only confident depth estimation data.
-    # \n Default: 100 (no depth pixel will be rejected)
+    # \n Default: 95 (no depth pixel will be rejected)
     # \note Pixels with a value close to 100 are not to be trusted. Accurate depth pixels tends to be closer to lower values.
     # \note It can be seen as a probability of error, scaled to 100.
     @property
@@ -8753,6 +9386,26 @@ cdef class RecordingStatus:
     def average_compression_ratio(self, value: double):
         self.recordingState.average_compression_ratio = value
 
+    ##
+    # Number of frames ingested in SVO encoding/writing.
+    @property
+    def number_frames_ingested(self) -> int:
+        return self.recordingState.number_frames_ingested
+
+    @number_frames_ingested.setter
+    def number_frames_ingested(self, value: int):
+        self.recordingState.number_frames_ingested = value
+
+    ##
+    # Number of frames effectively encoded and written. Might be different from the number of frames ingested. The difference will show the encoder latency
+    @property
+    def number_frames_encoded(self) -> int:
+        return self.recordingState.number_frames_encoded
+
+    @number_frames_encoded.setter
+    def number_frames_encoded(self, value: int):
+        self.recordingState.number_frames_encoded = value
+
 
 ##
 # This class serves as the primary interface between the camera and the various features provided by the SDK.
@@ -9229,8 +9882,6 @@ cdef class Camera:
         else:
             raise TypeError("The key must be a string.") 
         
-        return ERROR_CODE.FAILURE
-
     # Sets the value of the requested \ref VIDEO_SETTINGS "camera setting" (gain, brightness, hue, exposure, etc.).
     #
     # This method only applies for \ref VIDEO_SETTINGS that require a single value.
@@ -10520,6 +11171,23 @@ cdef class Camera:
             raise TypeError("Argument is not of the right type")
 
     ##
+    # Feed the 3D Object tracking function with your own 2D bounding boxes with masks from your own detection algorithm.
+    # \param objects_in : List of \ref CustomMaskObjectData to feed the object detection.
+    # \param instance_module_id : Id of the object detection instance. Used when multiple instances of the object detection module are enabled at the same time.
+    # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if everything went fine.
+    # \note The detection should be done on the current grabbed left image as the internal process will use all currently available data to extract 3D information and perform object tracking.
+    def ingest_custom_mask_objects(self, objects_in: list[CustomMaskObjectData], instance_module_id=0) -> ERROR_CODE:
+        cdef vector[c_CustomMaskObjectData] custom_obj
+        if objects_in is not None:
+            # Convert input list into C vector
+            for i in range(len(objects_in)):
+                custom_obj.push_back((<CustomMaskObjectData>objects_in[i]).custom_mask_object_data)
+            status = self.camera.ingestCustomMaskObjects(custom_obj, instance_module_id)
+            return ERROR_CODE(<int>status)
+        else:
+            raise TypeError("Argument is not of the right type")
+
+    ##
     # Tells if the object detection module is enabled.
     def is_object_detection_enabled(self, instance_id : int = 0) -> bool:
         return self.camera.isObjectDetectionEnabled(instance_id)
@@ -10593,6 +11261,23 @@ cdef class Camera:
     def reboot(sn : int, full_reboot: bool =True) -> ERROR_CODE:
         cls = Camera()
         return ERROR_CODE(<int>cls.camera.reboot(sn, full_reboot))
+
+    ##
+    # Performs a hardware reset of all devices matching the InputType.
+    # 
+    # \param input_type : Input type of the devices to reset.
+    # \return \ref ERROR_CODE "ERROR_CODE::SUCCESS" if everything went fine.
+    # \return \ref ERROR_CODE "ERROR_CODE::CAMERA_NOT_DETECTED" if no camera was detected.
+    # \return \ref ERROR_CODE "ERROR_CODE::FAILURE" otherwise.
+    # \return \ref ERROR_CODE "ERROR_CODE::INVALID_FUNCTION_PARAMETERS" for SVOs and streams.
+    # 
+    # \warning This method will invalidate any sl.Camera object, since the device is rebooting.
+    @staticmethod
+    def reboot_from_input(input_type: INPUT_TYPE) -> ERROR_CODE:
+        if not isinstance(input_type, INPUT_TYPE):
+            raise TypeError("Argument is not of INPUT_TYPE type.")
+        cls = Camera()
+        return ERROR_CODE(<int>cls.camera.reboot_from_type(<c_INPUT_TYPE>(<int>input_type.value)))
 
 ##
 # Lists the different types of communications available for Fusion module.
@@ -10767,7 +11452,7 @@ cdef class FusionConfiguration:
         self.fusionConfiguration.communication_parameters = communication_parameters.communicationParameters
 
     ##
-    # The WORLD Pose of the camera for Fusion.
+    # The WORLD Pose of the camera for Fusion in the unit and coordinate system defined by the user in the InitFusionParameters.
     @property
     def pose(self):
         for i in range(16):
@@ -10816,6 +11501,24 @@ def read_fusion_configuration_file_from_serial(self, json_config_filename : str,
 # \note Empty if no data were found for the requested camera.
 def read_fusion_configuration_file(json_config_filename : str, coord_system : COORDINATE_SYSTEM, unit: UNIT) -> list[FusionConfiguration]:
     cdef vector[c_FusionConfiguration] fusion_configurations = c_readFusionConfigurationFile2(json_config_filename.encode('utf-8'), <c_COORDINATE_SYSTEM>(<int>coord_system.value), <c_UNIT>(<int>unit.value))
+    return_list = []
+    for item in fusion_configurations:
+        fc = FusionConfiguration()
+        fc.fusionConfiguration = item
+        return_list.append(fc)
+    return return_list
+
+##
+# Read a Configuration JSON to configure a fusion process.
+# \ingroup Fusion_group
+# \param fusion_configuration : The JSON containing the configuration.
+# \param coord_sys : The COORDINATE_SYSTEM in which you want the World Pose to be in.
+# \param unit : The UNIT in which you want the World Pose to be in.
+#
+# \return A list of \ref FusionConfiguration for all the camera present in the file.
+# \note Empty if no data were found for the requested camera.
+def read_fusion_configuration_json(fusion_configuration : dict, coord_system : COORDINATE_SYSTEM, unit: UNIT) -> list[FusionConfiguration]:
+    cdef vector[c_FusionConfiguration] fusion_configurations = c_readFusionConfigurationFile2(json.dumps(fusion_configuration).encode('utf-8'), <c_COORDINATE_SYSTEM>(<int>coord_system.value), <c_UNIT>(<int>unit.value))
     return_list = []
     for item in fusion_configurations:
         fc = FusionConfiguration()
@@ -10975,6 +11678,47 @@ cdef class PositionalTrackingFusionParameters:
     def gnss_calibration_parameters(self, value: GNSSCalibrationParameters):
         self.positionalTrackingFusionParameters.gnss_calibration_parameters = value.gnssCalibrationParameters
 
+    ##
+    # Position and orientation of the base footprint with respect to the user world.
+    # This transform represents a basis change from base footprint coordinate frame to user world coordinate frame
+    # 
+    @property
+    def base_footprint_to_world_transform(self) -> Transform:
+        tr = Transform()
+        for i in range(16):
+            tr.transform.m[i] = self.positionalTrackingFusionParameters.base_footprint_to_world_transform.m[i]
+        return tr
+
+    @base_footprint_to_world_transform.setter
+    def base_footprint_to_world_transform(self, transform : Transform):
+        self.positionalTrackingFusionParameters.base_footprint_to_world_transform = deref(transform.transform)
+
+    ##
+    # Position and orientation of the base footprint with respect to the baselink.
+    # This transform represents a basis change from base footprint coordinate frame to baselink coordinate frame
+    # 
+    @property
+    def base_footprint_to_baselink_transform(self) -> Transform:
+        tr = Transform()
+        for i in range(16):
+            tr.transform.m[i] = self.positionalTrackingFusionParameters.base_footprint_to_baselink_transform.m[i]
+        return tr
+
+    @base_footprint_to_baselink_transform.setter
+    def base_footprint_to_baselink_transform(self, transform : Transform):
+        self.positionalTrackingFusionParameters.base_footprint_to_baselink_transform = deref(transform.transform)
+
+    ##
+    # Whether to override 2 of the 3 rotations from base_footprint_to_world_transform using the IMU gravity.
+    #
+    # Default: False
+    @property
+    def set_gravity_as_origin(self) -> bool:
+        return self.positionalTrackingFusionParameters.set_gravity_as_origin
+
+    @set_gravity_as_origin.setter
+    def set_gravity_as_origin(self, value: bool):
+        self.positionalTrackingFusionParameters.set_gravity_as_origin = value
 
 ##
 # Holds the options used to initialize the body tracking module of the \ref Fusion.
@@ -11626,18 +12370,89 @@ cdef class GNSSData:
                 return
         raise TypeError("Argument is not of 9-sized list.")
 
+
+# @brief Configuration parameters for data synchronization.
+#
+# The SynchronizationParameter struct represents the configuration parameters used by the synchronizer. It allows customization
+# of the synchronization process based on specific requirements.
+cdef class SynchronizationParameter:
+    cdef c_SynchronizationParameter synchronization_parameters
+
+    #
+    # @brief Default constructor
+    #
+    def __cinit__(self, windows_size : double = 0, data_source_timeout : double = 50, keep_last_data : bool = False, maximum_lateness : double = 50):
+        self.synchronization_parameters.windows_size = windows_size
+        self.synchronization_parameters.data_source_timeout = data_source_timeout
+        self.synchronization_parameters.keep_last_data = keep_last_data
+        self.synchronization_parameters.maximum_lateness = maximum_lateness
+
+    # @brief Size of synchronization windows in milliseconds.
+    #
+    # The synchronization window is used by the synchronizer to return all data present inside the current
+    # synchronization window. For efficient fusion, the synchronization window size is expected to be equal
+    # to the period of the lowest source of data. If not provided, the fusion SDK will compute it from the
+    # data's sources.
+    @property
+    def windows_size(self) -> double:
+        return self.synchronization_parameters.windows_size
+
+    @windows_size.setter
+    def windows_size(self, value: double):
+        self.synchronization_parameters.windows_size = value
+
+    # @brief Duration in milliseconds before considering a data source inactive if no more data is present.
+    #
+    # The data_source_timeout parameter specifies the duration to wait before considering a data source as inactive
+    # if no new data is received within the specified time frame.
+    @property
+    def data_source_timeout(self) -> double:
+        return self.synchronization_parameters.data_source_timeout
+
+    @data_source_timeout.setter
+    def data_source_timeout(self, value:double):
+        self.synchronization_parameters.data_source_timeout = value
+
+    # @brief Determines whether to include the last data returned by a source in the final synchronized data.
+    #
+    # If the keep_last_data parameter is set to true and no data is present in the current synchronization window,
+    # the last data returned by the source will be included in the final synchronized data. This ensures continuity
+    # even in the absence of fresh data.
+    @property
+    def keep_last_data(self) -> bool:
+        return self.synchronization_parameters.keep_last_data
+
+    @keep_last_data.setter
+    def keep_last_data(self, value: bool):
+        self.synchronization_parameters.keep_last_data = value
+
+    # @brief Maximum duration in milliseconds allowed for data to be considered as the last data.
+    #
+    # The maximum_lateness parameter sets the maximum duration within which data can be considered as the last
+    # available data. If the duration between the last received data and the current synchronization window exceeds
+    # this value, the data will not be included as the last data in the final synchronized output.
+    @property
+    def maximum_lateness(self) -> double:
+        return self.synchronization_parameters.maximum_lateness
+
+    @maximum_lateness.setter
+    def maximum_lateness(self, value : double):
+        self.synchronization_parameters.maximum_lateness = value
+
+
 ##
 # Holds the options used to initialize the \ref Fusion object.
 # \ingroup Fusion_group
 cdef class InitFusionParameters:
     cdef c_InitFusionParameters* initFusionParameters
 
-    def __cinit__(self, coordinate_unit : UNIT = UNIT.MILLIMETER, coordinate_system : COORDINATE_SYSTEM = COORDINATE_SYSTEM.IMAGE, output_performance_metrics : bool = False, verbose_ : bool = False, timeout_period_number : int = 20):
+    def __cinit__(self, coordinate_unit : UNIT = UNIT.MILLIMETER, coordinate_system : COORDINATE_SYSTEM = COORDINATE_SYSTEM.IMAGE, output_performance_metrics : bool = False, verbose_ : bool = False, timeout_period_number : int = 5, synchronization_parameters : SynchronizationParameter = SynchronizationParameter()):
         self.initFusionParameters = new c_InitFusionParameters(
             <c_UNIT>(<int>coordinate_unit.value), 
-            <c_COORDINATE_SYSTEM>(<int>coordinate_system.value),  
-            output_performance_metrics, verbose_, 
-            timeout_period_number            
+            <c_COORDINATE_SYSTEM>(<int>coordinate_system.value),
+            output_performance_metrics, verbose_,
+            timeout_period_number,
+            <c_SynchronizationParameter>(synchronization_parameters.synchronization_parameters)
         )
 
     def __dealloc__(self):
@@ -11698,7 +12513,22 @@ cdef class InitFusionParameters:
     @timeout_period_number.setter
     def timeout_period_number(self, value: int):
         self.initFusionParameters.timeout_period_number = value
+        
 
+    ##
+    # Specifies the parameters used for data synchronization during fusion.
+    #
+    # The SynchronizationParameter struct encapsulates the synchronization parameters that control the data fusion process.
+    #
+    @property
+    def synchronization_parameters(self):
+        sp = SynchronizationParameter()
+        sp.synchronization_parameters = self.initFusionParameters.synchronization_parameters
+        return sp
+
+    @synchronization_parameters.setter
+    def synchronization_parameters(self, value: SynchronizationParameter):
+        self.initFusionParameters.synchronization_parameters = value.synchronization_parameters
 
 ##
 # Holds Fusion process data and functions
@@ -11931,13 +12761,17 @@ cdef class SVOData:
 
     ##
     # Get the content of the sl.SVOData as a string.
+    #
+    # \return The content of the sl.SVOData as a string.
     def get_content_as_string(self) -> str:
         cdef string input
         self.svo_data.getContent(input)
         return input.decode()
 
     ##
-    # Get the content of the sl.SVOData as a string.
+    # Set the content of the sl.SVOData as a string.
+    #
+    # \param data The string data content to set.
     def set_string_content(self, data: str) -> str:
         self.svo_data.setContent(data.encode('utf-8'))
 
@@ -11962,3 +12796,1070 @@ cdef class SVOData:
     @key.setter
     def key(self, key_value: str):
         self.svo_data.key = key_value.encode('utf-8')
+
+IF UNAME_SYSNAME == u"linux":
+    ##
+    # Class containing the options used to initialize the sl.CameraOne object.
+    # \ingroup Video_group
+    # 
+    # This class allows you to select multiple parameters for the sl.Camera such as the selected camera, resolution, depth mode, coordinate system, and units of measurement.
+    # \n Once filled with the desired options, it should be passed to the sl.Camera.open() method.
+    #
+    # \code
+    #
+    #        import pyzed.sl as sl
+    #
+    #        def main() :
+    #            zed = sl.CameraOne() # Create a ZED camera object
+    #
+    #            init_params = sl.InitParametersOne()   # Set initial parameters
+    #            init_params.sdk_verbose = 0  # Disable verbose mode
+    #
+    #            # Use the camera in LIVE mode
+    #            init_params.camera_resolution = sl.RESOLUTION.HD1080 # Use HD1080 video mode
+    #            init_params.camera_fps = 30 # Set fps at 30
+    #
+    #            # Or use the camera in SVO (offline) mode
+    #            #init_params.set_from_svo_file("xxxx.svo")
+    #
+    #            # Or use the camera in STREAM mode
+    #            #init_params.set_from_stream("192.168.1.12", 30000)
+    #
+    #            # Other parameters are left to their default values
+    #
+    #            # Open the camera
+    #            err = zed.open(init_params)
+    #            if err != sl.ERROR_CODE.SUCCESS:
+    #                exit(-1)
+    #
+    #            # Close the camera
+    #            zed.close()
+    #            return 0
+    #
+    #        if __name__ == "__main__" :
+    #            main()
+    #
+    # \endcode
+    #
+    # With its default values, it opens the camera in live mode at \ref RESOLUTION "sl.RESOLUTION.HD720"
+    # \n You can customize it to fit your application.
+    # \note The parameters can also be saved and reloaded using its \ref save() and \ref load() methods.
+    cdef class InitParametersOne:
+        cdef c_InitParametersOne init
+        ##
+        # Default constructor.
+        #
+        # All the parameters are set to their default and optimized values.
+        # \param camera_resolution : Chosen \ref camera_resolution
+        # \param camera_fps : Chosen \ref camera_fps
+        # \param svo_real_time_mode : Activates \ref svo_real_time_mode
+        # \param coordinate_units : Chosen \ref coordinate_units
+        # \param coordinate_system : Chosen \ref coordinate_system
+        # \param sdk_verbose : Sets \ref sdk_verbose
+        # \param sdk_verbose_log_file : Chosen \ref sdk_verbose_log_file
+        # \param input_t : Chosen input_t (\ref InputType )
+        # \param optional_settings_path : Chosen \ref optional_settings_path
+        # \param sensors_required : Activates \ref sensors_required
+        # \param optional_opencv_calibration_file : Sets \ref optional_opencv_calibration_file
+        # \param open_timeout_sec : Sets \ref open_timeout_sec
+        # \param async_grab_camera_recovery : Sets \ref async_grab_camera_recovery
+        # \param grab_compute_capping_fps : Sets \ref grab_compute_capping_fps
+        # \param enable_image_validity_check : Sets \ref enable_image_validity_check
+    
+        ##
+        # Desired camera resolution.
+        # \note Small resolutions offer higher framerate and lower computation time.
+        # \note In most situations, \ref RESOLUTION "sl.RESOLUTION.HD720" at 60 FPS is the best balance between image quality and framerate.
+        #
+        # Default: <ul>
+        # <li>ZED X/X Mini: \ref RESOLUTION "sl.RESOLUTION.HD1200"</li>
+        # <li>other cameras: \ref RESOLUTION "sl.RESOLUTION.HD720"</li></ul>
+        # \note Available resolutions are listed here: sl.RESOLUTION.
+        @property
+        def camera_resolution(self) -> RESOLUTION:
+            return RESOLUTION(<int>self.init.camera_resolution)
+
+        @camera_resolution.setter
+        def camera_resolution(self, value):
+            if isinstance(value, RESOLUTION):
+                self.init.camera_resolution = <c_RESOLUTION>(<unsigned int>value.value)
+            else:
+                raise TypeError("Argument must be of RESOLUTION type.")
+
+        ##
+        # Requested camera frame rate.
+        #
+        # If set to 0, the highest FPS of the specified \ref camera_resolution will be used.
+        # \n Default: 0
+        # \n\n See sl.RESOLUTION for a list of supported frame rates.
+        # \note If the requested \ref camera_fps is unsupported, the closest available FPS will be used.
+        @property
+        def camera_fps(self) -> int:
+            return self.init.camera_fps
+
+        @camera_fps.setter
+        def camera_fps(self, int value):
+            self.init.camera_fps = value
+
+        ##
+        # Defines if sl.Camera object return the frame in real time mode.
+        #
+        # When playing back an SVO file, each call to sl.Camera.grab() will extract a new frame and use it.
+        # \n However, it ignores the real capture rate of the images saved in the SVO file.
+        # \n Enabling this parameter will bring the SDK closer to a real simulation when playing back a file by using the images' timestamps.
+        # \n Default: False
+        # \note sl.Camera.grab() will return an error when trying to play too fast, and frames will be dropped when playing too slowly.
+        @property
+        def svo_real_time_mode(self) -> bool:
+            return self.init.svo_real_time_mode
+
+        @svo_real_time_mode.setter
+        def svo_real_time_mode(self, value: bool):
+            self.init.svo_real_time_mode = value
+
+        ##
+        # Unit of spatial data (depth, point cloud, tracking, mesh, etc.) for retrieval.
+        #
+        # Default: \ref UNIT "sl.UNIT.MILLIMETER"
+        @property
+        def coordinate_units(self) -> UNIT:
+            return UNIT(<int>self.init.coordinate_units)
+
+        @coordinate_units.setter
+        def coordinate_units(self, value):
+            if isinstance(value, UNIT):
+                self.init.coordinate_units = <c_UNIT>(<unsigned int>value.value)
+            else:
+                raise TypeError("Argument must be of UNIT type.")
+
+        ##
+        # sl.COORDINATE_SYSTEM to be used as reference for positional tracking, mesh, point clouds, etc.
+        #
+        # This parameter allows you to select the sl.COORDINATE_SYSTEM used by the sl.Camera object to return its measures.
+        # \n This defines the order and the direction of the axis of the coordinate system.
+        # \n Default: \ref COORDINATE_SYSTEM "sl.COORDINATE_SYSTEM.IMAGE"
+        @property
+        def coordinate_system(self) -> COORDINATE_SYSTEM:
+            return COORDINATE_SYSTEM(<int>self.init.coordinate_system)
+
+        @coordinate_system.setter
+        def coordinate_system(self, value):
+            if isinstance(value, COORDINATE_SYSTEM):
+                self.init.coordinate_system = <c_COORDINATE_SYSTEM>(<unsigned int>value.value)
+            else:
+                raise TypeError("Argument must be of COORDINATE_SYSTEM type.")
+
+        ##
+        # Enable the ZED SDK verbose mode.
+        #
+        # This parameter allows you to enable the verbosity of the ZED SDK to get a variety of runtime information in the console.
+        # \n When developing an application, enabling verbose (<code>\ref sdk_verbose >= 1</code>) mode can help you understand the current ZED SDK behavior.
+        # \n However, this might not be desirable in a shipped version.
+        # \n Default: 0 (no verbose message)
+        # \note The verbose messages can also be exported into a log file.
+        # \note See \ref sdk_verbose_log_file for more.
+        @property
+        def sdk_verbose(self) -> int:
+            return self.init.sdk_verbose
+
+        @sdk_verbose.setter
+        def sdk_verbose(self, value: int):
+            self.init.sdk_verbose = value
+
+        ##
+        # File path to store the ZED SDK logs (if \ref sdk_verbose is enabled).
+        #
+        # The file will be created if it does not exist.
+        # \n Default: ""
+        #
+        # \note Setting this parameter to any value will redirect all standard output print calls of the entire program.
+        # \note This means that your own standard output print calls will be redirected to the log file.
+        # \warning The log file won't be cleared after successive executions of the application.
+        # \warning This means that it can grow indefinitely if not cleared. 
+        @property
+        def sdk_verbose_log_file(self) -> str:
+            if not self.init.sdk_verbose_log_file.empty():
+                return self.init.sdk_verbose_log_file.get().decode()
+            else:
+                return ""
+
+        @sdk_verbose_log_file.setter
+        def sdk_verbose_log_file(self, value: str):
+            value_filename = value.encode()
+            self.init.sdk_verbose_log_file.set(<char*>value_filename)
+
+        ##
+        # The SDK can handle different input types:
+        #   - Select a camera by its ID (/dev/video<i>X</i> on Linux, and 0 to N cameras connected on Windows)
+        #   - Select a camera by its serial number
+        #   - Open a recorded sequence in the SVO file format
+        #   - Open a streaming camera from its IP address and port
+        #
+        # This parameter allows you to select to desired input. It should be used like this:
+        # \code
+        # init_params = sl.InitParametersOne()    # Set initial parameters
+        # init_params.sdk_verbose = 1 # Enable verbose mode
+        # input_t = sl.InputType()
+        # input_t.set_from_camera_id(0) # Selects the camera with ID = 0
+        # init_params.input = input_t
+        # init_params.set_from_camera_id(0) # You can also use this
+        # \endcode
+        #
+        # \code
+        # init_params = sl.InitParametersOne()    # Set initial parameters
+        # init_params.sdk_verbose = 1 # Enable verbose mode
+        # input_t = sl.InputType()
+        # input_t.set_from_serial_number(1010) # Selects the camera with serial number = 101
+        # init_params.input = input_t
+        # init_params.set_from_serial_number(1010) # You can also use this
+        # \endcode
+        #
+        # \code
+        # init_params = sl.InitParametersOne()    # Set initial parameters
+        # init_params.sdk_verbose = 1 # Enable verbose mode
+        # input_t = sl.InputType()
+        # input_t.set_from_svo_file("/path/to/file.svo") # Selects the and SVO file to be read
+        # init_params.input = input_t
+        # init_params.set_from_svo_file("/path/to/file.svo")  # You can also use this
+        # \endcode
+        # 
+        # \code
+        # init_params = sl.InitParametersOne()   # Set initial parameters
+        # init_params.sdk_verbose = 1 # Enable verbose mode
+        # input_t = sl.InputType()
+        # input_t.set_from_stream("192.168.1.42")
+        # init_params.input = input_t
+        # init_params.set_from_stream("192.168.1.42") # You can also use this
+        # \endcode
+        #
+        # Available cameras and their ID/serial can be listed using \ref get_device_list() and \ref get_streaming_device_list()
+        # Each \ref Camera will create its own memory (CPU and GPU), therefore the number of ZED used at the same time can be limited by the configuration of your computer. (GPU/CPU memory and capabilities)
+        #
+        # default : empty
+        # See \ref InputType for complementary information.
+        # 
+        # \warning Using the ZED SDK Python API, using init_params.input.set_from_XXX won't work, use init_params.set_from_XXX instead
+        # @property
+        # def input(self):
+        #    input_t = InputType()
+        #    input_t.input = self.init.input
+        #    return input_t
+
+        # @input.setter
+        def input(self, input_t: InputType):
+            self.init.input = input_t.input
+
+        input = property(None, input)
+
+        ##
+        # Optional path where the ZED SDK has to search for the settings file (<i>SN<XXXX>.conf</i> file).
+        #
+        # This file contains the calibration information of the camera.
+        # \n Default: ""
+        #
+        # \note The settings file will be searched in the default directory: <ul>
+        # <li><b>Linux</b>: <i>/usr/local/zed/settings/</i></li> 
+        # <li><b>Windows</b>: <i>C:/ProgramData/stereolabs/settings</i></li></ul>
+        # 
+        # \note If a path is specified and no file has been found, the ZED SDK will search the settings file in the default directory.
+        # \note An automatic download of the settings file (through <b>ZED Explorer</b> or the installer) will still download the files on the default path.
+        #
+        # \code
+        # init_params = sl.InitParametersOne()    # Set initial parameters
+        # home = "/path/to/home"
+        # path = home + "/Documents/settings/" # assuming /path/to/home/Documents/settings/SNXXXX.conf exists. Otherwise, it will be searched in /usr/local/zed/settings/
+        # init_params.optional_settings_path = path
+        # \endcode
+        @property
+        def optional_settings_path(self) -> str:
+            if not self.init.optional_settings_path.empty():
+                return self.init.optional_settings_path.get().decode()
+            else:
+                return ""
+
+        @optional_settings_path.setter
+        def optional_settings_path(self, value: str):
+            value_filename = value.encode()
+            self.init.optional_settings_path.set(<char*>value_filename)
+
+        ##
+        # Define a timeout in seconds after which an error is reported if the sl.Camera.open() method fails.
+        #
+        # Set to '-1' to try to open the camera endlessly without returning error in case of failure.
+        # \n Set to '0' to return error in case of failure at the first attempt.
+        # \n Default: 5.0
+        # \note This parameter only impacts the LIVE mode.
+        @property
+        def open_timeout_sec(self) -> float:
+            return self.init.open_timeout_sec
+
+        @open_timeout_sec.setter
+        def open_timeout_sec(self, value: float):
+            self.init.open_timeout_sec = value
+
+        ##
+        # Define the behavior of the automatic camera recovery during sl.Camera.grab() method call.
+        #
+        # When async is enabled and there's an issue with the communication with the sl.Camera object,
+        # sl.Camera.grab() will exit after a short period and return the \ref ERROR_CODE "sl.ERROR_CODE.CAMERA_REBOOTING" warning.
+        # \n The recovery will run in the background until the correct communication is restored.
+        # \n When \ref async_grab_camera_recovery is false, the sl.Camera.grab() method is blocking and will return
+        # only once the camera communication is restored or the timeout is reached. 
+        # \n Default: False
+        @property
+        def async_grab_camera_recovery(self) -> bool:
+            return self.init.async_grab_camera_recovery
+
+        @async_grab_camera_recovery.setter
+        def async_grab_camera_recovery(self, value: bool):
+            self.init.async_grab_camera_recovery = value
+        
+        ##
+        # Defines the input source with a camera id to initialize and open an sl.Camera object from.
+        # \param id : Id of the desired camera to open.
+        # \param bus_type : sl.BUS_TYPE of the desired camera to open.
+        def set_from_camera_id(self, id: uint, bus_type : BUS_TYPE = BUS_TYPE.AUTO) -> None:
+            self.init.input.setFromCameraID(id, <c_BUS_TYPE>(<int>(bus_type.value)))
+
+        ##
+        # Defines the input source with a serial number to initialize and open an sl.Camera object from.
+        # \param serial_number : Serial number of the desired camera to open.
+        # \param bus_type : sl.BUS_TYPE of the desired camera to open.
+        def set_from_serial_number(self, serial_number: uint, bus_type : BUS_TYPE = BUS_TYPE.AUTO) -> None:
+            self.init.input.setFromSerialNumber(serial_number, <c_BUS_TYPE>(<int>(bus_type.value)))
+
+        ##
+        # Defines the input source with an SVO file to initialize and open an sl.Camera object from.
+        # \param svo_input_filename : Path to the desired SVO file to open.
+        def set_from_svo_file(self, svo_input_filename: str) -> None:
+            filename = svo_input_filename.encode()
+            self.init.input.setFromSVOFile(String(<char*> filename))
+
+        ##
+        # Defines the input source from a stream to initialize and open an sl.Camera object from.
+        # \param sender_ip : IP address of the streaming sender.
+        # \param port : Port on which to listen. Default: 30000
+        def set_from_stream(self, sender_ip: str, port=30000) -> None:
+            sender_ip_ = sender_ip.encode()
+            self.init.input.setFromStream(String(<char*>sender_ip_), port)
+
+    cdef class CameraOne:
+        cdef c_CameraOne camera
+
+        ##
+        # Close an opened camera.
+        #
+        # If \ref open() has been called, this method will close the connection to the camera (or the SVO file) and free the corresponding memory.
+        #
+        # If \ref open() wasn't called or failed, this method won't have any effect.
+        #
+        # \note If an asynchronous task is running within the \ref Camera object, like \ref save_area_map(), this method will wait for its completion.
+        # \note To apply a new \ref InitParametersOne, you will need to close the camera first and then open it again with the new InitParameters values.
+        # \warning Therefore you need to make sure to delete your GPU \ref sl.Mat objects before the context is destroyed.
+        def close(self) -> None:
+            self.camera.close()
+
+        ##
+        # Opens the ZED camera from the provided InitParametersOne.
+        # The method will also check the hardware requirements and run a self-calibration.
+        # \param py_init : A structure containing all the initial parameters. Default: a preset of InitParametersOne.
+        # \return An error code giving information about the internal process. If \ref ERROR_CODE "ERROR_CODE.SUCCESS" is returned, the camera is ready to use. Every other code indicates an error and the program should be stopped.
+        #
+        # Here is the proper way to call this function:
+        #
+        # \code
+        # zed = sl.CameraOne() # Create a ZED camera object
+        #
+        # init_params = sl.InitParametersOne()    # Set configuration parameters
+        # init_params.camera_resolution = sl.RESOLUTION.HD720 # Use HD720 video mode
+        # init_params.camera_fps = 60 # Set fps at 60
+        #
+        # # Open the camera
+        # err = zed.open(init_params)
+        # if (err != sl.ERROR_CODE.SUCCESS) :
+        #   print(repr(err)) # Display the error
+        #   exit(-1)
+        # \endcode
+        #
+        # \note If you are having issues opening a camera, the diagnostic tool provided in the SDK can help you identify to problems.
+        #   - <b>Windows:</b> <i>C:\\Program Files (x86)\\ZED SDK\\tools\\ZED Diagnostic.exe</i>
+        #   - <b>Linux:</b> <i>/usr/local/zed/tools/ZED Diagnostic</i>
+        # \note If this method is called on an already opened camera, \ref close() will be called.
+        def open(self, py_init : InitParametersOne = InitParametersOne()) -> ERROR_CODE:
+            cdef c_InitParametersOne ini = py_init.init
+            return ERROR_CODE(<int>self.camera.open(ini))
+
+        ##
+        # Reports if the camera has been successfully opened.
+        # It has the same behavior as checking if \ref open() returns \ref ERROR_CODE "ERROR_CODE.SUCCESS".
+        # \return True if the ZED camera is already setup, otherwise false.
+        def is_opened(self) -> bool:
+            return self.camera.isOpened()
+
+        ##
+        # This method will grab the latest images from the camera, rectify them, and compute the \ref retrieve_measure() "measurements" based on the \ref RuntimeParameters provided (depth, point cloud, tracking, etc.)
+        #
+        # As measures are created in this method, its execution can last a few milliseconds, depending on your parameters and your hardware.
+        # \n The exact duration will mostly depend on the following parameters:
+        # 
+        #   - \ref InitParametersOne.camera_resolution : Lower resolutions are faster to compute.
+        #
+        # This method is meant to be called frequently in the main loop of your application.
+        # \note Since ZED SDK 3.0, this method is blocking. It means that grab() will wait until a new frame is detected and available.
+        # \note If no new frames is available until timeout is reached, grab() will return \ref ERROR_CODE "ERROR_CODE.CAMERA_NOT_DETECTED" since the camera has probably been disconnected.
+        # 
+        # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" means that no problem was encountered.
+        # \note Returned errors can be displayed using <code>str()</code>.
+        #
+        # \code
+        # image = sl.Mat()
+        # while True:
+        #       # Grab an image
+        #       if zed.grab() == sl.ERROR_CODE.SUCCESS: # A new image is available if grab() returns SUCCESS
+        #           zed.retrieve_image(image) # Get the left image     
+        #           # Use the image for your application
+        # \endcode
+        def grab(self) -> ERROR_CODE:
+            return ERROR_CODE(<int>self.camera.grab())
+
+        ##
+        # Retrieves images from the camera (or SVO file).
+        #
+        # Multiple images are available along with a view of various measures for display purposes.
+        # \n Available images and views are listed \ref VIEW "here".
+        # \n As an example, \ref VIEW "VIEW.DEPTH" can be used to get a gray-scale version of the depth map, but the actual depth values can be retrieved using \ref retrieve_measure() .
+        # \n
+        # \n <b>Pixels</b>
+        # \n Most VIEW modes output image with 4 channels as BGRA (Blue, Green, Red, Alpha), for more information see enum \ref VIEW
+        # \n
+        # \n <b>Memory</b>
+        # \n By default, images are copied from GPU memory to CPU memory (RAM) when this function is called.
+        # \n If your application can use GPU images, using the <b>type</b> parameter can increase performance by avoiding this copy.
+        # \n If the provided sl.Mat object is already allocated  and matches the requested image format, memory won't be re-allocated.
+        # \n
+        # \n <b>Image size</b>
+        # \n By default, images are returned in the resolution provided by \ref Resolution "get_camera_information().camera_configuration.resolution".
+        # \n However, you can request custom resolutions. For example, requesting a smaller image can help you speed up your application.
+        # \warning A sl.Mat resolution higher than the camera resolution <b>cannot</b> be requested.
+        # 
+        # \param py_mat[out] : The \ref sl.Mat to store the image.
+        # \param view[in] : Defines the image you want (see \ref VIEW). Default: \ref VIEW "VIEW.LEFT".
+        # \param type[in] : Defines on which memory the image should be allocated. Default: \ref MEM "MEM.CPU" (you cannot change this default value).
+        # \param resolution[in] : If specified, defines the \ref Resolution of the output sl.Mat. If set to \ref Resolution "Resolution(0,0)", the camera resolution will be taken. Default: (0,0).
+        # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if the method succeeded.
+        # \return \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_PARAMETERS" if the view mode requires a module not enabled (\ref VIEW "VIEW.DEPTH" with \ref DEPTH_MODE "DEPTH_MODE.NONE" for example).
+        # \return \ref ERROR_CODE "ERROR_CODE.FAILURE" if another error occurred.
+        # 
+        # \note As this method retrieves the images grabbed by the \ref grab() method, it should be called afterward.
+        #
+        # \code
+        # # create sl.Mat objects to store the images
+        # left_image = sl.Mat()
+        # while True:
+        #       # Grab an image
+        #       if zed.grab() == sl.ERROR_CODE.SUCCESS: # A new image is available if grab() returns SUCCESS
+        #           zed.retrieve_image(left_image, sl.VIEW.LEFT) # Get the rectified left image
+        #
+        #           # Display the center pixel colors
+        #           err, left_center = left_image.get_value(left_image.get_width() / 2, left_image.get_height() / 2)
+        #           if err == sl.ERROR_CODE.SUCCESS:
+        #               print("left_image center pixel R:", int(left_center[0]), " G:", int(left_center[1]), " B:", int(left_center[2]))
+        #           else:
+        #               print("error:", err)
+        # \endcode
+        def retrieve_image(self, py_mat: Mat, view=VIEW.LEFT, type=MEM.CPU, resolution=Resolution(0,0)) -> ERROR_CODE:
+            if (isinstance(view, VIEW) and isinstance(type, MEM)):
+                return ERROR_CODE(<int>self.camera.retrieveImage(py_mat.mat, <c_VIEW>(<unsigned int>view.value), <c_MEM>(<unsigned int>type.value), (<Resolution>resolution).resolution))
+            else:
+                raise TypeError("Arguments must be of VIEW, MEM and integer types.")
+
+        ##
+        # Sets the playback cursor to the desired frame number in the SVO file.
+        #
+        # This method allows you to move around within a played-back SVO file. After calling, the next call to \ref grab() will read the provided frame number.
+        #
+        # \param frame_number : The number of the desired frame to be decoded.
+        # 
+        # \note The method works only if the camera is open in SVO playback mode.
+        #
+        # \code
+        #
+        # import pyzed.sl as sl
+        #
+        # def main():
+        #     # Create a ZED camera object
+        #     zed = sl.CameraOne()
+        #
+        #     # Set configuration parameters
+        #     init_params = sl.InitParametersOne()   
+        #     init_params.set_from_svo_file("path/to/my/file.svo")
+        #
+        #     # Open the camera
+        #     err = zed.open(init_params)
+        #     if err != sl.ERROR_CODE.SUCCESS:
+        #         print(repr(err))
+        #         exit(-1)
+        #
+        #     # Loop between frames 0 and 50
+        #     left_image = sl.Mat()
+        #     while zed.get_svo_position() < zed.get_svo_number_of_frames() - 1:
+        #
+        #         print("Current frame: ", zed.get_svo_position())
+        #
+        #         # Loop if we reached frame 50
+        #         if zed.get_svo_position() == 50:
+        #             zed.set_svo_position(0)
+        #
+        #         # Grab an image
+        #         if zed.grab() == sl.ERROR_CODE.SUCCESS:
+        #             zed.retrieve_image(left_image, sl.VIEW.LEFT) # Get the rectified left image
+        #
+        #         # Use the image in your application
+        #
+        #     # Close the Camera
+        #     zed.close()
+        #     return 0
+        #
+        # if __name__ == "__main__" :
+        #     main()
+        #
+        # \endcode
+        def set_svo_position(self, frame_number: int) -> None:
+            self.camera.setSVOPosition(frame_number)
+
+        ##
+        # Returns the current playback position in the SVO file.
+        #
+        # The position corresponds to the number of frames already read from the SVO file, starting from 0 to n.
+        # 
+        # Each \ref grab() call increases this value by one (except when using \ref InitParametersOne.svo_real_time_mode).
+        # \return The current frame position in the SVO file. -1 if the SDK is not reading an SVO.
+        # 
+        # \note The method works only if the camera is open in SVO playback mode.
+        #
+        # See \ref set_svo_position() for an example.
+        def get_svo_position(self) -> int:
+            return self.camera.getSVOPosition()
+
+        ##
+        # Returns the number of frames in the SVO file.
+        #
+        # \return The total number of frames in the SVO file. -1 if the SDK is not reading a SVO.
+        #
+        # The method works only if the camera is open in SVO playback mode.
+        def get_svo_number_of_frames(self) -> int:
+            return self.camera.getSVONumberOfFrames()
+
+        # Sets the value of the requested \ref VIDEO_SETTINGS "camera setting" (gain, brightness, hue, exposure, etc.).
+        #
+        # This method only applies for \ref VIDEO_SETTINGS that require a single value.
+        #
+        # Possible values (range) of each settings are available \ref VIDEO_SETTINGS "here".
+        #
+        # \param settings : The setting to be set.
+        # \param value : The value to set. Default: auto mode
+        # \return \ref ERROR_CODE to indicate if the method was successful.
+        #
+        # \warning Setting [VIDEO_SETTINGS.EXPOSURE](\ref VIDEO_SETTINGS) or [VIDEO_SETTINGS.GAIN](\ref VIDEO_SETTINGS) to default will automatically sets the other to default.
+        #
+        # \note The method works only if the camera is open in LIVE or STREAM mode.
+        #
+        # \code
+        # # Set the gain to 50
+        # zed.set_camera_settings(sl.VIDEO_SETTINGS.GAIN, 50)
+        # \endcode
+        def set_camera_settings(self, settings: VIDEO_SETTINGS, value=-1) -> ERROR_CODE:
+            if isinstance(settings, VIDEO_SETTINGS) :
+                return ERROR_CODE(<int>self.camera.setCameraSettings(<c_VIDEO_SETTINGS>(<int>settings.value), value))
+            else:
+                raise TypeError("Arguments must be of VIDEO_SETTINGS and boolean types.")
+        ##
+        # Sets the value of the requested \ref VIDEO_SETTINGS "camera setting" that supports two values (min/max).
+        #
+        # This method only works with the following \ref VIDEO_SETTINGS:
+        # - \ref VIDEO_SETTINGS "sl.VIDEO_SETTINGS.AUTO_EXPOSURE_TIME_RANGE"
+        # - \ref VIDEO_SETTINGS "sl.VIDEO_SETTINGS.AUTO_ANALOG_GAIN_RANGE"
+        # - \ref VIDEO_SETTINGS "sl.VIDEO_SETTINGS.AUTO_DIGITAL_GAIN_RANGE"
+        #
+        # \param settings : The setting to be set.
+        # \param min : The minimum value that can be reached (-1 or 0 gives full range).
+        # \param max : The maximum value that can be reached (-1 or 0 gives full range).
+        # \return \ref ERROR_CODE to indicate if the method was successful.
+        #
+        # \warning If \ref VIDEO_SETTINGS settings is not supported or min >= max, it will return \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_PARAMETERS".
+        # \note The method works only if the camera is open in LIVE or STREAM mode.
+        #
+        # \code
+        # # For ZED X based product, set the automatic exposure from 2ms to 5ms. Expected exposure time cannot go beyond those values
+        # zed.set_camera_settings_range(sl.VIDEO_SETTINGS.AEC_RANGE, 2000, 5000);
+        # \endcode
+        def set_camera_settings_range(self, settings: VIDEO_SETTINGS, value_min=-1, value_max=-1) -> ERROR_CODE:
+            if isinstance(settings, VIDEO_SETTINGS) :
+                return ERROR_CODE(<int>self.camera.setCameraSettingsRange(<c_VIDEO_SETTINGS>(<int>settings.value), value_min, value_max))
+            else:
+                raise TypeError("Arguments must be of VIDEO_SETTINGS and boolean types.")
+
+        ##
+        # Overloaded method for \ref VIDEO_SETTINGS "VIDEO_SETTINGS.AEC_AGC_ROI" which takes a Rect as parameter.
+        #
+        # \param settings : Must be set at \ref VIDEO_SETTINGS "VIDEO_SETTINGS.AEC_AGC_ROI", otherwise the method will have no impact.
+        # \param roi : Rect that defines the target to be applied for AEC/AGC computation. Must be given according to camera resolution.
+        # \param eye : \ref SIDE on which to be applied for AEC/AGC computation. Default: \ref SIDE "SIDE.BOTH"
+        # \param reset : Cancel the manual ROI and reset it to the full image. Default: False
+        # 
+        # \note The method works only if the camera is open in LIVE or STREAM mode.
+        # 
+        # \code
+        #   roi = sl.Rect(42, 56, 120, 15)
+        #   zed.set_camera_settings_roi(sl.VIDEO_SETTINGS.AEC_AGC_ROI, roi, sl.SIDE.BOTH)
+        # \endcode
+        #
+        def set_camera_settings_roi(self, settings: VIDEO_SETTINGS, roi: Rect, reset = False) -> ERROR_CODE:
+            if isinstance(settings, VIDEO_SETTINGS) :
+                return ERROR_CODE(<int>self.camera.setCameraSettingsROI(<c_VIDEO_SETTINGS>(<unsigned int>settings.value), roi.rect, reset))
+            else:
+                raise TypeError("Arguments must be of VIDEO_SETTINGS and boolean types.")
+        
+        ##
+        # Returns the current value of the requested \ref VIDEO_SETTINGS "camera setting" (gain, brightness, hue, exposure, etc.).
+        # 
+        # Possible values (range) of each setting are available \ref VIDEO_SETTINGS "here".
+        # 
+        # \param setting : The requested setting.
+        # \return \ref ERROR_CODE to indicate if the method was successful.
+        # \return The current value for the corresponding setting.
+        #
+        # \code
+        # err, gain = zed.get_camera_settings(sl.VIDEO_SETTINGS.GAIN)
+        # if err == sl.ERROR_CODE.SUCCESS:
+        #       print("Current gain value:", gain)
+        # else:
+        #       print("error:", err)
+        # \endcode
+        #
+        # \note The method works only if the camera is open in LIVE or STREAM mode.
+        # \note Settings are not exported in the SVO file format.
+        def get_camera_settings(self, setting: VIDEO_SETTINGS) -> (ERROR_CODE, int):
+            cdef int value
+            if isinstance(setting, VIDEO_SETTINGS):
+                error_code = ERROR_CODE(<int>self.camera.getCameraSettings(<c_VIDEO_SETTINGS>(<unsigned int&>setting.value), value))
+                return error_code, value
+            else:
+                raise TypeError("Argument is not of VIDEO_SETTINGS type.")
+
+        ##
+        # Returns the values of the requested \ref VIDEO_SETTINGS "settings" for \ref VIDEO_SETTINGS that supports two values (min/max).
+        # 
+        # This method only works with the following VIDEO_SETTINGS:
+        #   - \ref VIDEO_SETTINGS "sl.VIDEO_SETTINGS.AUTO_EXPOSURE_TIME_RANGE"
+        #   - \ref VIDEO_SETTINGS "sl.VIDEO_SETTINGS.AUTO_ANALOG_GAIN_RANGE"
+        #   - \ref VIDEO_SETTINGS "sl.VIDEO_SETTINGS.AUTO_DIGITAL_GAIN_RANGE"
+        # 
+        # Possible values (range) of each setting are available \ref VIDEO_SETTINGS "here".
+        # \param setting : The requested setting.
+        # \return \ref ERROR_CODE to indicate if the method was successful.
+        # \return The current value of the minimum for the corresponding setting.
+        # \return The current value of the maximum for the corresponding setting.
+        #
+        # \code
+        # err, aec_range_min, aec_range_max = zed.get_camera_settings(sl.VIDEO_SETTINGS.AUTO_EXPOSURE_TIME_RANGE)
+        # if err == sl.ERROR_CODE.SUCCESS:
+        #       print("Current AUTO_EXPOSURE_TIME_RANGE range values ==> min:", aec_range_min, "max:", aec_range_max)
+        # else:
+        #       print("error:", err)
+        # \endcode
+        #
+        # \note Works only with ZED X that supports low-level controls
+        def get_camera_settings_range(self, setting: VIDEO_SETTINGS) -> (ERROR_CODE, int, int):
+            cdef int min
+            cdef int max
+            if isinstance(setting, VIDEO_SETTINGS):
+                error_code = ERROR_CODE(<int>self.camera.getCameraSettings(<c_VIDEO_SETTINGS>(<unsigned int>setting.value), <int&>min, <int&>max))
+                return error_code, min, max
+            else:
+                raise TypeError("Argument is not of VIDEO_SETTINGS type.")
+
+        ##
+        # Returns the current value of the currently used ROI for the camera setting \ref VIDEO_SETTINGS "AEC_AGC_ROI".
+        # 
+        # \param setting[in] : Must be set at \ref VIDEO_SETTINGS "VIDEO_SETTINGS.AEC_AGC_ROI", otherwise the method will have no impact.
+        # \param roi[out] : Roi that will be filled.
+        # \param eye[in] : The requested side. Default: \ref SIDE "SIDE.BOTH"
+        # \return \ref ERROR_CODE to indicate if the method was successful.
+        #
+        # \code
+        # roi = sl.Rect()
+        # err = zed.get_camera_settings_roi(sl.VIDEO_SETTINGS.AEC_AGC_ROI, roi, sl.SIDE.BOTH)
+        # print("Current ROI for AEC_AGC: " + str(roi.x) + " " + str(roi.y)+ " " + str(roi.width) + " " + str(roi.height))
+        # \endcode
+        #
+        # \note Works only if the camera is open in LIVE or STREAM mode with \ref VIDEO_SETTINGS "VIDEO_SETTINGS.AEC_AGC_ROI".
+        # \note It will return \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_CALL" or \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_PARAMETERS" otherwise.
+        def get_camera_settings_roi(self, setting: VIDEO_SETTINGS, roi: Rect) -> ERROR_CODE:
+            if isinstance(setting, VIDEO_SETTINGS):
+                return ERROR_CODE(<int>self.camera.getCameraSettings(<c_VIDEO_SETTINGS>(<unsigned int>setting.value), roi.rect))
+            else:
+                raise TypeError("Argument is not of SIDE type.")
+
+        ##
+        # Returns if the video setting is supported by the camera or not
+        #
+        # \param setting[in] : the video setting to test
+        # \return True if the \ref VIDEO_SETTINGS is supported by the camera, False otherwise
+        #
+        def is_camera_setting_supported(self, setting: VIDEO_SETTINGS) -> bool:
+            if not isinstance(setting, VIDEO_SETTINGS):
+                raise TypeError("Argument is not of VIDEO_SETTINGS type.")
+
+            return self.camera.isCameraSettingSupported(<c_VIDEO_SETTINGS>(<unsigned int>setting.value))
+
+        ##
+        # Returns the current framerate at which the \ref grab() method is successfully called.
+        #
+        # The returned value is based on the difference of camera \ref get_timestamp() "timestamps" between two successful grab() calls.
+        #
+        # \return The current SDK framerate
+        #
+        # \warning The returned framerate (number of images grabbed per second) can be lower than \ref InitParametersOne.camera_fps if the \ref grab() function runs slower than the image stream or is called too often.
+        #
+        # \code
+        # current_fps = zed.get_current_fps()
+        # print("Current framerate: ", current_fps)
+        # \endcode
+        def get_current_fps(self) -> float:
+            return self.camera.getCurrentFPS()
+
+        ##
+        # Returns the timestamp in the requested \ref TIME_REFERENCE.
+        #
+        # - When requesting the \ref TIME_REFERENCE "TIME_REFERENCE.IMAGE" timestamp, the UNIX nanosecond timestamp of the latest \ref grab() "grabbed" image will be returned.
+        # \n This value corresponds to the time at which the entire image was available in the PC memory. As such, it ignores the communication time that corresponds to 2 or 3 frame-time based on the fps (ex: 33.3ms to 50ms at 60fps).
+        #
+        # - When requesting the [TIME_REFERENCE.CURRENT](\ref TIME_REFERENCE) timestamp, the current UNIX nanosecond timestamp is returned.
+        #
+        # This function can also be used when playing back an SVO file.
+        #
+        # \param time_reference : The selected \ref TIME_REFERENCE.
+        # \return The \ref Timestamp in nanosecond. 0 if not available (SVO file without compression).
+        #
+        # \note As this function returns UNIX timestamps, the reference it uses is common across several \ref Camera instances.
+        # \n This can help to organized the grabbed images in a multi-camera application.
+        # 
+        # \code
+        # last_image_timestamp = zed.get_timestamp(sl.TIME_REFERENCE.IMAGE)
+        # current_timestamp = zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)
+        # print("Latest image timestamp: ", last_image_timestamp.get_nanoseconds(), "ns from Epoch.")
+        # print("Current timestamp: ", current_timestamp.get_nanoseconds(), "ns from Epoch.")
+        # \endcode 
+        def get_timestamp(self, time_reference: TIME_REFERENCE) -> Timestamp:
+            if isinstance(time_reference, TIME_REFERENCE):
+                ts = Timestamp()
+                ts.timestamp = self.camera.getTimestamp(<c_TIME_REFERENCE>(<unsigned int>time_reference.value))
+                return ts
+            else:
+                raise TypeError("Argument is not of TIME_REFERENCE type.")
+
+        ##
+        # Returns the number of frames dropped since \ref grab() was called for the first time.
+        #
+        # A dropped frame corresponds to a frame that never made it to the grab method.
+        # \n This can happen if two frames were extracted from the camera when grab() is called. The older frame will be dropped so as to always use the latest (which minimizes latency).
+        #
+        # \return The number of frames dropped since the first \ref grab() call.
+        def get_frame_dropped_count(self) -> int:
+            return self.camera.getFrameDroppedCount()
+
+        # #
+        # Not implemented. Returns the CameraInformation associated the camera being used.
+        
+        # To ensure accurate calibration, it is possible to specify a custom resolution as a parameter when obtaining scaled information, as calibration parameters are resolution-dependent.
+        # \n When reading an SVO file, the parameters will correspond to the camera used for recording.
+        
+        # \param resizer : You can specify a size different from the default image size to get the scaled camera information.
+        # Default = (0,0) meaning original image size (given by \ref CameraConfiguration.resolution "get_camera_information().camera_configuration.resolution").
+        # \return \ref CameraInformation containing the calibration parameters of the ZED, as well as serial number and firmware version.
+        
+        # \warning The returned parameters might vary between two execution due to the \ref InitParametersOne.camera_disable_self_calib "self-calibration" being run in the \ref open() method.
+        # \note The calibration file SNXXXX.conf can be found in:
+        # - <b>Windows:</b> <i>C:/ProgramData/Stereolabs/settings/</i>
+        # - <b>Linux:</b> <i>/usr/local/zed/settings/</i>.
+        # def get_camera_information(self, resizer = Resolution(0, 0)) -> CameraInformation:
+        #     caminfo = CameraInformation()
+
+        #     return CameraInformation(self, resizer)
+
+
+        ##
+        # Returns the InitParametersOne associated with the Camera object.
+        # It corresponds to the structure given as argument to \ref open() method.
+        #
+        # \return InitParametersOne containing the parameters used to initialize the Camera object.
+        def get_init_parameters(self) -> InitParametersOne:
+            init = InitParametersOne()
+            init.init = self.camera.getInitParameters()
+            return init
+
+        ##
+        # Returns the StreamingParameters used.
+        #
+        #  It corresponds to the structure given as argument to the enable_streaming() method.
+        # 
+        # \return \ref StreamingParameters containing the parameters used for streaming initialization.
+        def get_streaming_parameters(self) -> StreamingParameters:
+            stream = StreamingParameters()
+            stream.streaming.codec = self.camera.getStreamingParameters().codec
+            stream.streaming.port = self.camera.getStreamingParameters().port
+            stream.streaming.bitrate = self.camera.getStreamingParameters().bitrate
+            stream.streaming.gop_size = self.camera.getStreamingParameters().gop_size
+            stream.streaming.adaptative_bitrate = self.camera.getStreamingParameters().adaptative_bitrate
+            stream.streaming.chunk_size = self.camera.getStreamingParameters().chunk_size
+            stream.streaming.target_framerate = self.camera.getStreamingParameters().target_framerate
+            return stream
+
+        ##
+        # Retrieves the SensorsData (IMU, magnetometer, barometer) at a specific time reference.
+        # 
+        # - Calling \ref get_sensors_data with \ref TIME_REFERENCE "TIME_REFERENCE.CURRENT" gives you the latest sensors data received. Getting all the data requires to call this method at 800Hz in a thread.
+        # - Calling \ref get_sensors_data with \ref TIME_REFERENCE "TIME_REFERENCE.IMAGE" gives you the sensors data at the time of the latest image \ref grab() "grabbed".
+        #
+        # \ref SensorsData object contains the previous \ref IMUData structure that was used in ZED SDK v2.X:
+        # \n For IMU data, the values are provided in 2 ways :
+        # <ul>
+        #   <li><b>Time-fused</b> pose estimation that can be accessed using:
+        #       <ul><li>\ref IMUData.get_pose "data.get_imu_data().get_pose()"</li></ul>
+        #   </li>
+        #   <li><b>Raw values</b> from the IMU sensor:
+        #       <ul>
+        #           <li>\ref IMUData.get_angular_velocity "data.get_imu_data().get_angular_velocity()", corresponding to the gyroscope</li>
+        #           <li>\ref IMUData.get_linear_acceleration "data.get_imu_data().get_linear_acceleration()", corresponding to the accelerometer</li>
+        #       </ul> both the gyroscope and accelerometer are synchronized.
+        #   </li>
+        # </ul>
+        # 
+        # The delta time between previous and current values can be calculated using \ref data.imu.timestamp
+        #
+        # \note The IMU quaternion (fused data) is given in the specified \ref COORDINATE_SYSTEM of \ref InitParametersOne.
+        #   
+        # \param data[out] : The SensorsData variable to store the data.
+        # \param reference_frame[in]: Defines the reference from which you want the data to be expressed. Default: \ref REFERENCE_FRAME "REFERENCE_FRAME.WORLD".
+        # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if sensors data have been extracted.
+        # \return \ref ERROR_CODE "ERROR_CODE.SENSORS_NOT_AVAILABLE" if the camera model is a \ref MODEL "MODEL.ZED".
+        # \return \ref ERROR_CODE "ERROR_CODE.MOTION_SENSORS_REQUIRED" if the camera model is correct but the sensors module is not opened.
+        # \return \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_PARAMETERS" if the <b>reference_time</b> is not valid. See Warning.
+        #
+        # \warning In SVO reading mode, the \ref TIME_REFERENCE "TIME_REFERENCE.CURRENT" is currently not available (yielding \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_PARAMETERS".
+        # \warning Only the quaternion data and barometer data (if available) at \ref TIME_REFERENCE "TIME_REFERENCE.IMAGE" are available. Other values will be set to 0.
+        #
+        def get_sensors_data(self, py_sensors_data: SensorsData, time_reference = TIME_REFERENCE.CURRENT) -> ERROR_CODE:
+            if isinstance(time_reference, TIME_REFERENCE):
+                return ERROR_CODE(<int>self.camera.getSensorsData(py_sensors_data.sensorsData, <c_TIME_REFERENCE>(<unsigned int>time_reference.value)))
+            else:
+                raise TypeError("Argument is not of TIME_REFERENCE type.")
+
+        ##
+        # Creates a streaming pipeline.
+        #
+        # \param streaming_parameters : A structure containing all the specific parameters for the streaming. Default: a reset of StreamingParameters .
+        # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if the streaming was successfully started.
+        # \return \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_CALL" if open() was not successfully called before.
+        # \return \ref ERROR_CODE "ERROR_CODE.FAILURE" if streaming RTSP protocol was not able to start.
+        # \return \ref ERROR_CODE "ERROR_CODE.NO_GPU_COMPATIBLE" if the streaming codec is not supported (in this case, use H264 codec which is supported on all NVIDIA GPU the ZED SDK supports).
+        #
+        # \code
+        # import pyzed.sl as sl
+        #
+        # def main() :
+        #     # Create a ZED camera object
+        #     zed = sl.CameraOneOne()
+        #
+        #     # Set initial parameters
+        #     init_params = sl.InitParametersOne()   
+        #     init_params.camera_resolution = sl.RESOLUTION.HD720 # Use HD720 video mode (default fps: 60)
+        #
+        #     # Open the camera
+        #     err = zed.open(init_params)
+        #     if err != sl.ERROR_CODE.SUCCESS :
+        #        print(repr(err))
+        #        exit(-1)
+        #
+        #     # Enable streaming
+        #     stream_params = sl.StreamingParameters()
+        #     stream_params.port = 30000
+        #     stream_params.bitrate = 8000
+        #     err = zed.enable_streaming(stream_params)
+        #     if err != sl.ERROR_CODE.SUCCESS :
+        #         print(repr(err))
+        #         exit(-1)
+        #
+        #     # Grab data during 500 frames
+        #     i = 0
+        #     while i < 500 :
+        #         if zed.grab() == sl.ERROR_CODE.SUCCESS :
+        #             i = i+1
+        #
+        #     zed.disable_streaming()
+        #     zed.close()
+        #     return 0
+        #
+        # if __name__ == "__main__" :
+        #     main()  
+        # \endcode
+        def enable_streaming(self, streaming_parameters = StreamingParameters()) -> ERROR_CODE:
+            return ERROR_CODE(<int>self.camera.enableStreaming(deref((<StreamingParameters>streaming_parameters).streaming)))
+
+        ##
+        # Disables the streaming initiated by \ref enable_streaming().
+        # \note This method will automatically be called by \ref close() if enable_streaming() was called.
+        #
+        # See \ref enable_streaming() for an example.
+        def disable_streaming(self) -> None:
+            self.camera.disableStreaming()
+
+        ##
+        # Tells if the streaming is running.
+        # \return True if the stream is running, False otherwise.
+        def is_streaming_enabled(self) -> bool:
+            return self.camera.isStreamingEnabled()
+
+
+        ##
+        # Creates an SVO file to be filled by enable_recording() and disable_recording().
+        # 
+        # \n SVO files are custom video files containing the un-rectified images from the camera along with some meta-data like timestamps or IMU orientation (if applicable).
+        # \n They can be used to simulate a live ZED and test a sequence with various SDK parameters.
+        # \n Depending on the application, various compression modes are available. See \ref SVO_COMPRESSION_MODE.
+        # 
+        # \param record : A structure containing all the specific parameters for the recording such as filename and compression mode. Default: a reset of RecordingParameters .
+        # \return An \ref ERROR_CODE that defines if the SVO file was successfully created and can be filled with images.
+        # 
+        # \warning This method can be called multiple times during a camera lifetime, but if <b>video_filename</b> is already existing, the file will be erased.
+        #
+        # 
+        # \code
+        # import pyzed.sl as sl
+        # 
+        # def main() :
+        #     # Create a ZED camera object
+        #     zed = sl.CameraOneOne()
+        #     # Set initial parameters
+        #     init_params = sl.InitParametersOne()
+        #     init_params.camera_resolution = sl.RESOLUTION.HD720 # Use HD720 video mode (default fps: 60)
+        #     init_params.coordinate_units = sl.UNIT.METER # Set units in meters
+        #     # Open the camera
+        #     err = zed.open(init_params)
+        #     if (err != sl.ERROR_CODE.SUCCESS):
+        #         print(repr(err))
+        #         exit(-1)
+        #
+        #     # Enable video recording
+        #     record_params = sl.RecordingParameters("myVideoFile.svo")
+        #     err = zed.enable_recording(record_params)
+        #     if (err != sl.ERROR_CODE.SUCCESS):
+        #         print(repr(err))
+        #         exit(-1)
+        # 
+        #     # Grab data during 500 frames
+        #     i = 0
+        #     while i < 500 :
+        #         # Grab a new frame
+        #         if zed.grab() == sl.ERROR_CODE.SUCCESS:
+        #             # Record the grabbed frame in the video file
+        #             i = i + 1
+        # 
+        #     zed.disable_recording()
+        #     print("Video has been saved ...")
+        #     zed.close()
+        #     return 0
+        #
+        # if __name__ == "__main__" :
+        #     main()
+        # \endcode
+        def enable_recording(self, record: RecordingParameters) -> ERROR_CODE:
+            if isinstance(record, RecordingParameters):
+                return ERROR_CODE(<int>self.camera.enableRecording(deref(record.record)))
+            else:
+                raise TypeError("Argument is not of RecordingParameters type.")
+
+        ##
+        # Disables the recording initiated by \ref enable_recording() and closes the generated file.
+        #
+        # \note This method will automatically be called by \ref close() if \ref enable_recording() was called.
+        # 
+        # See \ref enable_recording() for an example.
+        def disable_recording(self) -> None:
+            self.camera.disableRecording()
+
+        ##
+        # Get the recording information.
+        # \return The recording state structure. For more details, see \ref RecordingStatus.
+        def get_recording_status(self) -> RecordingStatus:
+            state = RecordingStatus()
+            state.is_recording = self.camera.getRecordingStatus().is_recording
+            state.is_paused = self.camera.getRecordingStatus().is_paused
+            state.status = self.camera.getRecordingStatus().status
+            state.current_compression_time = self.camera.getRecordingStatus().current_compression_time
+            state.current_compression_ratio = self.camera.getRecordingStatus().current_compression_ratio
+            state.average_compression_time = self.camera.getRecordingStatus().average_compression_time
+            state.average_compression_ratio = self.camera.getRecordingStatus().average_compression_ratio
+            return state
+
+        ##
+        # Pauses or resumes the recording.
+        # \param status : If True, the recording is paused. If False, the recording is resumed.
+        def pause_recording(self, value=True) -> None:
+            self.camera.pauseRecording(value)
+
+        ##
+        # List all the connected devices with their associated information.
+        # 
+        # This method lists all the cameras available and provides their serial number, models and other information.
+        # \return The device properties for each connected camera.
+        @staticmethod
+        def get_device_list() -> list[DeviceProperties]:
+            cls = CameraOne()
+            vect_ = cls.camera.getDeviceList()
+            vect_python = []
+            for i in range(vect_.size()):
+                prop = DeviceProperties()
+                prop.camera_state = CAMERA_STATE(<int> vect_[i].camera_state)
+                prop.id = vect_[i].id
+                if not vect_[i].path.empty():
+                    prop.path = vect_[i].path.get().decode()
+                prop.camera_model = MODEL(<int>vect_[i].camera_model)
+                prop.serial_number = vect_[i].serial_number
+                vect_python.append(prop)
+            return vect_python
+
+        ##
+        # Performs a hardware reset of the ZED 2 and the ZED 2i.
+        # 
+        # \param sn : Serial number of the camera to reset, or 0 to reset the first camera detected.
+        # \param full_reboot : Perform a full reboot (sensors and video modules) if True, otherwise only the video module will be rebooted.
+        # \return \ref ERROR_CODE "ERROR_CODE::SUCCESS" if everything went fine.
+        # \return \ref ERROR_CODE "ERROR_CODE::CAMERA_NOT_DETECTED" if no camera was detected.
+        # \return \ref ERROR_CODE "ERROR_CODE::FAILURE"  otherwise.
+        #
+        # \note This method only works for ZED 2, ZED 2i, and newer camera models.
+        # 
+        # \warning This method will invalidate any sl.Camera object, since the device is rebooting.
+        @staticmethod
+        def reboot(sn : int, full_reboot: bool =True) -> ERROR_CODE:
+            cls = Camera()
+            return ERROR_CODE(<int>cls.camera.reboot(sn, full_reboot))
+
+        ##
+        # Performs a hardware reset of all devices matching the InputType.
+        # 
+        # \param input_type : Input type of the devices to reset.
+        # \return \ref ERROR_CODE "ERROR_CODE::SUCCESS" if everything went fine.
+        # \return \ref ERROR_CODE "ERROR_CODE::CAMERA_NOT_DETECTED" if no camera was detected.
+        # \return \ref ERROR_CODE "ERROR_CODE::FAILURE" otherwise.
+        # \return \ref ERROR_CODE "ERROR_CODE::INVALID_FUNCTION_PARAMETERS" for SVOs and streams.
+        # 
+        # \warning This method will invalidate any sl.Camera object, since the device is rebooting.
+        @staticmethod
+        def reboot_from_input(input_type: INPUT_TYPE) -> ERROR_CODE:
+            if not isinstance(input_type, INPUT_TYPE):
+                raise TypeError("Argument is not of INPUT_TYPE type.")
+            cls = Camera()
+            return ERROR_CODE(<int>cls.camera.reboot_from_type(<c_INPUT_TYPE>(<int>input_type.value)))
