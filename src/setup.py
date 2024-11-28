@@ -203,7 +203,7 @@ setup(name="pyzed",
       ext_modules=extensions,
       python_requires='>=3.6',
       install_requires=[
-        'numpy>=1.13',
+        'numpy>=1.13, <2.0',
         'cython>=3.0.0'],
       extras_require={
         'sample': [
