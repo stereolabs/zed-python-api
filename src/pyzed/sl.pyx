@@ -5104,16 +5104,10 @@ cdef class Mat:
         if self.get_memory_type().value != memory_type.value:
             raise ValueError("Provided MEM type doesn't match Mat's memory_type.")
 
-        shape = None
         cdef np.npy_intp cython_shape[3]
         cython_shape[0] = <np.npy_intp> self.mat.getHeight()
         cython_shape[1] = <np.npy_intp> self.mat.getWidth()
         cython_shape[2] = <np.npy_intp> self.mat.getChannels()
-
-        if self.mat.getChannels() == 1:
-            shape = (self.mat.getHeight(), self.mat.getWidth())
-        else:
-            shape = (self.mat.getHeight(), self.mat.getWidth(), self.mat.getChannels())
 
         cdef size_t size = 0
         dtype = None
@@ -5135,8 +5129,15 @@ cdef class Mat:
         else:
             raise RuntimeError("Unknown Mat data_type value: {0}".format(<int>self.mat.getDataType()))
 
+        shape = None
+        if self.mat.getChannels() == 1:
+            shape = (self.mat.getHeight(), self.mat.getWidth())
+            strides = (self.get_step_bytes(memory_type), self.get_pixel_bytes())
+        else:
+            shape = (self.mat.getHeight(), self.mat.getWidth(), self.mat.getChannels())
+            strides = (self.get_step_bytes(memory_type), self.get_pixel_bytes(), itemsize)
+
         size = self.mat.getHeight()*self.get_step(memory_type)*self.mat.getChannels()*itemsize
-        strides = (self.get_step_bytes(memory_type), self.get_pixel_bytes(), itemsize)
 
         if self.mat.getDataType() in (c_MAT_TYPE.U8_C1, c_MAT_TYPE.F32_C1, c_MAT_TYPE.U16_C1):
             npdim = 2
