@@ -6,15 +6,16 @@
 
 ### Prerequisites
 
-- [ZED SDK 4.1](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
-- Python 3.7+ x64
-- C++ compiler (VS2017 recommended)
-- [Cython 0.26](http://cython.org/#download)
-- [Numpy 1.13.1](https://www.scipy.org/scipylib/download.html)
+- [ZED SDK 5.0](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- Python 3.8+ x64
+- C++ compiler
+- [Cython >= 3.0.0](http://cython.org/#download)
+- [Numpy >= 2.0](https://numpy.org/install/)
+- CuPy (optional)
 
-The ZED SDK 3.X compatible API can be found in the [zedsdk_3.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_3.X).
+The ZED SDK 4.X compatible API can be found in the [zedsdk_4.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_4.X).
 
-Please check your python version with the following command. The result should be 3.7 or higher.
+Please check your python version with the following command. The result should be 3.8 or higher.
 
 ```
 python --version
@@ -37,6 +38,8 @@ pip3 install -r requirements.txt
 ```
 python setup.py build
 python setup.py install
+python -m pip wheel .
+python -m pip install {WHEEL_FILE}.whl --force-reinstall
 ```
 
 or on Linux
@@ -44,8 +47,13 @@ or on Linux
 ```
 python3 setup.py build
 python3 setup.py install
+python3 -m pip wheel .
+python3 -m pip install {WHEEL_FILE}.whl --force-reinstall
 ```
 
+#### Tips
+
+##### Error on compilation
 
 If an __error__ occurs during the compilation, make sure that you're using the latest [ZED SDK](https://www.stereolabs.com/developers/) and that you installed an x64 version of python. `python -c "import platform; print(platform.architecture())"`
 

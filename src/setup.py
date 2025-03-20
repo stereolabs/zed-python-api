@@ -36,7 +36,7 @@ libDirs = ""
 libs = ""
 cflags = ""
 
-ZED_SDK_MAJOR = "4"
+ZED_SDK_MAJOR = "5"
 ZED_SDK_MINOR = "0"
 
 cuda_path = "/usr/local/cuda"
@@ -72,7 +72,7 @@ def check_zed_sdk_version(file_path_):
     dev_file_path = file_path_ + "/sl_zed/defines.hpp"
     file_path = file_path_ + "/sl/Camera.hpp"
     if os.path.isfile(dev_file_path):
-         # internal dev mode
+        # internal dev mode
         check_zed_sdk_version_private(dev_file_path)
     else:
         check_zed_sdk_version_private(file_path)
@@ -194,6 +194,17 @@ for mod in GPUmodulesTable:
     extList = cythonize(extension, compiler_directives=cython_directives)
     extensions.extend(extList)
 
+install_requires = [
+    'cython>=3.0.0'
+]
+
+if (sys.version_info.major, sys.version_info.minor) <= (3, 8):
+    install_requires.append('numpy>=1.13, <2.0')
+else:
+    install_requires.append('numpy>=2.0')
+
+print(install_requires)
+
 setup(name="pyzed",
       version= ZED_SDK_MAJOR + "." + ZED_SDK_MINOR,
       author_email="developers@stereolabs.com",
@@ -201,10 +212,8 @@ setup(name="pyzed",
       url='https://github.com/stereolabs/zed-python-api',
       packages=py_packages,
       ext_modules=extensions,
-      python_requires='>=3.6',
-      install_requires=[
-        'numpy>=1.13, <2.0',
-        'cython>=3.0.0'],
+      python_requires='>=3.8',
+      install_requires=install_requires,
       extras_require={
         'sample': [
             'opencv-python',
