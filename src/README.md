@@ -63,10 +63,6 @@ You can use `python setup.py cleanall` to remove every cpp files generated and b
 
 > Make sure to be **out** of the plugin driectory when using it. It will prevent Python from considering the `pyzed` folder of the plugin as the **pyzed** package.
 
-##### Error on execution
-
-If an __error__ like `ImportError: /usr/local/zed/lib/libsl_zed.so: undefined symbol: typeinfo for cv::ParallelLoopBody` happens when executing a python sample with your freshly installed pyzed wheel, be sure that you installed the ZEDKit with `LINKS_WITH_EXTERN_OPENCV=OFF` then start again the python wrapper building process.
-
 ## Contributing
 
 Feel free to open an issue if you find a bug, or a pull request for bug fixes, features or other improvements.
