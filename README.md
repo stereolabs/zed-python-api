@@ -11,17 +11,17 @@ This package lets you use the ZED stereo camera in Python 3. The Python API is a
 
 To start using the ZED SDK in Python, you will need to install the following dependencies on your system:  
 
-- [ZED SDK 4.1](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ZED SDK 5.0](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 
-For the ZED SDK 3.8 compatible version, use the [zedsdk_3.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_3.X) or the [3.8 release tag](https://github.com/stereolabs/zed-python-api/releases/tag/v3.8)
+For the ZED SDK 4.2 compatible version, use the [zedsdk_4.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_4.X) or the [4.2 release tag](https://github.com/stereolabs/zed-python-api/releases/tag/v4.2)
 
-- Python 3.7+ x64  ([Windows installer](https://www.python.org/ftp/python/3.7.6/python-3.7.6-amd64.exe))
-- [Cython 0.28](http://cython.org/#download)
-- [Numpy 1.13](https://www.scipy.org/scipylib/download.html)
+- Python 3.8+ x64
+- [Cython >= 3.0.0](http://cython.org/#download)
+- [Numpy >= 2.0](https://numpy.org/install/)
 - OpenCV Python (optional)
 - PyOpenGL (optional)
 
-Please check your python version with the following command. The result should be 3.7 or higher.
+Please check your python version with the following command. The result should be 3.8 or higher.
 
 ```
 python --version
@@ -37,7 +37,7 @@ The sample dependencies can also be installed via pip
 python -m pip install opencv-python pyopengl
 ```
 
-**Note:** On Linux, it is advised to use the `python3` command instead of `python` which by default point to python 2.7. To do so, the following packages `python3-dev` and `python3-pip` need to be installed.
+**Note:** On Linux, it is advised to use the `python3` command instead of `python` which by default may point to python 2.7. To do so, the following packages `python3-dev` and `python3-pip` need to be installed.
 
 ## Installing the Python API
 
@@ -65,19 +65,19 @@ $ python get_python_api.py
     Detected platform: 
         linux_x86_64
         Python 3.11
-        ZED SDK 4.0
+        ZED SDK 5.0
     # Downloads and install the whl package
-    -> Checking if https://download.stereolabs.com/zedsdk/4.0/whl/linux_x86_64/pyzed-4.0-cp311-cp311-linux_x86_64.whl exists and is available
-    -> Found ! Downloading python package into /home/user/pyzed-4.0-cp311-cp311-linux_x86_64.whl
+    -> Checking if https://download.stereolabs.com/zedsdk/5.0/whl/linux_x86_64/pyzed-5.0-cp311-cp311-linux_x86_64.whl exists and is available
+    -> Found ! Downloading python package into /home/user/pyzed-5.0-cp311-cp311-linux_x86_64.whl
     -> Installing necessary dependencies
     ...
-    Successfully installed pyzed-4.0
+    Successfully installed pyzed-5.0
 ```
 
 To install it later or on a different environment run : 
 
 ```bash
-$ python -m pip install --ignore-installed /home/user/pyzed-4.0-cp311-cp311-linux_x86_64.wh
+$ python -m pip install --ignore-installed /home/user/pyzed-5.0-cp311-cp311-linux_x86_64.wh
 ```
 
 That's it ! The Python API is now installed.
