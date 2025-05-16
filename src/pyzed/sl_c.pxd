@@ -1820,6 +1820,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE stopPublishing()
 
         void setSVOPosition(int frame_number)
+        void pauseSVOReading(bool status)
         int getSVOPosition()
         int getSVONumberOfFrames()
 
@@ -1893,8 +1894,11 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         ERROR_CODE enableObjectDetection(ObjectDetectionParameters object_detection_parameters)
         void disableObjectDetection(unsigned int instance_module_id, bool force_disable_all_instances)
-        ERROR_CODE retrieveObjects(Objects &objects, ObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id)
-        ERROR_CODE retrieveCustomObjects(Objects &objects, CustomObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id)
+        ERROR_CODE setObjectDetectionRuntimeParameters(const ObjectDetectionRuntimeParameters &parameters, unsigned int instance_id)
+        ERROR_CODE setCustomObjectDetectionRuntimeParameters(const CustomObjectDetectionRuntimeParameters &parameters, unsigned int instance_id)
+        ERROR_CODE retrieveObjects "retrieveObjects"(Objects &objects, unsigned int instance_module_id)
+        ERROR_CODE retrieveObjectsAndSetRuntimeParameters "retrieveObjects"(Objects &objects, ObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id)
+        ERROR_CODE retrieveCustomObjectsAndSetRuntimeParameters "retrieveCustomObjects"(Objects &objects, CustomObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id)
         ERROR_CODE getObjectsBatch(vector[ObjectsBatch] &trajectories, unsigned int instance_module_id)
         bool isObjectDetectionEnabled(unsigned int instance_id)
         ERROR_CODE ingestCustomBoxObjects(const vector[CustomBoxObjectData] &objects_in, const unsigned int instance_module_id)
@@ -1906,7 +1910,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE enableBodyTracking(BodyTrackingParameters object_detection_parameters)
         void pauseBodyTracking(bool status, unsigned int instance_id)
         void disableBodyTracking(unsigned int instance_id, bool force_disable_all_instances)
-        ERROR_CODE retrieveBodies(Bodies &objects, BodyTrackingRuntimeParameters parameters, unsigned int instance_id)
+        ERROR_CODE setBodyTrackingRuntimeParameters(const BodyTrackingRuntimeParameters &parameters, unsigned int instance_id)
+        ERROR_CODE retrieveBodies "retrieveBodies"(Bodies &objects, unsigned int instance_id)
+        ERROR_CODE retrieveBodiesAndSetRuntimeParameters "retrieveBodies"(Bodies &objects, BodyTrackingRuntimeParameters parameters, unsigned int instance_id)
         bool isBodyTrackingEnabled(unsigned int instance_id)
         BodyTrackingParameters getBodyTrackingParameters(unsigned int instance_id)
 
@@ -1934,7 +1940,7 @@ cdef extern from "Utils.cpp" namespace "sl":
     ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector, map[int,float] object_confidence_map)
 
 cdef extern from "sl/Fusion.hpp" namespace "sl":
-    
+
     cdef cppclass FusionConfiguration:
         int serial_number
         CommunicationParameters communication_parameters
@@ -1975,6 +1981,7 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         int sdk_gpu_id
         CUcontext sdk_cuda_ctx
         SynchronizationParameter synchronization_parameters
+        Resolution maximum_working_resolution
 
         InitFusionParameters(
             UNIT coordinate_units_,
@@ -1984,7 +1991,8 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
             unsigned timeout_period_number,
             int sdk_gpu_id,
             CUcontext sdk_cuda_ctx,
-            SynchronizationParameter synchronization_parameters_
+            SynchronizationParameter synchronization_parameters_,
+            Resolution maximum_working_resolution_
             )
 
     cdef cppclass CameraIdentifier 'sl::CameraIdentifier':
@@ -2025,7 +2033,11 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         RAW 'sl::POSITION_TYPE::RAW',
         FUSION 'sl::POSITION_TYPE::FUSION',
         LAST 'sl::POSITION_TYPE::LAST'
-    
+
+    ctypedef enum FUSION_REFERENCE_FRAME 'sl::FUSION_REFERENCE_FRAME':
+        WORLD 'sl::FUSION_REFERENCE_FRAME::WORLD'
+        BASELINK 'sl::FUSION_REFERENCE_FRAME::BASELINK'
+
     cdef struct GNSSCalibrationParameters 'sl::GNSSCalibrationParameters':
         float target_yaw_uncertainty
         bool enable_translation_uncertainty_target
@@ -2041,6 +2053,7 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         Transform base_footprint_to_world_transform
         Transform base_footprint_to_baselink_transform
         bool set_gravity_as_origin
+        CameraIdentifier tracking_camera_id
 
     cdef struct SpatialMappingFusionParameters 'sl::SpatialMappingFusionParameters':
         float resolution_meter
@@ -2057,6 +2070,9 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         int skeleton_minimum_allowed_keypoints
         int skeleton_minimum_allowed_camera
         float skeleton_smoothing
+
+    cdef struct ObjectDetectionFusionParameters 'sl::ObjectDetectionFusionParameters':
+        bool enable_tracking
 
     cdef struct CameraMetrics 'sl::CameraMetrics':
         CameraMetrics()
@@ -2078,6 +2094,11 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         double x
         double y
         double z
+
+    cdef cppclass ENU 'sl::ENU':
+        double east
+        double north
+        double up
 
     cdef cppclass LatLng:
         void getCoordinates(double & latitude, double & longitude, double & altitude, bool in_radian)
@@ -2149,13 +2170,19 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         FUSION_ERROR_CODE getProcessMetrics(FusionMetrics &metrics)
         map[CameraIdentifier, SENDER_ERROR_CODE] getSenderState()
         FUSION_ERROR_CODE process()
-        FUSION_ERROR_CODE enableBodyTracking(BodyTrackingFusionParameters params)
-        FUSION_ERROR_CODE retrieveBodies(Bodies &objs, BodyTrackingFusionRuntimeParameters parameters, CameraIdentifier uuid)
-
         FUSION_ERROR_CODE retrieveImage(Mat &mat, CameraIdentifier uuid, Resolution resolution)
-        FUSION_ERROR_CODE retrieveMeasure(Mat &mat, CameraIdentifier uuid, MEASURE measure, Resolution resolution)
-
+        FUSION_ERROR_CODE retrieveMeasure(Mat &mat, CameraIdentifier uuid, MEASURE measure, Resolution resolution, FUSION_REFERENCE_FRAME reference_frame)
+        FUSION_ERROR_CODE enableBodyTracking(BodyTrackingFusionParameters params)
+        FUSION_ERROR_CODE retrieveBodies(Bodies &objs, BodyTrackingFusionRuntimeParameters parameters, CameraIdentifier uuid, FUSION_REFERENCE_FRAME reference_frame)
         void disableBodyTracking()
+        FUSION_ERROR_CODE enableObjectDetection(const ObjectDetectionFusionParameters& params)
+        FUSION_ERROR_CODE retrieveObjectsAllODGroups "retrieveObjects"(unordered_map[String, Objects] &objs, FUSION_REFERENCE_FRAME reference_frame)
+        FUSION_ERROR_CODE retrieveObjectsOneODGroup "retrieveObjects"(Objects &objs, const String& fused_od_group_name, FUSION_REFERENCE_FRAME reference_frame)
+        FUSION_ERROR_CODE retrieveObjectsAllIds "retrieveObjects"(unordered_map[unsigned int, Objects] &objs, const CameraIdentifier& uuid)
+        FUSION_ERROR_CODE retrieveObjectsOneId "retrieveObjects"(Objects &objs, const CameraIdentifier& uuid, const unsigned int instance_id)
+
+
+        void disableObjectDetection()
         FUSION_ERROR_CODE enablePositionalTracking(PositionalTrackingFusionParameters parameters)
         FUSION_ERROR_CODE ingestGNSSData(GNSSData &_gnss_data)
         POSITIONAL_TRACKING_STATE getPosition(Pose &camera_pose, REFERENCE_FRAME reference_frame, CameraIdentifier uuid, POSITION_TYPE position_type)
@@ -2165,8 +2192,14 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         GNSS_FUSION_STATUS Geo2Camera(LatLng &input, Pose &out)
         GNSS_FUSION_STATUS Camera2Geo(Pose &input, GeoPose &out)
         GNSS_FUSION_STATUS getCurrentGNSSCalibrationSTD(float & yaw_std, float3 & position_std)
-        Transform getGeoTrackingCalibration();
+        Transform getGeoTrackingCalibration()
         void disablePositionalTracking()
+        FUSION_ERROR_CODE ENU2Geo(ENU &input, LatLng &out)
+        FUSION_ERROR_CODE Geo2ENU(LatLng &input, ENU &out)
+        void requestSpatialMapAsync()
+        FUSION_ERROR_CODE getSpatialMapRequestStatusAsync()
+        FUSION_ERROR_CODE retrieveSpatialMapAsync(Mesh &mesh)
+        FUSION_ERROR_CODE retrieveSpatialMapAsync(FusedPointCloud &fpc)
 
 cdef extern from "sl/CameraOne.hpp" namespace "sl":
     cdef cppclass InitParametersOne 'sl::InitParametersOne':
