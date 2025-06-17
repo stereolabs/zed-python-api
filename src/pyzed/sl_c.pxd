@@ -1082,9 +1082,13 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         @staticmethod
         ERROR_CODE convertColor(Mat &mat1, Mat &mat2, bool swap_RB_channels, bool remove_alpha_channels, MEM memory_type)
 
-    
     cdef ERROR_CODE blobFromImage(Mat &mat1, Mat &mat2, Resolution resolution, float scale, Vector3[float] mean, Vector3[float] stdev, bool keep_aspect_ratio, bool swap_RB_channels)
     cdef ERROR_CODE blobFromImages(vector[Mat] &mats, Mat &mat2, Resolution resolution, float scale, Vector3[float] mean, Vector3[float] stdev, bool keep_aspect_ratio, bool swap_RB_channels)
+
+    cdef bool isCameraOne(const MODEL camera_model)
+    cdef bool isResolutionAvailable "isAvailable"(const RESOLUTION resolution, const MODEL camera_model)
+    cdef bool isFPSAvailable "isAvailable"(const int fps, const RESOLUTION resolution, const MODEL camera_model)
+    cdef bool supportHDR(const RESOLUTION resolution, const MODEL camera_model)
 
     cdef cppclass Rotation(Matrix3f):
         Rotation() except +
@@ -1801,14 +1805,13 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         InitParameters getInitParameters()
 
         bool isOpened()
-        ERROR_CODE read()
-        ERROR_CODE grab(RuntimeParameters rt_parameters)
+        ERROR_CODE read() nogil
+        ERROR_CODE grab(RuntimeParameters rt_parameters) nogil
 
         RuntimeParameters getRuntimeParameters()
-        
 
-        ERROR_CODE retrieveImage(Mat &mat, VIEW view, MEM type, Resolution resolution)
-        ERROR_CODE retrieveMeasure(Mat &mat, MEASURE measure, MEM type, Resolution resolution)
+        ERROR_CODE retrieveImage(Mat &mat, VIEW view, MEM type, Resolution resolution) nogil
+        ERROR_CODE retrieveMeasure(Mat &mat, MEASURE measure, MEM type, Resolution resolution) nogil
         ERROR_CODE getCurrentMinMaxDepth(float& min, float& max)
 
         ERROR_CODE setRegionOfInterest(Mat &mat, unordered_set[MODULE] modules)
@@ -1841,7 +1844,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool isCameraSettingSupported(VIDEO_SETTINGS setting)
 
         float getCurrentFPS()
-        Timestamp getTimestamp(TIME_REFERENCE reference_time)
+        Timestamp getTimestamp(TIME_REFERENCE reference_time) nogil
         unsigned int getFrameDroppedCount()
         CameraInformation getCameraInformation(Resolution resizer)
 
@@ -1894,11 +1897,11 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         ERROR_CODE enableObjectDetection(ObjectDetectionParameters object_detection_parameters)
         void disableObjectDetection(unsigned int instance_module_id, bool force_disable_all_instances)
-        ERROR_CODE setObjectDetectionRuntimeParameters(const ObjectDetectionRuntimeParameters &parameters, unsigned int instance_id)
-        ERROR_CODE setCustomObjectDetectionRuntimeParameters(const CustomObjectDetectionRuntimeParameters &parameters, unsigned int instance_id)
-        ERROR_CODE retrieveObjects "retrieveObjects"(Objects &objects, unsigned int instance_module_id)
-        ERROR_CODE retrieveObjectsAndSetRuntimeParameters "retrieveObjects"(Objects &objects, ObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id)
-        ERROR_CODE retrieveCustomObjectsAndSetRuntimeParameters "retrieveCustomObjects"(Objects &objects, CustomObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id)
+        ERROR_CODE setObjectDetectionRuntimeParameters(const ObjectDetectionRuntimeParameters &parameters, unsigned int instance_id) nogil
+        ERROR_CODE setCustomObjectDetectionRuntimeParameters(const CustomObjectDetectionRuntimeParameters &parameters, unsigned int instance_id) nogil
+        ERROR_CODE retrieveObjects "retrieveObjects"(Objects &objects, unsigned int instance_module_id) nogil
+        ERROR_CODE retrieveObjectsAndSetRuntimeParameters "retrieveObjects"(Objects &objects, ObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id) nogil
+        ERROR_CODE retrieveCustomObjectsAndSetRuntimeParameters "retrieveCustomObjects"(Objects &objects, CustomObjectDetectionRuntimeParameters parameters, unsigned int instance_module_id) nogil
         ERROR_CODE getObjectsBatch(vector[ObjectsBatch] &trajectories, unsigned int instance_module_id)
         bool isObjectDetectionEnabled(unsigned int instance_id)
         ERROR_CODE ingestCustomBoxObjects(const vector[CustomBoxObjectData] &objects_in, const unsigned int instance_module_id)
@@ -1910,9 +1913,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE enableBodyTracking(BodyTrackingParameters object_detection_parameters)
         void pauseBodyTracking(bool status, unsigned int instance_id)
         void disableBodyTracking(unsigned int instance_id, bool force_disable_all_instances)
-        ERROR_CODE setBodyTrackingRuntimeParameters(const BodyTrackingRuntimeParameters &parameters, unsigned int instance_id)
-        ERROR_CODE retrieveBodies "retrieveBodies"(Bodies &objects, unsigned int instance_id)
-        ERROR_CODE retrieveBodiesAndSetRuntimeParameters "retrieveBodies"(Bodies &objects, BodyTrackingRuntimeParameters parameters, unsigned int instance_id)
+        ERROR_CODE setBodyTrackingRuntimeParameters(const BodyTrackingRuntimeParameters &parameters, unsigned int instance_id) nogil
+        ERROR_CODE retrieveBodies "retrieveBodies"(Bodies &objects, unsigned int instance_id) nogil
+        ERROR_CODE retrieveBodiesAndSetRuntimeParameters "retrieveBodies"(Bodies &objects, BodyTrackingRuntimeParameters parameters, unsigned int instance_id) nogil
         bool isBodyTrackingEnabled(unsigned int instance_id)
         BodyTrackingParameters getBodyTrackingParameters(unsigned int instance_id)
 
@@ -1946,7 +1949,7 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         CommunicationParameters communication_parameters
         Transform pose
         InputType input_type
-   
+
     cdef cppclass CommunicationParameters 'sl::CommunicationParameters':
         CommunicationParameters()
         void setForSharedMemory()
@@ -2018,7 +2021,6 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         INVALID_COVARIANCE 'sl::FUSION_ERROR_CODE::INVALID_COVARIANCE',
 
     String toString(FUSION_ERROR_CODE o)
-
 
     ctypedef enum SENDER_ERROR_CODE "sl::SENDER_ERROR_CODE":
         DISCONNECTED 'sl::SENDER_ERROR_CODE::DISCONNECTED',
@@ -2158,7 +2160,7 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         double latitude_std
         double altitude_std
         GNSS_STATUS gnss_status
-        GNSS_MODE gnss_mode        
+        GNSS_MODE gnss_mode
 
     cdef cppclass Fusion 'sl::Fusion':
         Fusion()
@@ -2169,20 +2171,22 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         FUSION_ERROR_CODE updatePose(CameraIdentifier uuid, Transform pose)
         FUSION_ERROR_CODE getProcessMetrics(FusionMetrics &metrics)
         map[CameraIdentifier, SENDER_ERROR_CODE] getSenderState()
-        FUSION_ERROR_CODE process()
-        FUSION_ERROR_CODE retrieveImage(Mat &mat, CameraIdentifier uuid, Resolution resolution)
-        FUSION_ERROR_CODE retrieveMeasure(Mat &mat, CameraIdentifier uuid, MEASURE measure, Resolution resolution, FUSION_REFERENCE_FRAME reference_frame)
+        FUSION_ERROR_CODE process() nogil
+
+        FUSION_ERROR_CODE retrieveImage(Mat &mat, CameraIdentifier uuid, Resolution resolution) nogil
+        FUSION_ERROR_CODE retrieveMeasure(Mat &mat, CameraIdentifier uuid, MEASURE measure, Resolution resolution, FUSION_REFERENCE_FRAME reference_frame) nogil
+
         FUSION_ERROR_CODE enableBodyTracking(BodyTrackingFusionParameters params)
-        FUSION_ERROR_CODE retrieveBodies(Bodies &objs, BodyTrackingFusionRuntimeParameters parameters, CameraIdentifier uuid, FUSION_REFERENCE_FRAME reference_frame)
+        FUSION_ERROR_CODE retrieveBodies(Bodies &objs, BodyTrackingFusionRuntimeParameters parameters, CameraIdentifier uuid, FUSION_REFERENCE_FRAME reference_frame) nogil
         void disableBodyTracking()
+
         FUSION_ERROR_CODE enableObjectDetection(const ObjectDetectionFusionParameters& params)
-        FUSION_ERROR_CODE retrieveObjectsAllODGroups "retrieveObjects"(unordered_map[String, Objects] &objs, FUSION_REFERENCE_FRAME reference_frame)
-        FUSION_ERROR_CODE retrieveObjectsOneODGroup "retrieveObjects"(Objects &objs, const String& fused_od_group_name, FUSION_REFERENCE_FRAME reference_frame)
-        FUSION_ERROR_CODE retrieveObjectsAllIds "retrieveObjects"(unordered_map[unsigned int, Objects] &objs, const CameraIdentifier& uuid)
-        FUSION_ERROR_CODE retrieveObjectsOneId "retrieveObjects"(Objects &objs, const CameraIdentifier& uuid, const unsigned int instance_id)
-
-
+        FUSION_ERROR_CODE retrieveObjectsAllODGroups "retrieveObjects"(unordered_map[String, Objects] &objs, FUSION_REFERENCE_FRAME reference_frame) nogil
+        FUSION_ERROR_CODE retrieveObjectsOneODGroup "retrieveObjects"(Objects &objs, const String& fused_od_group_name, FUSION_REFERENCE_FRAME reference_frame) nogil
+        FUSION_ERROR_CODE retrieveObjectsAllIds "retrieveObjects"(unordered_map[unsigned int, Objects] &objs, const CameraIdentifier& uuid) nogil
+        FUSION_ERROR_CODE retrieveObjectsOneId "retrieveObjects"(Objects &objs, const CameraIdentifier& uuid, const unsigned int instance_id) nogil
         void disableObjectDetection()
+
         FUSION_ERROR_CODE enablePositionalTracking(PositionalTrackingFusionParameters parameters)
         FUSION_ERROR_CODE ingestGNSSData(GNSSData &_gnss_data)
         POSITIONAL_TRACKING_STATE getPosition(Pose &camera_pose, REFERENCE_FRAME reference_frame, CameraIdentifier uuid, POSITION_TYPE position_type)
@@ -2196,6 +2200,7 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         void disablePositionalTracking()
         FUSION_ERROR_CODE ENU2Geo(ENU &input, LatLng &out)
         FUSION_ERROR_CODE Geo2ENU(LatLng &input, ENU &out)
+
         void requestSpatialMapAsync()
         FUSION_ERROR_CODE getSpatialMapRequestStatusAsync()
         FUSION_ERROR_CODE retrieveSpatialMapAsync(Mesh &mesh)
@@ -2223,8 +2228,8 @@ cdef extern from "sl/CameraOne.hpp" namespace "sl":
         InitParametersOne getInitParameters()
 
         bool isOpened()
-        ERROR_CODE grab()
-        ERROR_CODE retrieveImage(Mat &mat, VIEW view, MEM type, Resolution resolution)
+        ERROR_CODE grab() nogil
+        ERROR_CODE retrieveImage(Mat &mat, VIEW view, MEM type, Resolution resolution) nogil
         ERROR_CODE getSensorsData(SensorsData &imu_data, TIME_REFERENCE reference_time)
 
         void setSVOPosition(int frame_number)
