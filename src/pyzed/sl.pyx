@@ -37,6 +37,7 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , RuntimeParameters as c_RuntimeParameters
                     , REFERENCE_FRAME as c_REFERENCE_FRAME, Mat as c_Mat, Resolution as c_Resolution
                     , blobFromImage as c_blobFromImage, blobFromImages as c_blobFromImages
+                    , isCameraOne as c_isCameraOne, isResolutionAvailable as c_isResolutionAvailable, isFPSAvailable as c_isFPSAvailable, supportHDR as c_supportHDR
                     , MAT_TYPE as c_MAT_TYPE, MEM as c_MEM, VIEW as c_VIEW, MEASURE as c_MEASURE
                     , Timestamp as c_Timestamp, TIME_REFERENCE as c_TIME_REFERENCE
                     , MODEL as c_MODEL, PositionalTrackingParameters as c_PositionalTrackingParameters
@@ -6376,6 +6377,38 @@ def blob_from_image(mat1: Mat, mat2: Mat, resolution: Resolution, scale: float, 
     return _error_code_cache.get(<int>c_blobFromImage(mat1.mat, mat2.mat, resolution.resolution, scale, Vector3[float](mean[0], mean[1], mean[2]), Vector3[float](stdev[0], stdev[1], stdev[2]), keep_aspect_ratio, swap_RB_channels), ERROR_CODE.FAILURE)
 
 ##
+# \brief Check if the camera is a ZED One (Monocular) or ZED (Stereo)
+# \param camera_model : The camera model to check
+#
+def is_camera_one(camera_model: MODEL) -> bool:
+    return c_isCameraOne(<c_MODEL>(<int>camera_model.value))
+
+##
+# \brief Check if a resolution is available for a given camera model
+# \param resolution : Resolution to check
+# \param camera_model : The camera model to check
+#
+def is_resolution_available(resolution: RESOLUTION, camera_model: MODEL) -> bool:
+    return c_isResolutionAvailable(<c_RESOLUTION>(<int>resolution.value), <c_MODEL>(<int>camera_model.value))
+
+##
+# \brief Check if a frame rate is available for a given resolution and camera model
+# \param fps : Frame rate to check
+# \param resolution : Resolution to check
+# \param camera_model : The camera model to check
+#
+def is_FPS_available(int fps, resolution: RESOLUTION, camera_model: MODEL) -> bool:
+    return c_isFPSAvailable(fps, <c_RESOLUTION>(<int>resolution.value), <c_MODEL>(<int>camera_model.value))
+
+##
+# \brief Check if a resolution for a given camera model is available for HDR
+# \param resolution : Resolution to check
+# \param camera_model : The camera model to check
+#
+def is_HDR_available(resolution: RESOLUTION, camera_model: MODEL) -> bool:
+    return c_supportHDR(<c_RESOLUTION>(<int>resolution.value), <c_MODEL>(<int>camera_model.value))
+
+##
 # Class representing a rotation for the positional tracking module.
 # \ingroup PositionalTracking_group
 #
@@ -10112,7 +10145,10 @@ cdef class Camera:
     # 
     # \return \ref ERROR_CODE "ERROR_CODE::SUCCESS" means that no problem was encountered.    
     def read(self) -> ERROR_CODE:
-        return _error_code_cache.get(<int>self.camera.read(), ERROR_CODE.FAILURE)
+        cdef c_ERROR_CODE err
+        with nogil:
+            err = self.camera.read()
+        return _error_code_cache.get(<int>err, ERROR_CODE.FAILURE)
 
     ##
     # This method will grab the latest images from the camera, rectify them, and compute the \ref retrieve_measure() "measurements" based on the \ref RuntimeParameters provided (depth, point cloud, tracking, etc.)
@@ -10149,7 +10185,10 @@ cdef class Camera:
     def grab(self, RuntimeParameters py_runtime = None) -> ERROR_CODE:
         if py_runtime is None:
             py_runtime = RuntimeParameters()
-        return _error_code_cache.get(<int>self.camera.grab(deref((py_runtime).runtime)), ERROR_CODE.FAILURE)
+        cdef c_ERROR_CODE err
+        with nogil:
+            err = self.camera.grab(deref(py_runtime.runtime))
+        return _error_code_cache.get(<int>err, ERROR_CODE.FAILURE)
 
     ##
     # Retrieves images from the camera (or SVO file).
@@ -10173,7 +10212,7 @@ cdef class Camera:
     # 
     # \param py_mat[out] : The \ref sl.Mat to store the image.
     # \param view[in] : Defines the image you want (see \ref VIEW). Default: \ref VIEW "VIEW.LEFT".
-    # \param type[in] : Defines on which memory the image should be allocated. Default: \ref MEM "MEM.CPU" (you cannot change this default value).
+    # \param mem_type[in] : Defines on which memory the image should be allocated. Default: \ref MEM "MEM.CPU" (you cannot change this default value).
     # \param resolution[in] : If specified, defines the \ref Resolution of the output sl.Mat. If set to \ref Resolution "Resolution(0,0)", the camera resolution will be taken. Default: (0,0).
     # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if the method succeeded.
     # \return \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_PARAMETERS" if the view mode requires a module not enabled (\ref VIEW "VIEW.DEPTH" with \ref DEPTH_MODE "DEPTH_MODE.NONE" for example).
@@ -10197,12 +10236,15 @@ cdef class Camera:
     #           else:
     #               print("error:", err)
     # \endcode
-    def retrieve_image(self, Mat py_mat, view: VIEW = VIEW.LEFT, type: MEM = MEM.CPU, Resolution resolution = None) -> ERROR_CODE:
+    def retrieve_image(self, Mat py_mat, view: VIEW = VIEW.LEFT, mem_type: MEM = MEM.CPU, Resolution resolution = None) -> ERROR_CODE:
         if resolution is None:
             resolution = Resolution(0,0)
-        return _error_code_cache.get(
-            <int>self.camera.retrieveImage(py_mat.mat, <c_VIEW>(<int>view.value), <c_MEM>(<int>type.value), (<Resolution>resolution).resolution),
-            ERROR_CODE.FAILURE)
+        cdef c_ERROR_CODE err
+        cdef c_VIEW c_view = <c_VIEW>(<int>view.value)
+        cdef c_MEM c_type = <c_MEM>(<int>mem_type.value)
+        with nogil:
+            err = self.camera.retrieveImage(py_mat.mat, c_view, c_type, resolution.resolution)
+        return _error_code_cache.get(<int>err, ERROR_CODE.FAILURE)
 
     ##
     # Computed measures, like depth, point cloud, or normals, can be retrieved using this method.
@@ -10221,7 +10263,7 @@ cdef class Camera:
     #
     # \param py_mat[out] : The sl.Mat to store the measures.
     # \param measure[in] : Defines the measure you want (see \ref MEASURE). Default: \ref MEASURE "MEASURE.DEPTH".
-    # \param type[in] : Defines on which memory the image should be allocated. Default: \ref MEM "MEM.CPU" (you cannot change this default value).
+    # \param mem_type[in] : Defines on which memory the image should be allocated. Default: \ref MEM "MEM.CPU" (you cannot change this default value).
     # \param resolution[in] : If specified, defines the \ref Resolution of the output sl.Mat. If set to \ref Resolution "Resolution(0,0)", the camera resolution will be taken. Default: (0,0).
     # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if the method succeeded.
     # \return \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_PARAMETERS" if the view mode requires a module not enabled (\ref VIEW "VIEW.DEPTH" with \ref DEPTH_MODE "DEPTH_MODE.NONE" for example).
@@ -10262,12 +10304,15 @@ cdef class Camera:
     #        print("Color values at center: R=", char_array[0], ", G=", char_array[1], ", B=", char_array[2], ", A=", char_array[3])
     #     
     # \endcode
-    def retrieve_measure(self, Mat py_mat, measure: MEASURE = MEASURE.DEPTH, type: MEM = MEM.CPU, Resolution resolution = None) -> ERROR_CODE:
+    def retrieve_measure(self, Mat py_mat, measure: MEASURE = MEASURE.DEPTH, mem_type: MEM = MEM.CPU, Resolution resolution = None) -> ERROR_CODE:
         if resolution is None:
             resolution = Resolution(0, 0)
-        return _error_code_cache.get(
-            <int>self.camera.retrieveMeasure(py_mat.mat, <c_MEASURE>(<int>measure.value), <c_MEM>(<int>type.value), (<Resolution>resolution).resolution),
-            ERROR_CODE.FAILURE)
+        cdef c_ERROR_CODE err
+        cdef c_MEASURE c_measure = <c_MEASURE>(<int>measure.value)
+        cdef c_MEM c_mem = <c_MEM>(<int>mem_type.value)
+        with nogil:
+            err = self.camera.retrieveMeasure(py_mat.mat, c_measure, c_mem, resolution.resolution)
+        return _error_code_cache.get(<int>err, ERROR_CODE.FAILURE)
 
     ##
     # Defines a region of interest to focus on for all the SDK, discarding other parts.
@@ -10659,9 +10704,11 @@ cdef class Camera:
     # print("Latest image timestamp: ", last_image_timestamp.get_nanoseconds(), "ns from Epoch.")
     # print("Current timestamp: ", current_timestamp.get_nanoseconds(), "ns from Epoch.")
     # \endcode 
-    def get_timestamp(self, time_reference) -> Timestamp:
+    def get_timestamp(self, time_reference: TIME_REFERENCE) -> Timestamp:
         ts = Timestamp()
-        ts.timestamp = self.camera.getTimestamp(<c_TIME_REFERENCE>(<int>time_reference.value))
+        cdef c_TIME_REFERENCE c_time_reference = <c_TIME_REFERENCE>(<int>time_reference.value)
+        with nogil:
+            ts.timestamp = self.camera.getTimestamp(c_time_reference)
         return ts
 
     ##
@@ -11019,21 +11066,22 @@ cdef class Camera:
     #         print(len(bodies.body_list), "bodies detected")
     # \endcode
     def retrieve_bodies(self, Bodies bodies, BodyTrackingRuntimeParameters body_tracking_runtime_parameters = None, unsigned int instance_id = 0) -> ERROR_CODE:
-        if body_tracking_runtime_parameters is None:
-            return _error_code_cache.get(<int>self.camera.retrieveBodies(bodies.bodies, instance_id),
-                                         ERROR_CODE.FAILURE)
-        return _error_code_cache.get(
-            <int>self.camera.retrieveBodiesAndSetRuntimeParameters(bodies.bodies, deref(body_tracking_runtime_parameters.body_tracking_rt), instance_id),
-            ERROR_CODE.FAILURE)
+        cdef c_ERROR_CODE ret
+        with nogil:
+            if body_tracking_runtime_parameters is None:
+                ret = self.camera.retrieveBodies(bodies.bodies, instance_id)
+            else:
+                ret = self.camera.retrieveBodiesAndSetRuntimeParameters(bodies.bodies, deref(body_tracking_runtime_parameters.body_tracking_rt), instance_id)
+        return _error_code_cache.get(<int>ret, ERROR_CODE.FAILURE)
 
     ##
     # Set the body tracking runtime parameters
     #
     def set_body_tracking_runtime_parameters(self, BodyTrackingRuntimeParameters body_tracking_runtime_parameters, unsigned int instance_module_id=0) -> ERROR_CODE:
-        return _error_code_cache.get(
-            <int>self.camera.setBodyTrackingRuntimeParameters(deref(body_tracking_runtime_parameters.body_tracking_rt),
-                                                              instance_module_id),
-            ERROR_CODE.FAILURE)
+        cdef c_ERROR_CODE ret
+        with nogil:
+            ret = self.camera.setBodyTrackingRuntimeParameters(deref(body_tracking_runtime_parameters.body_tracking_rt), instance_module_id)
+        return _error_code_cache.get(<int>ret, ERROR_CODE.FAILURE)
 
     ##
     # Tells if the body tracking module is enabled.
@@ -11760,19 +11808,19 @@ cdef class Camera:
     # Set the object detection runtime parameters
     #
     def set_object_detection_runtime_parameters(self, ObjectDetectionRuntimeParameters object_detection_parameters, unsigned int instance_module_id=0) -> ERROR_CODE:
-        return _error_code_cache.get(
-            <int>self.camera.setObjectDetectionRuntimeParameters(deref(object_detection_parameters.object_detection_rt),
-                                                                 instance_module_id),
-            ERROR_CODE.FAILURE)
+        cdef c_ERROR_CODE ret
+        with nogil:
+            ret = self.camera.setObjectDetectionRuntimeParameters(deref(object_detection_parameters.object_detection_rt), instance_module_id)
+        return _error_code_cache.get(<int>ret, ERROR_CODE.FAILURE)
 
     ##
     # Set the custom object detection runtime parameters
     #
     def set_custom_object_detection_runtime_parameters(self, CustomObjectDetectionRuntimeParameters custom_object_detection_parameters, unsigned int instance_module_id=0) -> ERROR_CODE:
-        return _error_code_cache.get(
-            <int>self.camera.setCustomObjectDetectionRuntimeParameters(deref(custom_object_detection_parameters.custom_object_detection_rt),
-                                                                       instance_module_id),
-            ERROR_CODE.FAILURE)
+        cdef c_ERROR_CODE ret
+        with nogil:
+            ret = self.camera.setCustomObjectDetectionRuntimeParameters(deref(custom_object_detection_parameters.custom_object_detection_rt), instance_module_id)
+        return _error_code_cache.get(<int>ret, ERROR_CODE.FAILURE)
 
     ##
     # Retrieve objects detected by the object detection module.
@@ -11803,14 +11851,15 @@ cdef class Camera:
                          ObjectDetectionRuntimeParameters py_object_detection_parameters = None,
                          unsigned int instance_module_id = 0
     ) -> ERROR_CODE:
-        if py_object_detection_parameters is None:
-            return _error_code_cache.get(<int>self.camera.retrieveObjects(py_objects.objects, instance_module_id),
-                                         ERROR_CODE.FAILURE)
-        return _error_code_cache.get(
-            <int>self.camera.retrieveObjectsAndSetRuntimeParameters(py_objects.objects,
-                                                                    deref(py_object_detection_parameters.object_detection_rt),
-                                                                    instance_module_id),
-            ERROR_CODE.FAILURE)
+        cdef c_ERROR_CODE ret
+        with nogil:
+            if py_object_detection_parameters is None:
+                ret = self.camera.retrieveObjects(py_objects.objects, instance_module_id)
+            else:
+                ret = self.camera.retrieveObjectsAndSetRuntimeParameters(py_objects.objects,
+                                                                         deref(py_object_detection_parameters.object_detection_rt),
+                                                                         instance_module_id)
+        return _error_code_cache.get(<int>ret, ERROR_CODE.FAILURE)
 
     ##
     # Retrieve custom objects detected by the object detection module.
@@ -11846,15 +11895,16 @@ cdef class Camera:
                                 CustomObjectDetectionRuntimeParameters custom_object_detection_parameters = None,
                                 unsigned int instance_module_id = 0
     ) -> ERROR_CODE:
-        if custom_object_detection_parameters is None:
-            return _error_code_cache.get(<int>self.camera.retrieveObjects((<Objects>py_objects).objects, instance_module_id),
-                                         ERROR_CODE.FAILURE)
-        custom_object_detection_parameters.custom_object_detection_rt.object_detection_properties = deref(custom_object_detection_parameters._object_detection_properties.custom_object_detection_props)
-        return _error_code_cache.get(
-            <int>self.camera.retrieveCustomObjectsAndSetRuntimeParameters((<Objects>py_objects).objects,
-                                                                          deref(custom_object_detection_parameters.custom_object_detection_rt),
-                                                                          instance_module_id),
-            ERROR_CODE.FAILURE)
+        cdef c_ERROR_CODE ret
+        with nogil:
+            if custom_object_detection_parameters is None:
+                ret = self.camera.retrieveObjects(py_objects.objects, instance_module_id)
+            else:
+                custom_object_detection_parameters.custom_object_detection_rt.object_detection_properties = deref(custom_object_detection_parameters._object_detection_properties.custom_object_detection_props)
+                ret = self.camera.retrieveCustomObjectsAndSetRuntimeParameters(py_objects.objects,
+                                                                               deref(custom_object_detection_parameters.custom_object_detection_rt),
+                                                                               instance_module_id)
+        return _error_code_cache.get(<int>ret, ERROR_CODE.FAILURE)
 
     ##
     # Get a batch of detected objects.
@@ -13460,15 +13510,18 @@ cdef class Fusion:
     # Runs the main function of the Fusion, this trigger the retrieve and synchronization of all connected senders and updates the enabled modules.
     # \return \ref FUSION_ERROR_CODE "FUSION_ERROR_CODE.SUCCESS" if it goes as it should, otherwise it returns an FUSION_ERROR_CODE.
     def process(self) -> FUSION_ERROR_CODE:
-        return FUSION_ERROR_CODE(<int>self.fusion.process())
-    
+        cdef c_FUSION_ERROR_CODE ret
+        with nogil:
+            ret = self.fusion.process()
+        return _fusion_error_code_cache.get(<int>ret, FUSION_ERROR_CODE.FAILURE)
+
     ##
     # Enables the body tracking fusion module.
     # \param params: Structure containing all specific parameters for body tracking fusion.
     # \return \ref FUSION_ERROR_CODE "FUSION_ERROR_CODE.SUCCESS" if it goes as it should, otherwise it returns an FUSION_ERROR_CODE.
     def enable_body_tracking(self, params : BodyTrackingFusionParameters) -> FUSION_ERROR_CODE:
         return FUSION_ERROR_CODE(<int>self.fusion.enableBodyTracking(params.bodyTrackingFusionParameters))
-    
+
     ##
     # Retrieves the body data, can be the fused data (default), or the raw data provided by a specific sender.
     # \param bodies: The fused bodies will be saved into this objects.
@@ -13477,7 +13530,11 @@ cdef class Fusion:
     # \param reference_frame: The reference frame in which the objects will be expressed. Default: \ref FUSION_REFERENCE_FRAME "FUSION_REFERENCE_FRAME::BASELINK".
     # \return \ref FUSION_ERROR_CODE "FUSION_ERROR_CODE.SUCCESS" if it goes as it should, otherwise it returns an FUSION_ERROR_CODE.
     def retrieve_bodies(self, bodies : Bodies, parameters : BodyTrackingFusionRuntimeParameters, uuid : CameraIdentifier = CameraIdentifier(0), reference_frame: FUSION_REFERENCE_FRAME = FUSION_REFERENCE_FRAME.BASELINK) -> FUSION_ERROR_CODE:
-        return FUSION_ERROR_CODE(<int>self.fusion.retrieveBodies(bodies.bodies, parameters.bodyTrackingFusionRuntimeParameters, uuid.cameraIdentifier, <c_FUSION_REFERENCE_FRAME>(<int>reference_frame.value)))
+        cdef c_FUSION_ERROR_CODE ret
+        cdef c_FUSION_REFERENCE_FRAME c_reference_frame = <c_FUSION_REFERENCE_FRAME>(<int>reference_frame.value)
+        with nogil:
+            ret = self.fusion.retrieveBodies(bodies.bodies, parameters.bodyTrackingFusionRuntimeParameters, uuid.cameraIdentifier, c_reference_frame)
+        return _fusion_error_code_cache.get(<int>ret, FUSION_ERROR_CODE.FAILURE)
 
     ##
     # Enables the object detection fusion module.
@@ -13494,15 +13551,19 @@ cdef class Fusion:
     # \return \ref FUSION_ERROR_CODE "SUCCESS" if it goes as it should, otherwise it returns a FUSION_ERROR_CODE.
     def retrieve_objects_all_od_groups(self, dict objs, reference_frame: FUSION_REFERENCE_FRAME = FUSION_REFERENCE_FRAME.BASELINK) -> FUSION_ERROR_CODE:
         cdef unordered_map[String, c_Objects] map_obj
-        ret = _fusion_error_code_cache.get(<int>self.fusion.retrieveObjectsAllODGroups(map_obj, <c_FUSION_REFERENCE_FRAME>(<int>reference_frame.value)), FUSION_ERROR_CODE.FAILURE)
-        if ret == FUSION_ERROR_CODE.SUCCESS:
+        cdef c_FUSION_ERROR_CODE ret
+        cdef c_FUSION_REFERENCE_FRAME c_reference_frame = <c_FUSION_REFERENCE_FRAME>(<int>reference_frame.value)
+        with nogil:
+            ret = self.fusion.retrieveObjectsAllODGroups(map_obj, c_reference_frame)
+        py_ret = _fusion_error_code_cache.get(<int>ret, FUSION_ERROR_CODE.FAILURE)
+        if py_ret == FUSION_ERROR_CODE.SUCCESS:
             objs.clear()
             for item in map_obj:
                 py_objects = Objects()
                 py_objects.objects = item.second
                 key_string = to_str(item.first).decode()
                 objs[key_string] = py_objects
-        return ret
+        return py_ret
 
     ##
     # Retrieves the fused objects of a given fused OD group.
@@ -13511,23 +13572,30 @@ cdef class Fusion:
     # \param reference_frame: The reference frame in which the objects will be expressed. Default: \ref FUSION_REFERENCE_FRAME "FUSION_REFERENCE_FRAME::BASELINK".
     # \return \ref FUSION_ERROR_CODE "SUCCESS" if it goes as it should, otherwise it returns a FUSION_ERROR_CODE.
     def retrieve_objects_one_od_group(self, Objects objs, str fused_od_group_name, reference_frame: FUSION_REFERENCE_FRAME = FUSION_REFERENCE_FRAME.BASELINK) -> FUSION_ERROR_CODE:
-        fused_od_group_name_str = fused_od_group_name.encode()
-        return _fusion_error_code_cache.get(<int>self.fusion.retrieveObjectsOneODGroup(objs.objects, String(<char*>fused_od_group_name_str), <c_FUSION_REFERENCE_FRAME>(<int>reference_frame.value)), FUSION_ERROR_CODE.FAILURE)
+        cdef c_FUSION_ERROR_CODE ret
+        cdef c_FUSION_REFERENCE_FRAME c_reference_frame = <c_FUSION_REFERENCE_FRAME>(<int>reference_frame.value)
+        cdef String c_fused_od_group_name_str = String(fused_od_group_name.encode())
+        with nogil:
+            ret = self.fusion.retrieveObjectsOneODGroup(objs.objects, c_fused_od_group_name_str, c_reference_frame)
+        return _fusion_error_code_cache.get(<int>ret, FUSION_ERROR_CODE.FAILURE)
 
     ##
     # Retrieves all the raw objects data provided by a specific sender.
     # \param objs: The fused objects will be saved into this dictionary of objects.
     # \param uuid: Retrieve the raw data provided by this sender.
     def retrieve_raw_objects_all_ids(self, dict objs, CameraIdentifier uuid) -> FUSION_ERROR_CODE:
-        cdef unordered_map[unsigned int, c_Objects] map
-        ret = _fusion_error_code_cache.get(<int>self.fusion.retrieveObjectsAllIds(map, uuid.cameraIdentifier), FUSION_ERROR_CODE.FAILURE)
-        if ret == FUSION_ERROR_CODE.SUCCESS:
+        cdef unordered_map[unsigned int, c_Objects] umap
+        cdef c_FUSION_ERROR_CODE ret
+        with nogil:
+            ret = self.fusion.retrieveObjectsAllIds(umap, uuid.cameraIdentifier)
+        py_ret = _fusion_error_code_cache.get(<int>ret, FUSION_ERROR_CODE.FAILURE)
+        if py_ret == FUSION_ERROR_CODE.SUCCESS:
             objs.clear()
-            for item in map:
+            for item in umap:
                 py_objects = Objects()
                 py_objects.objects = item.second
                 objs[item.first] = py_objects
-        return ret
+        return py_ret
 
     ##
     # Retrieves the raw objects data provided by a specific sender and a specific instance id.
@@ -13536,7 +13604,10 @@ cdef class Fusion:
     # \param instance_id: Retrieve the objects inferred by the model with this ID only.
     # \return \ref FUSION_ERROR_CODE "SUCCESS" if it goes as it should, otherwise it returns a FUSION_ERROR_CODE.
     def retrieve_raw_objects_one_id(self, Objects py_objects, CameraIdentifier uuid, uint instance_id) -> FUSION_ERROR_CODE:
-        return _fusion_error_code_cache.get(<int>self.fusion.retrieveObjectsOneId(py_objects.objects, uuid.cameraIdentifier, instance_id), FUSION_ERROR_CODE.FAILURE)
+        cdef c_FUSION_ERROR_CODE ret
+        with nogil:
+            ret = self.fusion.retrieveObjectsOneId(py_objects.objects, uuid.cameraIdentifier, instance_id)
+        return _fusion_error_code_cache.get(<int>ret, FUSION_ERROR_CODE.FAILURE)
 
     ##
     # Disable the body fusion tracking module.
@@ -13550,7 +13621,10 @@ cdef class Fusion:
     # \param uuid: If set to a sender serial number (different from 0), this will retrieve the raw data provided by this sender.
     # \return \ref FUSION_ERROR_CODE "FUSION_ERROR_CODE.SUCCESS" if it goes as it should, otherwise it returns an FUSION_ERROR_CODE.
     def retrieve_image(self, Mat mat, CameraIdentifier uuid, Resolution resolution = Resolution(0,0)) -> FUSION_ERROR_CODE:
-        return FUSION_ERROR_CODE(<int>self.fusion.retrieveImage(mat.mat, uuid.cameraIdentifier, resolution.resolution))
+        cdef c_FUSION_ERROR_CODE ret
+        with nogil:
+            ret = self.fusion.retrieveImage(mat.mat, uuid.cameraIdentifier, resolution.resolution)
+        return _fusion_error_code_cache.get(<int>ret, FUSION_ERROR_CODE.FAILURE)
 
     ##
     # Returns the current measure of the specified camera, the data is synchronized.
@@ -13561,7 +13635,12 @@ cdef class Fusion:
     # \param reference_frame: The reference frame in which the objects will be expressed. Default: \ref FUSION_REFERENCE_FRAME "FUSION_REFERENCE_FRAME::BASELINK".
     # \return \ref FUSION_ERROR_CODE "FUSION_ERROR_CODE.SUCCESS" if it goes as it should, otherwise it returns an FUSION_ERROR_CODE.
     def retrieve_measure(self, Mat mat, CameraIdentifier uuid, measure: MEASURE, Resolution resolution = Resolution(0,0), reference_frame: FUSION_REFERENCE_FRAME = FUSION_REFERENCE_FRAME.BASELINK) -> FUSION_ERROR_CODE:
-        return FUSION_ERROR_CODE(<int>self.fusion.retrieveMeasure(mat.mat, uuid.cameraIdentifier, <c_MEASURE>(<int>measure.value), resolution.resolution, <c_FUSION_REFERENCE_FRAME>(<int>reference_frame.value)))
+        cdef c_FUSION_ERROR_CODE ret
+        cdef c_MEASURE c_measure = <c_MEASURE>(<int>measure.value)
+        cdef c_FUSION_REFERENCE_FRAME c_reference_frame = <c_FUSION_REFERENCE_FRAME>(<int>reference_frame.value)
+        with nogil:
+            ret = self.fusion.retrieveMeasure(mat.mat, uuid.cameraIdentifier, c_measure, resolution.resolution, c_reference_frame)
+        return _fusion_error_code_cache.get(<int>ret, FUSION_ERROR_CODE.FAILURE)
 
     ##
     # Disable the body fusion tracking module.
@@ -14297,7 +14376,10 @@ IF UNAME_SYSNAME == u"Linux":
         #           # Use the image for your application
         # \endcode
         def grab(self) -> ERROR_CODE:
-            return _error_code_cache.get(<int>self.camera.grab(), ERROR_CODE.FAILURE)
+            cdef c_ERROR_CODE ret
+            with nogil:
+                ret = self.camera.grab()
+            return _error_code_cache.get(<int>ret, ERROR_CODE.FAILURE)
 
         ##
         # Retrieves images from the camera (or SVO file).
@@ -14321,7 +14403,7 @@ IF UNAME_SYSNAME == u"Linux":
         # 
         # \param py_mat[out] : The \ref sl.Mat to store the image.
         # \param view[in] : Defines the image you want (see \ref VIEW). Default: \ref VIEW "VIEW.LEFT".
-        # \param type[in] : Defines on which memory the image should be allocated. Default: \ref MEM "MEM.CPU" (you cannot change this default value).
+        # \param mem_type[in] : Defines on which memory the image should be allocated. Default: \ref MEM "MEM.CPU" (you cannot change this default value).
         # \param resolution[in] : If specified, defines the \ref Resolution of the output sl.Mat. If set to \ref Resolution "Resolution(0,0)", the camera resolution will be taken. Default: (0,0).
         # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if the method succeeded.
         # \return \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_PARAMETERS" if the view mode requires a module not enabled (\ref VIEW "VIEW.DEPTH" with \ref DEPTH_MODE "DEPTH_MODE.NONE" for example).
@@ -14344,11 +14426,13 @@ IF UNAME_SYSNAME == u"Linux":
         #           else:
         #               print("error:", err)
         # \endcode
-        def retrieve_image(self, py_mat: Mat, view=VIEW.LEFT, type=MEM.CPU, resolution=Resolution(0,0)) -> ERROR_CODE:
-            if (isinstance(view, VIEW) and isinstance(type, MEM)):
-                return _error_code_cache.get(<int>self.camera.retrieveImage(py_mat.mat, <c_VIEW>(<int>view.value), <c_MEM>(<int>type.value), (<Resolution>resolution).resolution), ERROR_CODE.FAILURE)
-            else:
-                raise TypeError("Arguments must be of VIEW, MEM and integer types.")
+        def retrieve_image(self, Mat py_mat, view=VIEW.LEFT, mem_type=MEM.CPU, Resolution resolution=Resolution(0,0)) -> ERROR_CODE:
+            cdef c_ERROR_CODE ret
+            cdef c_VIEW c_view = <c_VIEW>(<int>view.value)
+            cdef c_MEM c_mem_type = <c_MEM>(<int>mem_type.value)
+            with nogil:
+                ret = self.camera.retrieveImage(py_mat.mat, c_view, c_mem_type, resolution.resolution)
+            return _error_code_cache.get(<int>ret, ERROR_CODE.FAILURE)
 
         ##
         # Sets the playback cursor to the desired frame number in the SVO file.
