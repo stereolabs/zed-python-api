@@ -6,33 +6,34 @@
 
 ### Prerequisites
 
-- [ZED SDK 5.0](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
-- Python 3.8+ x64
-- C++ compiler
-- [Cython >= 3.0.0](http://cython.org/#download)
-- [Numpy >= 2.0](https://numpy.org/install/)
-- CuPy (optional)
-
-The ZED SDK 4.X compatible API can be found in the [zedsdk_4.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_4.X).
-
 Please check your python version with the following command. The result should be 3.8 or higher.
 
 ```
 python --version
 ```
 
-Cython and Numpy can be installed via pip.
-```
-python -m pip install cython numpy
+- [ZED SDK 5.0](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- Python 3.8+ x64
+- C++ compiler
+- CuPy (optional)
+
+The ZED SDK 4.X compatible API can be found in the [zedsdk_4.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_4.X).
+
+**Python Dependencies:**
+- Use `requirements.txt` for Python 3.9+ with modern dependencies
+- Use `requirements_legacy.txt` for older Python versions or legacy setups
+
+Install dependencies with:
+```bash
+# For modern Python environments (recommended)
+pip install -r requirements.txt
+
+# For legacy Python environments
+pip install -r requirements_legacy.txt
 ```
 
 **Note:** On Linux, it is advised to use the `python3` command instead of `python` which by default point to python 2.7. To do so, the following packages `python3-dev` and `python3-pip` need to be installed.
 
-```
-python3 --version
-pip3 install -r requirements.txt
-```
-  
 ### Build the plugin
 
 ```

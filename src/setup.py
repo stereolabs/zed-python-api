@@ -26,16 +26,45 @@ import os
 import sys
 import shutil
 import re
-# import numpy # Import moved to after setup_requires might install it
+import numpy as np
 
 from setuptools import setup, Extension
-from Cython.Build import cythonize
 
-# It's good practice to try importing numpy after setup_requires had a chance
-# However, numpy.get_include() is needed early for incDirs.
-# oldest-supported-numpy will ensure a suitable version is available for the build.
-import numpy
+# Import Cython being careful with capitalization for non-modern Python environments
+try:
+    from Cython.Build import cythonize
+except ModuleNotFoundError as e:
+    if not sys.platform.startswith('win'):
+        raise ModuleNotFoundError(e)
 
+    # This is a workaround for Cython installation issues on Windows
+    # where the package is installed as 'cython' but internal imports expect 'Cython'
+    import sys
+    try:
+        import cython
+        # Add the cython module as 'Cython' in sys.modules so internal imports work
+        sys.modules['Cython'] = cython
+
+        # Also need to map the submodules
+        import cython.Build
+        import cython.Compiler
+        sys.modules['Cython.Build'] = cython.Build
+        sys.modules['Cython.Compiler'] = cython.Compiler
+
+        # Import all submodules that are needed
+        for attr_name in dir(cython):
+            attr = getattr(cython, attr_name)
+            if hasattr(attr, '__name__') and attr.__name__.startswith('cython.'):
+                capitalized_name = attr.__name__.replace('cython.', 'Cython.')
+                sys.modules[capitalized_name] = attr
+
+        # Now try the import again
+        from Cython.Build import cythonize
+        print("Successfully imported cythonize using workaround")
+        
+    except (ImportError, ModuleNotFoundError, AttributeError) as e:
+        print(f"Cython import failed: {e}")
+        raise ImportError("Cython is not installed or not properly configured. Please install Cython to proceed.")
 
 incDirs = ""
 libDirs = ""
@@ -110,12 +139,6 @@ if "cleanall" in "".join(sys.argv[1:]):
         shutil.rmtree("build")
     sys.exit()
 
-# numpy.get_include() will be called here.
-# If oldest-supported-numpy is in setup_requires,
-# setuptools attempts to install it before this script fully runs,
-# making the 'oldest' numpy available for get_include().
-numpy_include_dir = numpy.get_include()
-
 if sys.platform == "win32":
     if os.getenv("ZED_SDK_ROOT_DIR") is None:
         print("Error: ZED_SDK_ROOT_DIR is not set. You must install the ZED SDK and set this environment variable.")
@@ -125,7 +148,7 @@ if sys.platform == "win32":
         sys.exit(1)
     else:
         check_zed_sdk_version(os.getenv("ZED_SDK_ROOT_DIR")+"/include")
-        incDirs = [numpy_include_dir, os.getenv("ZED_SDK_ROOT_DIR")+"/include",
+        incDirs = [np.get_include(), os.getenv("ZED_SDK_ROOT_DIR")+"/include",
                    os.getenv("CUDA_PATH") + "/include"]
 
         libDirs = [os.getenv("ZED_SDK_ROOT_DIR")+"/lib",
@@ -142,7 +165,7 @@ elif "linux" in sys.platform:
         sys.exit(1)
     else:
         check_zed_sdk_version(zed_path+"/include")
-        incDirs = [numpy_include_dir,
+        incDirs = [np.get_include(),
                    zed_path + "/include",
                    cuda_path + "/include"]
 
