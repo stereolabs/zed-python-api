@@ -298,6 +298,26 @@ class ERROR_CODE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_ERROR_CODE>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, ERROR_CODE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, ERROR_CODE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, ERROR_CODE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, ERROR_CODE):
+            return self.value >= other.value
+        return NotImplemented
+
 
 # The C++ enum being wrapped through Cython causes runtime overhead
 # When converting between the C++ enum and Python, there's overhead from:
@@ -358,6 +378,26 @@ class MODEL(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_MODEL>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, MODEL):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, MODEL):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, MODEL):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, MODEL):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists available input types in the ZED SDK.
 #
@@ -376,6 +416,26 @@ class INPUT_TYPE(enum.Enum):
     STREAM = <int>c_INPUT_TYPE.STREAM
     GMSL = <int>c_INPUT_TYPE.GMSL
     LAST = <int>c_INPUT_TYPE.LAST
+
+    def __lt__(self, other):
+        if isinstance(other, INPUT_TYPE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, INPUT_TYPE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, INPUT_TYPE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, INPUT_TYPE):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Lists available AI models.
@@ -416,6 +476,26 @@ class AI_MODELS(enum.Enum):
     NEURAL_PLUS_DEPTH = <int>c_AI_MODELS.NEURAL_PLUS_DEPTH
     LAST = <int>c_OBJECT_DETECTION_MODEL.LAST
 
+    def __lt__(self, other):
+        if isinstance(other, AI_MODELS):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, AI_MODELS):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, AI_MODELS):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, AI_MODELS):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists available models for the object detection module.
 #
@@ -439,6 +519,26 @@ class OBJECT_DETECTION_MODEL(enum.Enum):
     CUSTOM_YOLOLIKE_BOX_OBJECTS = <int>c_OBJECT_DETECTION_MODEL.CUSTOM_YOLOLIKE_BOX_OBJECTS
     LAST = <int>c_OBJECT_DETECTION_MODEL.LAST
 
+    def __lt__(self, other):
+        if isinstance(other, OBJECT_DETECTION_MODEL):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, OBJECT_DETECTION_MODEL):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, OBJECT_DETECTION_MODEL):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, OBJECT_DETECTION_MODEL):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists available models for the body tracking module.
 #
@@ -455,6 +555,26 @@ class BODY_TRACKING_MODEL(enum.Enum):
     HUMAN_BODY_MEDIUM = <int>c_BODY_TRACKING_MODEL.HUMAN_BODY_MEDIUM
     LAST = <int>c_BODY_TRACKING_MODEL.LAST
 
+    def __lt__(self, other):
+        if isinstance(other, BODY_TRACKING_MODEL):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, BODY_TRACKING_MODEL):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, BODY_TRACKING_MODEL):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, BODY_TRACKING_MODEL):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists supported bounding box preprocessing.
 #
@@ -470,6 +590,26 @@ class OBJECT_FILTERING_MODE(enum.Enum):
     NMS3D = <int>c_OBJECT_FILTERING_MODE.NMS3D
     NMS3D_PER_CLASS = <int>c_OBJECT_FILTERING_MODE.NMS3D_PER_CLASS
     LAST = <int>c_OBJECT_FILTERING_MODE.LAST
+
+    def __lt__(self, other):
+        if isinstance(other, OBJECT_FILTERING_MODE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, OBJECT_FILTERING_MODE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, OBJECT_FILTERING_MODE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, OBJECT_FILTERING_MODE):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Lists supported presets for maximum acceleration allowed for a given tracked object.
@@ -488,6 +628,26 @@ class OBJECT_ACCELERATION_PRESET(enum.Enum):
     MEDIUM = <int>c_OBJECT_ACCELERATION_PRESET.ACC_PRESET_MEDIUM
     HIGH = <int>c_OBJECT_ACCELERATION_PRESET.ACC_PRESET_HIGH
     LAST = <int>c_OBJECT_ACCELERATION_PRESET.ACC_PRESET_LAST
+
+    def __lt__(self, other):
+        if isinstance(other, OBJECT_ACCELERATION_PRESET):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, OBJECT_ACCELERATION_PRESET):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, OBJECT_ACCELERATION_PRESET):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, OBJECT_ACCELERATION_PRESET):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Lists possible camera states.
@@ -509,6 +669,26 @@ class CAMERA_STATE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_CAMERA_STATE>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, CAMERA_STATE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, CAMERA_STATE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, CAMERA_STATE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, CAMERA_STATE):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists possible sides on which to get data from.
 # \ingroup Video_group
@@ -522,6 +702,26 @@ class SIDE(enum.Enum):
     LEFT = <int>c_SIDE.LEFT
     RIGHT = <int>c_SIDE.RIGHT
     BOTH = <int>c_SIDE.BOTH
+
+    def __lt__(self, other):
+        if isinstance(other, SIDE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, SIDE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, SIDE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, SIDE):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Lists available resolutions.
@@ -554,6 +754,26 @@ class RESOLUTION(enum.Enum):
     VGA  = <int>c_RESOLUTION.VGA
     AUTO = <int>c_RESOLUTION.AUTO
     LAST = <int>c_RESOLUTION.LAST
+
+    def __lt__(self, other):
+        if isinstance(other, RESOLUTION):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, RESOLUTION):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, RESOLUTION):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, RESOLUTION):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Blocks the execution of the current thread for \b time milliseconds.
@@ -1184,6 +1404,26 @@ class VIDEO_SETTINGS(enum.Enum):
     DENOISING = <int>c_VIDEO_SETTINGS.DENOISING
     LAST = <int>c_VIDEO_SETTINGS.LAST
 
+    def __lt__(self, other):
+        if isinstance(other, VIDEO_SETTINGS):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, VIDEO_SETTINGS):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, VIDEO_SETTINGS):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, VIDEO_SETTINGS):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists available depth computation modes.
 # \ingroup Depth_group
@@ -1207,6 +1447,26 @@ class DEPTH_MODE(enum.Enum):
     NEURAL_PLUS = <int>c_DEPTH_MODE.NEURAL_PLUS
     LAST = <int>c_DEPTH_MODE.DEPTH_MODE_LAST
 
+    def __lt__(self, other):
+        if isinstance(other, DEPTH_MODE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, DEPTH_MODE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, DEPTH_MODE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, DEPTH_MODE):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists available units for measures.
 # \ingroup Core_group
@@ -1225,6 +1485,26 @@ class UNIT(enum.Enum):
     INCH = <int>c_UNIT.INCH
     FOOT = <int>c_UNIT.FOOT
     LAST = <int>c_UNIT.UNIT_LAST
+
+    def __lt__(self, other):
+        if isinstance(other, UNIT):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, UNIT):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, UNIT):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, UNIT):
+            return self.value >= other.value
+        return NotImplemented
 
 
 ##
@@ -1254,6 +1534,26 @@ class COORDINATE_SYSTEM(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_COORDINATE_SYSTEM>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, COORDINATE_SYSTEM):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, COORDINATE_SYSTEM):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, COORDINATE_SYSTEM):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, COORDINATE_SYSTEM):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Lists retrievable measures.
@@ -1307,6 +1607,26 @@ class MEASURE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_MEASURE>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, MEASURE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, MEASURE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, MEASURE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, MEASURE):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists available views.
 # \ingroup Video_group
@@ -1350,6 +1670,26 @@ class VIEW(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_VIEW>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, VIEW):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, VIEW):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, VIEW):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, VIEW):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists the different states of positional tracking.
 # \ingroup PositionalTracking_group
@@ -1377,6 +1717,25 @@ class POSITIONAL_TRACKING_STATE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_POSITIONAL_TRACKING_STATE>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_STATE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_STATE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_STATE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_STATE):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Report the status of current odom tracking.
@@ -1396,6 +1755,26 @@ class ODOMETRY_STATUS(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_ODOMETRY_STATUS>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, ODOMETRY_STATUS):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, ODOMETRY_STATUS):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, ODOMETRY_STATUS):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, ODOMETRY_STATUS):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Report the status of current map tracking.
@@ -1417,6 +1796,26 @@ class SPATIAL_MEMORY_STATUS(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_SPATIAL_MEMORY_STATUS>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, SPATIAL_MEMORY_STATUS):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, SPATIAL_MEMORY_STATUS):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, SPATIAL_MEMORY_STATUS):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, SPATIAL_MEMORY_STATUS):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Report the status of the positional tracking fusion.
@@ -1449,6 +1848,26 @@ class POSITIONAL_TRACKING_FUSION_STATUS(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_POSITIONAL_TRACKING_FUSION_STATUS>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_FUSION_STATUS):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_FUSION_STATUS):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_FUSION_STATUS):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_FUSION_STATUS):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists that represents the status of the of GNSS signal.
 # \ingroup Sensors_group
@@ -1476,6 +1895,26 @@ class GNSS_STATUS(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_GNSS_STATUS>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, GNSS_STATUS):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, GNSS_STATUS):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, GNSS_STATUS):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, GNSS_STATUS):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists that represents the mode of GNSS signal.
 # \ingroup Sensors_group
@@ -1498,6 +1937,27 @@ class GNSS_MODE(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_GNSS_MODE>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, GNSS_MODE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, GNSS_MODE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, GNSS_MODE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, GNSS_MODE):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists that represents the current GNSS fusion status
 # \ingroup Sensors_group
@@ -1519,6 +1979,26 @@ class GNSS_FUSION_STATUS(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_GNSS_FUSION_STATUS>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, GNSS_FUSION_STATUS):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, GNSS_FUSION_STATUS):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, GNSS_FUSION_STATUS):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, GNSS_FUSION_STATUS):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Represents a 3d landmark.
@@ -1687,6 +2167,26 @@ class POSITIONAL_TRACKING_MODE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_POSITIONAL_TRACKING_MODE>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_MODE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_MODE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_MODE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, POSITIONAL_TRACKING_MODE):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists the different states of spatial memory area export.
 # \ingroup SpatialMapping_group
@@ -1714,6 +2214,26 @@ class AREA_EXPORTING_STATE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_AREA_EXPORTING_STATE>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, AREA_EXPORTING_STATE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, AREA_EXPORTING_STATE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, AREA_EXPORTING_STATE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, AREA_EXPORTING_STATE):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists possible types of position matrix used to store camera path and pose.
 # \ingroup PositionalTracking_group
@@ -1732,6 +2252,26 @@ class REFERENCE_FRAME(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_REFERENCE_FRAME>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, REFERENCE_FRAME):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, REFERENCE_FRAME):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, REFERENCE_FRAME):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, REFERENCE_FRAME):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Lists possible time references for timestamps or data.
@@ -1752,6 +2292,26 @@ class TIME_REFERENCE(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_TIME_REFERENCE>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, TIME_REFERENCE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, TIME_REFERENCE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, TIME_REFERENCE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, TIME_REFERENCE):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Lists the different states of spatial mapping.
@@ -1812,6 +2372,26 @@ class SVO_COMPRESSION_MODE(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_SVO_COMPRESSION_MODE>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, SVO_COMPRESSION_MODE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, SVO_COMPRESSION_MODE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, SVO_COMPRESSION_MODE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, SVO_COMPRESSION_MODE):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 # Lists available memory type.
@@ -1941,6 +2521,26 @@ class MODULE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_MODULE>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, MODULE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, MODULE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, MODULE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, MODULE):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists available object classes.
 #
@@ -1970,6 +2570,26 @@ class OBJECT_CLASS(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_OBJECT_CLASS>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, OBJECT_CLASS):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, OBJECT_CLASS):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, OBJECT_CLASS):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, OBJECT_CLASS):
+            return self.value >= other.value
+        return NotImplemented
 
 ##
 #  List available object subclasses.
@@ -2037,6 +2657,26 @@ class OBJECT_SUBCLASS(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_OBJECT_SUBCLASS>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, OBJECT_SUBCLASS):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, OBJECT_SUBCLASS):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, OBJECT_SUBCLASS):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, OBJECT_SUBCLASS):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists the different states of object tracking.
 #
@@ -2061,6 +2701,26 @@ class OBJECT_TRACKING_STATE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_OBJECT_TRACKING_STATE>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, OBJECT_TRACKING_STATE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, OBJECT_TRACKING_STATE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, OBJECT_TRACKING_STATE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, OBJECT_TRACKING_STATE):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists possible flip modes of the camera.
 #
@@ -2082,6 +2742,26 @@ class FLIP_MODE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_FLIP_MODE>(<int>self.value))).decode()
 
+    def __lt__(self, other):
+        if isinstance(other, FLIP_MODE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, FLIP_MODE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, FLIP_MODE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, FLIP_MODE):
+            return self.value >= other.value
+        return NotImplemented
+
 ##
 # Lists the different states of an object's actions.
 #
@@ -2101,6 +2781,26 @@ class OBJECT_ACTION_STATE(enum.Enum):
 
     def __repr__(self):
         return to_str(toString(<c_OBJECT_ACTION_STATE>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, OBJECT_ACTION_STATE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, OBJECT_ACTION_STATE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, OBJECT_ACTION_STATE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, OBJECT_ACTION_STATE):
+            return self.value >= other.value
+        return NotImplemented
 
 
 ##
