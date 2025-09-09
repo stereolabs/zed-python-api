@@ -14734,6 +14734,7 @@ IF UNAME_SYSNAME == u"Linux":
         # \param sensors_required : Activates \ref sensors_required
         # \param optional_opencv_calibration_file : Sets \ref optional_opencv_calibration_file
         # \param async_grab_camera_recovery : Sets \ref async_grab_camera_recovery
+        # \param enable_hdr : Sets \ref enable_hdr
         # \param grab_compute_capping_fps : Sets \ref grab_compute_capping_fps
         # \param enable_image_validity_check : Sets \ref enable_image_validity_check
     
@@ -14969,7 +14970,15 @@ IF UNAME_SYSNAME == u"Linux":
         @async_grab_camera_recovery.setter
         def async_grab_camera_recovery(self, value: bool):
             self.init.async_grab_camera_recovery = value
-        
+
+        @property
+        def enable_hdr(self) -> bool:
+            return self.init.enable_hdr
+
+        @enable_hdr.setter
+        def enable_hdr(self, value: bool):
+            self.init.enable_hdr = value
+
         ##
         # Defines the input source with a camera id to initialize and open an sl.Camera object from.
         # \param id : Id of the desired camera to open.
