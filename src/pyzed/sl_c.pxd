@@ -2219,6 +2219,7 @@ cdef extern from "sl/CameraOne.hpp" namespace "sl":
         InputType input
         String optional_settings_path
         bool async_grab_camera_recovery
+        bool enable_hdr
 
     cdef cppclass CameraOne 'sl::CameraOne':
         CameraOne()
