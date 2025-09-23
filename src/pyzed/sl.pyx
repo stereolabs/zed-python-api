@@ -6193,7 +6193,8 @@ cdef class SensorsConfiguration:
             IF UNAME_SYSNAME == u"Linux":
                 if isinstance(py_camera, CameraOne):
                     self.__set_from_cameraone(py_camera, resizer)
-                raise TypeError("Argument is not of Camera or CameraOne type.")
+                else:
+                    raise TypeError("Argument is not of Camera or CameraOne type.")
             ELSE:
                 raise TypeError("Argument is not of Camera type.")
 
@@ -6394,7 +6395,7 @@ cdef class CameraInformation:
     # res = sl.Resolution(0,0)
     # cam_info = sl.CameraInformation(cam, res)
     # \endcode
-    def __cinit__(self, py_camera: Camera, resizer=Resolution(0,0)) -> CameraInformation:
+    def __cinit__(self, Camera py_camera, Resolution resizer=Resolution(0,0)) -> CameraInformation:
         res = c_Resolution(resizer.width, resizer.height)
         caminfo = py_camera.camera.getCameraInformation(res)
 
@@ -14630,7 +14631,7 @@ IF UNAME_SYSNAME == u"Linux":
         # res = sl.Resolution(0,0)
         # cam_info = sl.CameraInformation(cam, res)
         # \endcode
-        def __cinit__(self, py_camera: CameraOne, resizer=Resolution(0,0)) -> CameraOneInformation:
+        def __cinit__(self, CameraOne py_camera, Resolution resizer=Resolution(0,0)) -> CameraOneInformation:
             res = c_Resolution(resizer.width, resizer.height)
             caminfo = py_camera.camera.getCameraInformation(res)
 
