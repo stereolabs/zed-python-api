@@ -12,12 +12,9 @@ Please check your python version with the following command. The result should b
 python --version
 ```
 
-- [ZED SDK 5.0](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ZED SDK 5.1](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - Python 3.8+ x64
 - C++ compiler
-- CuPy (optional)
-
-The ZED SDK 4.X compatible API can be found in the [zedsdk_4.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_4.X).
 
 **Python Dependencies:**
 - Use `requirements.txt` for Python 3.9+ with modern dependencies
