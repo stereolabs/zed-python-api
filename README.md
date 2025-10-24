@@ -15,7 +15,7 @@ This package lets you use the ZED stereo camera in Python 3. The Python API is a
 - [GPU data retrieval using CuPy](#GPU-data-retrieval-using-CuPy)
     - [Validate your CuPy setup](#validate-your-CuPy-setup)
 - [Troubleshooting](#troubleshooting)
-    - ["Numpy binary incompatiblity"](#numpy-binary-incompatiblity)
+    - ["Numpy binary incompatibility"](#numpy-binary-incompatibility)
     - ["PyTorch on Jetson requiring NumPy 1.x while pyzed requires NumPy 2.x"](#pytorch-on-jetson-requiring-numpy-1x-while-pyzed-requires-numpy-2x)
     - ["CuPy failed to load libnvrtc.so.1x"](#cupy-failed-to-load-libnvrtc-so1x)
 - [Compiling the Python API from source (only for developers of the python wrapper)](#compiling-the-python-api-from-source-only-for-developers-of-the-python-wrapper)
@@ -34,7 +34,7 @@ To start using the ZED SDK in Python, you will need to install the following dep
     - [ZED SDK 5.1](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
         - For the ZED SDK 5.0 compatible version, use the [zedsdk_5.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_5.X) or the [5.0.7 release tag](https://github.com/stereolabs/zed-python-api/releases/tag/v5.0.7)
         - For the ZED SDK 4.2 compatible version, use the [zedsdk_4.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_4.X) or the [4.2 release tag](https://github.com/stereolabs/zed-python-api/releases/tag/v4.2)
-    - Python 3.8+ x64
+    - Python 3.8 to Python 3.14
     - [Cython >= 3.0.0](http://cython.org/#download)
     - [Numpy >= 2.0](https://numpy.org/install/)
 - To use most of our samples (optional)
@@ -43,7 +43,7 @@ To start using the ZED SDK in Python, you will need to install the following dep
 - To profit from the GPU acceleration and getting the data on the GPU (optional)
     - [CuPy](https://cupy.dev/)
 
-Please check your python version with the following command. The result should be 3.8 or higher.
+Please check your python version with the following command. The result should be between 3.8 and 3.14.
 
 ```
 python --version
@@ -205,13 +205,13 @@ Retrieved image on GPU: 1920x1200
 
 ## Troubleshooting
 
-###  "Numpy binary incompatiblity"
+###  "Numpy binary incompatibility"
 
 ```
 Traceback (most recent call last):
     ...
     File "__init__.pxd", line 918, in init pyzed.sl
-ValueError: numpy.ufunc size changed, may indicate binary incompatiblity. Expected 216 from C header, got 192 from PyObject
+ValueError: numpy.ufunc size changed, may indicate binary incompatibility. Expected 216 from C header, got 192 from PyObject
 ```
 
 This error usually means numpy isn't installed. To install it, simply run these commands : 
