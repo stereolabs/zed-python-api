@@ -8906,15 +8906,13 @@ cdef class InitParameters:
     # Minimum depth distance to be returned, measured in the sl.UNIT defined in \ref coordinate_units.
     #
     # This parameter allows you to specify the minimum depth value (from the camera) that will be computed.
+    # \n Setting this value to any negative or null value will select the default minimum depth distance available for the used ZED Camera (depending on the camera focal length and baseline).
+    # \n Default: -1 
     #
-    # \n In stereovision (the depth technology used by the camera), looking for closer depth values can have a slight impact on performance and memory consumption.
-    # \n On most of modern GPUs, performance impact will be low. However, the impact of memory footprint will be visible.
-    # \n In cases of limited computation power, increasing this value can provide better performance.
-    # \n Default: -1 (corresponding values are available <a href="https://www.stereolabs.com/docs/depth-sensing/depth-settings#depth-range">here</a>)
+    # \n When using deprecated depth modes ( \ref sl.DEPTH_MODE.PERFORMANCE, \ref sl.DEPTH_MODE.QUALITY or \ref sl.DEPTH_MODE.ULTRA), 
+    #    the default minimum depth distances are given by <a href="https://www.stereolabs.com/docs/depth-sensing/depth-settings#depth-range">this table</a>.
     #
-    # \note \ref depth_minimum_distance value cannot be greater than 3 meters.
-    # \note 0 will imply that \ref depth_minimum_distance is set to the minimum depth possible for each camera
-    # (those values are available <a href="https://www.stereolabs.com/docs/depth-sensing/depth-settings#depth-range">here</a>).
+    # \note This value cannot be greater than 3 meters.
     @property
     def depth_minimum_distance(self) -> float:
         return  self.init.depth_minimum_distance
@@ -8927,8 +8925,11 @@ cdef class InitParameters:
     # Maximum depth distance to be returned, measured in the sl.UNIT defined in \ref coordinate_units.
     #
     # When estimating the depth, the ZED SDK uses this upper limit to turn higher values into <b>inf</b> ones.
-    # \note Changing this value has no impact on performance and doesn't affect the positional tracking nor the spatial mapping.
-    # \note It only change values the depth, point cloud and normals.
+    # \n Changing this value has no impact on performance and doesn't affect the positional tracking nor the spatial mapping.
+    # \n It only change values the depth, point cloud and normals.
+    # \n Setting this value to any negative or null value will select the default maximum depth distance available.
+    # 
+    # \n Default: -1
     @property
     def depth_maximum_distance(self) -> float:
         return self.init.depth_maximum_distance
@@ -13291,6 +13292,18 @@ cdef class FusionConfiguration:
         self.fusionConfiguration.input_type = deref(input_type.input_ptr)
         # Reset the reference `_input_type_ref` so it gets recreated next time
         self._input_type_initialized = False
+
+    ##
+    # Indicates the behavior of the fusion with respect to given calibration pose. 
+    # - If true : The calibration pose directly specifies the camera's absolute pose relative to a global reference frame.
+    # - If false : The calibration pose (Pose_rel) is defined relative to the camera's IMU rotational pose. To determine the true absolute position, the Fusion process will compute Pose_abs = Pose_rel * Rot_IMU_camera.
+    @property
+    def override_gravity(self) -> bool:
+        return self.fusionConfiguration.override_gravity
+
+    @override_gravity.setter
+    def override_gravity(self, bool value):
+        self.fusionConfiguration.override_gravity = value
 
 ##
 # Read a configuration JSON file to configure a fusion process.
