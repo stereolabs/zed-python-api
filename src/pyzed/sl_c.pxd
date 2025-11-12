@@ -1992,6 +1992,7 @@ cdef extern from "sl/Fusion.hpp" namespace "sl":
         CommunicationParameters communication_parameters
         Transform pose
         InputType input_type
+        bool override_gravity
 
     cdef cppclass CommunicationParameters 'sl::CommunicationParameters':
         CommunicationParameters()
