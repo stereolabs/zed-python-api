@@ -2135,6 +2135,7 @@ cdef class Landmark2D:
     #
     # The value ranges from 0 to 1, where a smaller value indicates greater confidence that the landmark
     # is owned by a dynamic object.
+    # The value is -1 if the dynamic confidence is not computed.
     @property
     def dynamic_confidence(self) -> float:
         return self.landmark2d.dynamic_confidence
