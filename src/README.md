@@ -12,7 +12,7 @@ Please check your python version with the following command. The result should b
 python --version
 ```
 
-- [ZED SDK 5.1](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ZED SDK 5.2](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - Python 3.8+ x64
 - C++ compiler
 
@@ -33,7 +33,7 @@ pip install -r requirements_legacy.txt
 
 ### Build the plugin
 
-```
+```bash
 python setup.py build
 python setup.py install
 python -m pip wheel .
@@ -42,7 +42,7 @@ python -m pip install {WHEEL_FILE}.whl --force-reinstall
 
 or on Linux
 
-```
+```bash
 python3 setup.py build
 python3 setup.py install
 python3 -m pip wheel .

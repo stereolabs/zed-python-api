@@ -1,0 +1,10 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "cython>=3.0.0",
+    # For Python 3.8, force NumPy 1.x (since 2.0 dropped support)
+    "numpy>=1.13,<2.0; python_version == '3.8'",
+    # For Python 3.9+, force NumPy 2.x
+    "numpy>=2.0,<3.0.0; python_version >= '3.9'"
+]
+build-backend = "setuptools.build_meta"

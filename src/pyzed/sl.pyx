@@ -22,6 +22,7 @@
 
 from libcpp.vector cimport vector
 from libcpp.unordered_set cimport unordered_set
+from libcpp.set cimport set as cpp_set
 from libc.math cimport NAN
 from libc.stdint cimport uint64_t
 from libc.string cimport const_char, memcpy
@@ -29,12 +30,12 @@ from libcpp.string cimport string
 from libcpp.pair cimport pair
 from libcpp.map cimport map
 from libcpp.unordered_map cimport unordered_map
-from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CODE, toString
+from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_CODE, toString, fromString
                     , InitParameters as c_InitParameters, INPUT_TYPE as c_INPUT_TYPE
                     , generateVirtualStereoSerialNumber as c_generateVirtualStereoSerialNumber
-                    , InputType as c_InputType, RESOLUTION as c_RESOLUTION, BUS_TYPE as c_BUS_TYPE
+                    , InputType as c_InputType, TYPE_OF_INPUT_TYPE as c_TYPE_OF_INPUT_TYPE, RESOLUTION as c_RESOLUTION, BUS_TYPE as c_BUS_TYPE
                     , DEPTH_MODE as c_DEPTH_MODE, UNIT as c_UNIT
-                    , COORDINATE_SYSTEM as c_COORDINATE_SYSTEM, CUcontext
+                    , COORDINATE_SYSTEM as c_COORDINATE_SYSTEM, CUcontext, cudaStream_t
                     , RuntimeParameters as c_RuntimeParameters
                     , REFERENCE_FRAME as c_REFERENCE_FRAME, Mat as c_Mat, Resolution as c_Resolution
                     , blobFromImage as c_blobFromImage, blobFromImages as c_blobFromImages
@@ -61,9 +62,9 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , ObjectDetectionRuntimeParameters as c_ObjectDetectionRuntimeParameters, PlaneDetectionParameters as c_PlaneDetectionParameters
                     , CustomObjectDetectionProperties as c_CustomObjectDetectionProperties, CustomObjectDetectionRuntimeParameters as c_CustomObjectDetectionRuntimeParameters
                     , RegionOfInterestParameters as c_RegionOfInterestParameters
-                    , DeviceProperties as c_DeviceProperties, CAMERA_STATE as c_CAMERA_STATE
+                    , DeviceProperties as c_DeviceProperties, CAMERA_STATE as c_CAMERA_STATE, SENSOR_STATE as c_SENSOR_STATE
                     , StreamingProperties as c_StreamingProperties, FusedPointCloud as c_FusedPointCloud
-                    , Mesh as c_Mesh, Plane as c_Plane, Vector2, Vector3, Vector4, Rotation as c_Rotation
+                    , MESH_CREATION as c_MESH_CREATION, Mesh as c_Mesh, Plane as c_Plane, Vector2, Vector3, Vector4, Rotation as c_Rotation
                     , CameraConfiguration as c_CameraConfiguration, SensorsConfiguration as c_SensorsConfiguration
                     , CalibrationParameters as c_CalibrationParameters, CameraParameters as c_CameraParameters
                     , SensorParameters as c_SensorParameters, SENSOR_TYPE as c_SENSOR_TYPE, SENSORS_UNIT as c_SENSORS_UNIT, HEADING_STATE as c_HEADING_STATE
@@ -87,6 +88,7 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , INFERENCE_PRECISION as c_INFERENCE_PRECISION, BODY_FORMAT as c_BODY_FORMAT, BODY_KEYPOINTS_SELECTION as c_BODY_KEYPOINTS_SELECTION
                     , BODY_34_PARTS as c_BODY_34_PARTS, BODY_38_PARTS as c_BODY_38_PARTS
                     , generate_unique_id as c_generate_unique_id, CustomBoxObjectData as c_CustomBoxObjectData, CustomMaskObjectData as c_CustomMaskObjectData
+                    , ObjectTrackingParameters as c_ObjectTrackingParameters
                     , OBJECT_FILTERING_MODE as c_OBJECT_FILTERING_MODE, OBJECT_ACCELERATION_PRESET as c_OBJECT_ACCELERATION_PRESET
                     , COMM_TYPE as c_COMM_TYPE, FUSION_ERROR_CODE as c_FUSION_ERROR_CODE, SENDER_ERROR_CODE as c_SENDER_ERROR_CODE
                     , FusionConfiguration as c_FusionConfiguration, CommunicationParameters as c_CommunicationParameters
@@ -115,16 +117,60 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , GNSS_FUSION_STATUS as c_GNSS_FUSION_STATUS
                     , CameraOne as c_CameraOne
                     , InitParametersOne as c_InitParametersOne
-                    , Landmark as c_Landmark
-                    , Landmark2D as c_Landmark2D
+                    , Landmark as c_Landmark, KeyFrame as c_KeyFrame, Landmark2D as c_Landmark2D
                     , ENU as c_ENU
+                    , toVerbose, str2unit, getCoordinateTransformConversion3f, getCoordinateTransformConversion4f
+                    , convertCoordinateSystemTransform, convertCoordinateSystemMat, getUnitScale, convertUnitTransform, convertUnitMat, applyTransform
+                    , saveJSONFile, loadJSONFile, getObjectClass, getObjectSubClasses, getObjectSubClassAsCOCO
+                    , convertImage as c_convertImage, getStep_internal, getZEDSDKRuntimeVersion, setEnvironmentVariable
+                    , getAvailableCameraFPS, checkAIModelStatus, downloadAIModel, optimizeAIModel, computeRotationMatrixFromGravity
+                    , AI_Model_status as c_AI_Model_status
+                    , TENSOR_COLOR_FORMAT as c_TENSOR_COLOR_FORMAT, TENSOR_LAYOUT as c_TENSOR_LAYOUT, TENSOR_PIXEL_TYPE as c_TENSOR_PIXEL_TYPE
+                    , TensorParameters as c_TensorParameters, Tensor as c_Tensor
+                    , resetBenchmarkTimer as c_resetBenchmarkTimer
+                    , LIDAR_MODE as c_LIDAR_MODE, LIDAR_MULTICAST_MODE as c_LIDAR_MULTICAST_MODE
+                    , InitLidarParameters as c_InitLidarParameters
+                    , LidarDeviceProperties as c_LidarDeviceProperties, Lidar as c_Lidar
+                    , LIDAR_MEASURE as c_LIDAR_MEASURE, LIDAR_VIEW as c_LIDAR_VIEW
+                    , VIEW_COLOR_MAP as c_VIEW_COLOR_MAP, RECORDING_FORMAT as c_RECORDING_FORMAT
+                    , LidarCalibration as c_LidarCalibration
+                    , LidarSensorConfiguration as c_LidarSensorConfiguration
+                    , LidarInformation as c_LidarInformation
+                    , PositionalTrackingLidarParameters as c_PositionalTrackingLidarParameters
+                    , RecordingLidarParameters as c_RecordingLidarParameters
+                    , SENSORS_TYPE as c_SENSORS_TYPE, SENSORS_ERROR_CODE as c_SENSORS_ERROR_CODE
+                    , SENSORS_REFERENCE_FRAME as c_SENSORS_REFERENCE_FRAME
+                    , toString_sensors_type as c_toString_sensors_type, toString_sensors as c_toString_sensors
+                    , SENSORS_SYNC_POLICY as c_SENSORS_SYNC_POLICY
+                    , SENSORS_EXECUTION_MODE as c_SENSORS_EXECUTION_MODE
+                    , toString_sensors as c_toString_sensors
+                    , SensorDeviceIdentifier as c_SensorDeviceIdentifier, Sensors as c_Sensors
+                    , defaultSensorDeviceIdentifier as c_defaultSensorDeviceIdentifier
+                    , InitSensorsParameters as c_InitSensorsParameters
+                    , RecordingSensorsParameters as c_RecordingSensorsParameters
+                    , StreamingSensorsParameters as c_StreamingSensorsParameters
+                    , ObjectDetectionSensorsParameters as c_ObjectDetectionSensorsParameters
+                    , BodyTrackingSensorsParameters as c_BodyTrackingSensorsParameters
+                    , BodyTrackingSensorsRuntimeParameters as c_BodyTrackingSensorsRuntimeParameters
+                    , PositionalTrackingSensorsParameters as c_PositionalTrackingSensorsParameters
+                    , RuntimeSensorsParameters as c_RuntimeSensorsParameters
+                    , BatchedDataErrorCode as c_BatchedDataErrorCode
+                    , BatchedDataMat as c_BatchedDataMat
+                    , BatchedDataSensorsData as c_BatchedDataSensorsData
+                    , BatchedDataFloat as c_BatchedDataFloat
+                    , BatchedDataUInt as c_BatchedDataUInt
+                    , BatchedDataTimestamp as c_BatchedDataTimestamp
+                    , BatchedDataHealthStatus as c_BatchedDataHealthStatus
+                    , BatchedDataPose as c_BatchedDataPose
+                    , BatchedDataInt as c_BatchedDataInt
+                    , SensorList as c_SensorList , StreamingSensorList as c_StreamingSensorList
                     )
 from cython.operator cimport (dereference as deref, postincrement)
 from cpython cimport bool
 import enum
 import json
 from cython.operator import dereference, postincrement
-
+import numpy.typing as npt
 
 cdef bint CUPY_AVAILABLE = False
 
@@ -209,16 +255,49 @@ cdef class Timestamp():
     def set_seconds(self, t_s: int) -> None:
         self.timestamp.setSeconds(t_s)
 
+    ##
+    # Create a Timestamp from nanoseconds.
+    @staticmethod
+    def from_nanoseconds(t_ns: int):
+        ts = Timestamp()
+        ts.set_nanoseconds(t_ns)
+        return ts
+
+    ##
+    # Create a Timestamp from microseconds.
+    @staticmethod
+    def from_microseconds(t_us: int):
+        ts = Timestamp()
+        ts.set_microseconds(t_us)
+        return ts
+
+    ##
+    # Create a Timestamp from milliseconds.
+    @staticmethod
+    def from_milliseconds(t_ms: int):
+        ts = Timestamp()
+        ts.set_milliseconds(t_ms)
+        return ts
+
+    ##
+    # Create a Timestamp from seconds.
+    @staticmethod
+    def from_seconds(t_s: int):
+        ts = Timestamp()
+        ts.set_seconds(t_s)
+        return ts
+
 ##
 # Lists error codes in the ZED SDK.
 # \ingroup Core_group
 #
 # | Enumerator                                         |                                                                                                                                                                 |
 # |----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+# | SENSOR_CONFIGURATION_CHANGED                       | The sensor's configuration was changed externally while streaming. If auto_recovery_on_config_change is enabled, the SDK will automatically reconnect.         |
 # | POTENTIAL_CALIBRATION_ISSUE                        | The camera has a potential calibration issue.                                                                                                                   |
 # | CONFIGURATION_FALLBACK                             | The operation could not proceed with the target configuration but did success with a fallback.                                                         |
 # | SENSORS_DATA_REQUIRED                              | The input data does not contains the high frequency sensors data, this is usually because it requires newer SVO/Streaming. In order to work this modules needs inertial data present in it input.                                                |
-# | CORRUPTED_FRAME                                    | The image could be corrupted, Enabled with the parameter InitParameters.enable_image_validity_check.
+# | CORRUPTED_FRAME                                    | The image is corrupted with invalid colors (green/purple images). This indicates a serious hardware or driver issue.
 # | CAMERA_REBOOTING                                   | The camera is currently rebooting.                                                                                                                              |
 # | SUCCESS                                            | Standard code for successful behavior.                                                                                                                          |
 # | FAILURE                                            | Standard code for unsuccessful behavior.                                                                                                                        |
@@ -255,6 +334,7 @@ cdef class Timestamp():
 # | MOTION_SENSORS_REQUIRED                            | The module needs the sensors to be enabled (see \ref InitParameters.sensors_required). |
 # | MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION            | The module needs a newer version of CUDA. |
 class ERROR_CODE(enum.Enum):
+    SENSOR_CONFIGURATION_CHANGED = <int>c_ERROR_CODE.ERROR_CODE_SENSOR_CONFIGURATION_CHANGED
     POTENTIAL_CALIBRATION_ISSUE = <int>c_ERROR_CODE.ERROR_CODE_POTENTIAL_CALIBRATION_ISSUE
     CONFIGURATION_FALLBACK = <int>c_ERROR_CODE.ERROR_CODE_CONFIGURATION_FALLBACK
     SENSORS_DATA_REQUIRED = <int>c_ERROR_CODE.ERROR_CODE_SENSORS_DATA_REQUIRED
@@ -523,6 +603,19 @@ class OBJECT_DETECTION_MODEL(enum.Enum):
     CUSTOM_YOLOLIKE_BOX_OBJECTS = <int>c_OBJECT_DETECTION_MODEL.OBJECT_DETECTION_MODEL_CUSTOM_YOLOLIKE_BOX_OBJECTS
     LAST = <int>c_OBJECT_DETECTION_MODEL.OBJECT_DETECTION_MODEL_LAST
 
+    ##
+    # Converts a string to the corresponding OBJECT_DETECTION_MODEL enum value.
+    # \param name : The string representation of the OBJECT_DETECTION_MODEL enum value.
+    # \return The corresponding OBJECT_DETECTION_MODEL enum value. If the string does not match any OBJECT_DETECTION_MODEL, OBJECT_DETECTION_MODEL.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_OBJECT_DETECTION_MODEL val = c_OBJECT_DETECTION_MODEL.OBJECT_DETECTION_MODEL_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return OBJECT_DETECTION_MODEL.LAST
+        return OBJECT_DETECTION_MODEL(val)
+
     def __lt__(self, other):
         if isinstance(other, OBJECT_DETECTION_MODEL):
             return self.value < other.value
@@ -559,6 +652,19 @@ class BODY_TRACKING_MODEL(enum.Enum):
     HUMAN_BODY_MEDIUM = <int>c_BODY_TRACKING_MODEL.BODY_TRACKING_MODEL_HUMAN_BODY_MEDIUM
     LAST = <int>c_BODY_TRACKING_MODEL.BODY_TRACKING_MODEL_LAST
 
+    ##
+    # Converts a string to the corresponding BODY_TRACKING_MODEL enum value.
+    # \param name : The string representation of the BODY_TRACKING_MODEL enum value.
+    # \return The corresponding BODY_TRACKING_MODEL enum value. If the string does not match any BODY_TRACKING_MODEL, BODY_TRACKING_MODEL.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_BODY_TRACKING_MODEL val = c_BODY_TRACKING_MODEL.BODY_TRACKING_MODEL_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return BODY_TRACKING_MODEL.LAST
+        return BODY_TRACKING_MODEL(val)
+
     def __lt__(self, other):
         if isinstance(other, BODY_TRACKING_MODEL):
             return self.value < other.value
@@ -594,6 +700,19 @@ class OBJECT_FILTERING_MODE(enum.Enum):
     NMS3D = <int>c_OBJECT_FILTERING_MODE.OBJECT_FILTERING_MODE_NMS3D
     NMS3D_PER_CLASS = <int>c_OBJECT_FILTERING_MODE.OBJECT_FILTERING_MODE_NMS3D_PER_CLASS
     LAST = <int>c_OBJECT_FILTERING_MODE.OBJECT_FILTERING_MODE_LAST
+
+    ##
+    # Converts a string to the corresponding OBJECT_FILTERING_MODE enum value.
+    # \param name : The string representation of the OBJECT_FILTERING_MODE enum value.
+    # \return The corresponding OBJECT_FILTERING_MODE enum value. If the string does not match any OBJECT_FILTERING_MODE, OBJECT_FILTERING_MODE.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_OBJECT_FILTERING_MODE val = c_OBJECT_FILTERING_MODE.OBJECT_FILTERING_MODE_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return OBJECT_FILTERING_MODE.LAST
+        return OBJECT_FILTERING_MODE(val)
 
     def __lt__(self, other):
         if isinstance(other, OBJECT_FILTERING_MODE):
@@ -632,6 +751,19 @@ class OBJECT_ACCELERATION_PRESET(enum.Enum):
     MEDIUM = <int>c_OBJECT_ACCELERATION_PRESET.OBJECT_ACCELERATION_PRESET_MEDIUM
     HIGH = <int>c_OBJECT_ACCELERATION_PRESET.OBJECT_ACCELERATION_PRESET_HIGH
     LAST = <int>c_OBJECT_ACCELERATION_PRESET.OBJECT_ACCELERATION_PRESET_LAST
+
+    ##
+    # Converts a string to the corresponding OBJECT_ACCELERATION_PRESET enum value.
+    # \param name : The string representation of the OBJECT_ACCELERATION_PRESET enum value.
+    # \return The corresponding OBJECT_ACCELERATION_PRESET enum value. If the string does not match any OBJECT_ACCELERATION_PRESET, OBJECT_ACCELERATION_PRESET.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_OBJECT_ACCELERATION_PRESET val = c_OBJECT_ACCELERATION_PRESET.OBJECT_ACCELERATION_PRESET_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return OBJECT_ACCELERATION_PRESET.LAST
+        return OBJECT_ACCELERATION_PRESET(val)
 
     def __lt__(self, other):
         if isinstance(other, OBJECT_ACCELERATION_PRESET):
@@ -690,6 +822,341 @@ class CAMERA_STATE(enum.Enum):
 
     def __ge__(self, other):
         if isinstance(other, CAMERA_STATE):
+            return self.value >= other.value
+        return NotImplemented
+
+
+##
+# Lists possible states of a sensor device.
+# \ingroup Sensors_group
+#
+# | Enumerator |            |
+# |------------|------------|
+# | AVAILABLE | Indicates that the sensor can be opened. |
+# | NOT_AVAILABLE | The sensor is not available. |
+class SENSOR_STATE(enum.Enum):
+    AVAILABLE = <int>c_SENSOR_STATE.SENSOR_STATE_AVAILABLE
+    NOT_AVAILABLE = <int>c_SENSOR_STATE.SENSOR_STATE_NOT_AVAILABLE
+    LAST = <int>c_SENSOR_STATE.SENSOR_STATE_LAST
+
+    def __str__(self):
+        return to_str(toString(<c_SENSOR_STATE>(<int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_SENSOR_STATE>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, SENSOR_STATE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, SENSOR_STATE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, SENSOR_STATE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, SENSOR_STATE):
+            return self.value >= other.value
+        return NotImplemented
+
+
+##
+# Lists available sensor types for the Sensors API.
+# \ingroup Sensors_group
+#
+# | Enumerator |            |
+# |------------|------------|
+# | CAMERA     | Standard ZED camera. |
+# | CAMERA_ONE | ZED X One camera. |
+# | LIDAR      | LiDAR sensor. |
+class SENSORS_TYPE(enum.Enum):
+    CAMERA = <int>c_SENSORS_TYPE.SENSORS_TYPE_CAMERA
+    CAMERA_ONE = <int>c_SENSORS_TYPE.SENSORS_TYPE_CAMERA_ONE
+    LIDAR = <int>c_SENSORS_TYPE.SENSORS_TYPE_LIDAR
+
+    def __str__(self):
+        return to_str(c_toString_sensors_type(<c_SENSORS_TYPE>(<int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(c_toString_sensors_type(<c_SENSORS_TYPE>(<int>self.value))).decode()
+
+##
+# Lists available Sensors API reference frames.
+# \ingroup Sensors_group
+class SENSORS_REFERENCE_FRAME(enum.Enum):
+    DEFAULT = <int>c_SENSORS_REFERENCE_FRAME.SENSORS_REFERENCE_FRAME_DEFAULT
+    SENSOR = <int>c_SENSORS_REFERENCE_FRAME.SENSORS_REFERENCE_FRAME_SENSOR
+    BASELINK = <int>c_SENSORS_REFERENCE_FRAME.SENSORS_REFERENCE_FRAME_BASELINK
+    WORLD = <int>c_SENSORS_REFERENCE_FRAME.SENSORS_REFERENCE_FRAME_WORLD
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+##
+# Execution mode for the Sensors pipeline.
+# \ingroup Sensors_group
+#
+# | Enumerator | Description |
+# |------------|---------------------------|
+# | EAGER      | Synchronous — process() blocks, computes everything, returns. |
+# | PIPELINED  | Each device gets a worker thread; process() returns immediately after setup phase. |
+class SENSORS_EXECUTION_MODE(enum.Enum):
+    EAGER = <int>c_SENSORS_EXECUTION_MODE.SENSORS_EXECUTION_MODE_EAGER
+    PIPELINED = <int>c_SENSORS_EXECUTION_MODE.SENSORS_EXECUTION_MODE_PIPELINED
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+##
+# Lists available sync policies for pipelined mode.
+# \ingroup Sensors_group
+#
+# | Enumerator | Description |
+# |------------|---------------------------|
+# | NONE       | No temporal sync, each device returns its latest data. |
+# | CLOSEST    | Temporally align data across devices using the oldest "latest" timestamp. |
+# | DROP_STALE | Same as CLOSEST, but returns error if data exceeds sync_tolerance. |
+class SENSORS_SYNC_POLICY(enum.Enum):
+    NONE = <int>c_SENSORS_SYNC_POLICY.SENSORS_SYNC_POLICY_NONE
+    CLOSEST = <int>c_SENSORS_SYNC_POLICY.SENSORS_SYNC_POLICY_CLOSEST
+    DROP_STALE = <int>c_SENSORS_SYNC_POLICY.SENSORS_SYNC_POLICY_DROP_STALE
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+##
+# Lists available Lidar modes (resolution and frequency).
+# \ingroup Lidar_group
+#
+# | Enumerator | Description |
+# |------------|-------------------------|
+# | AUTO       | If used, will not change the existing config. |
+# | MODE_512x10 | 512 points per rotation at 10Hz. |
+# | MODE_1024x10 | 1024 points per rotation at 10Hz. |
+# | MODE_2048x10 | 2048 points per rotation at 10Hz. |
+# | MODE_512x20 | 512 points per rotation at 20Hz. |
+# | MODE_1024x20 | 1024 points per rotation at 20Hz. |
+class LIDAR_MODE(enum.Enum):
+    AUTO = <int>c_LIDAR_MODE.LIDAR_MODE_AUTO
+    MODE_512x10 = <int>c_LIDAR_MODE.LIDAR_MODE_512x10
+    MODE_1024x10 = <int>c_LIDAR_MODE.LIDAR_MODE_1024x10
+    MODE_2048x10 = <int>c_LIDAR_MODE.LIDAR_MODE_2048x10
+    MODE_512x20 = <int>c_LIDAR_MODE.LIDAR_MODE_512x20
+    MODE_1024x20 = <int>c_LIDAR_MODE.LIDAR_MODE_1024x20
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+##
+# Lists available multicast modes for Lidar.
+# \ingroup Lidar_group
+#
+# | Enumerator | Description |
+# |------------|-------------|
+# | OFF        | Force unicast mode. Reconfigures sensor if needed. |
+# | AUTO       | Smart detection: joins existing multicast passively, stays unicast if alone. |
+# | ON         | Force multicast mode. Uses provided IP or auto-selects 239.201.201.201. |
+class LIDAR_MULTICAST_MODE(enum.Enum):
+    OFF = <int>c_LIDAR_MULTICAST_MODE.LIDAR_MULTICAST_MODE_OFF
+    AUTO = <int>c_LIDAR_MULTICAST_MODE.LIDAR_MULTICAST_MODE_AUTO
+    ON = <int>c_LIDAR_MULTICAST_MODE.LIDAR_MULTICAST_MODE_ON
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+##
+# Lists available Lidar measures (point clouds, range maps, etc.)
+# \ingroup Lidar_group
+class LIDAR_MEASURE(enum.Enum):
+    RANGE = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_RANGE
+    RANGE2 = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_RANGE2
+    SIGNAL = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_SIGNAL
+    SIGNAL2 = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_SIGNAL2
+    INTENSITY = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_INTENSITY
+    REFLECTIVITY = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_REFLECTIVITY
+    REFLECTIVITY2 = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_REFLECTIVITY2
+    NEAR_IR = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_NEAR_IR
+    XYZ = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ
+    XYZ_RANGE = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_RANGE
+    XYZ_RANGE2 = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_RANGE2
+    XYZ_SIGNAL = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_SIGNAL
+    XYZ_SIGNAL2 = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_SIGNAL2
+    XYZ_INTENSITY = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_INTENSITY
+    XYZ_REFLECTIVITY = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_REFLECTIVITY
+    XYZ_REFLECTIVITY2 = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_REFLECTIVITY2
+    XYZ_NEAR_IR = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_NEAR_IR
+    XYZ_RANGE_VIEW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_RANGE_VIEW
+    XYZ_RANGE2_VIEW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_RANGE2_VIEW
+    XYZ_SIGNAL_VIEW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_SIGNAL_VIEW
+    XYZ_SIGNAL2_VIEW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_SIGNAL2_VIEW
+    XYZ_INTENSITY_VIEW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_INTENSITY_VIEW
+    XYZ_REFLECTIVITY_VIEW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_REFLECTIVITY_VIEW
+    XYZ_REFLECTIVITY2_VIEW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_REFLECTIVITY2_VIEW
+    XYZ_NEAR_IR_VIEW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_XYZ_NEAR_IR_VIEW
+    # RAW staggered data (native sensor format)
+    RANGE_RAW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_RANGE_RAW
+    RANGE2_RAW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_RANGE2_RAW
+    SIGNAL_RAW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_SIGNAL_RAW
+    SIGNAL2_RAW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_SIGNAL2_RAW
+    REFLECTIVITY_RAW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_REFLECTIVITY_RAW
+    REFLECTIVITY2_RAW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_REFLECTIVITY2_RAW
+    NEAR_IR_RAW = <int>c_LIDAR_MEASURE.LIDAR_MEASURE_NEAR_IR_RAW
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+##
+# Lists available Lidar view types for visualization.
+# \ingroup Lidar_group
+class LIDAR_VIEW(enum.Enum):
+    INTENSITY = <int>c_LIDAR_VIEW.LIDAR_VIEW_INTENSITY
+    REFLECTIVITY = <int>c_LIDAR_VIEW.LIDAR_VIEW_REFLECTIVITY
+    DEPTH = <int>c_LIDAR_VIEW.LIDAR_VIEW_DEPTH
+    RANGE = <int>c_LIDAR_VIEW.LIDAR_VIEW_RANGE
+    SIGNAL = <int>c_LIDAR_VIEW.LIDAR_VIEW_SIGNAL
+    NEAR_IR = <int>c_LIDAR_VIEW.LIDAR_VIEW_NEAR_IR
+    RANGE2 = <int>c_LIDAR_VIEW.LIDAR_VIEW_RANGE2
+    SIGNAL2 = <int>c_LIDAR_VIEW.LIDAR_VIEW_SIGNAL2
+    REFLECTIVITY2 = <int>c_LIDAR_VIEW.LIDAR_VIEW_REFLECTIVITY2
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+##
+# Lists available colormaps for Lidar data visualization.
+# \ingroup Lidar_group
+class VIEW_COLOR_MAP(enum.Enum):
+    AUTO = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_AUTO
+    GREY = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_GREY
+    MAGMA = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_MAGMA
+    INFERNO = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_INFERNO
+    PLASMA = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_PLASMA
+    VIRIDIS = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_VIRIDIS
+    SPEZIA = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_SPEZIA
+    TURBO = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_TURBO
+    JET = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_JET
+    BONE = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_BONE
+    GNUPLOT2 = <int>c_VIEW_COLOR_MAP.VIEW_COLOR_MAP_GNUPLOT2
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+##
+# Lists available recording formats for Lidar data.
+# \ingroup Lidar_group
+class RECORDING_FORMAT(enum.Enum):
+    OSF = <int>c_RECORDING_FORMAT.RECORDING_FORMAT_OSF
+    PCAP = <int>c_RECORDING_FORMAT.RECORDING_FORMAT_PCAP
+    PCD = <int>c_RECORDING_FORMAT.RECORDING_FORMAT_PCD
+    AUTO = <int>c_RECORDING_FORMAT.RECORDING_FORMAT_AUTO
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+##
+# Lists error codes for the Sensors API.
+# \ingroup Sensors_group
+class SENSORS_ERROR_CODE(enum.Enum):
+    STALE_DATA = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_STALE_DATA
+    GNSS_DATA_NEED_FIX = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_GNSS_DATA_NEED_FIX
+    INVALID_COVARIANCE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INVALID_COVARIANCE
+    INVALID_TIMESTAMP = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INVALID_TIMESTAMP
+    CONFIGURATION_FALLBACK = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_CONFIGURATION_FALLBACK
+    MOTION_SENSORS_DATA_REQUIRED = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_MOTION_SENSORS_DATA_REQUIRED
+    CORRUPTED_FRAME = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_CORRUPTED_FRAME
+    SENSOR_REBOOTING = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_SENSOR_REBOOTING
+    SUCCESS = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_SUCCESS
+    FAILURE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_FAILURE
+    NO_GPU_COMPATIBLE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_NO_GPU_COMPATIBLE
+    NOT_ENOUGH_GPU_MEMORY = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_NOT_ENOUGH_GPU_MEMORY
+    SENSOR_NOT_DETECTED = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_SENSOR_NOT_DETECTED
+    MOTION_SENSORS_NOT_INITIALIZED = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_MOTION_SENSORS_NOT_INITIALIZED
+    MOTION_SENSORS_NOT_AVAILABLE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_MOTION_SENSORS_NOT_AVAILABLE
+    INVALID_RESOLUTION = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INVALID_RESOLUTION
+    LOW_USB_BANDWIDTH = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_LOW_USB_BANDWIDTH
+    CALIBRATION_FILE_NOT_AVAILABLE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_CALIBRATION_FILE_NOT_AVAILABLE
+    INVALID_CALIBRATION_FILE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INVALID_CALIBRATION_FILE
+    INVALID_SVO_FILE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INVALID_SVO_FILE
+    SVO_RECORDING_ERROR = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_SVO_RECORDING_ERROR
+    SVO_UNSUPPORTED_COMPRESSION = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION
+    END_OF_SVOFILE_REACHED = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_END_OF_SVOFILE_REACHED
+    INVALID_COORDINATE_SYSTEM = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INVALID_COORDINATE_SYSTEM
+    INVALID_FIRMWARE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INVALID_FIRMWARE
+    INVALID_FUNCTION_PARAMETERS = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INVALID_FUNCTION_PARAMETERS
+    CUDA_ERROR = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_CUDA_ERROR
+    SENSOR_NOT_INITIALIZED = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_SENSOR_NOT_INITIALIZED
+    NVIDIA_DRIVER_OUT_OF_DATE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_NVIDIA_DRIVER_OUT_OF_DATE
+    INVALID_FUNCTION_CALL = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INVALID_FUNCTION_CALL
+    CORRUPTED_SDK_INSTALLATION = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_CORRUPTED_SDK_INSTALLATION
+    INCOMPATIBLE_SDK_VERSION = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INCOMPATIBLE_SDK_VERSION
+    INVALID_AREA_FILE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INVALID_AREA_FILE
+    INCOMPATIBLE_AREA_FILE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_INCOMPATIBLE_AREA_FILE
+    SENSOR_FAILED_TO_SETUP = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_SENSOR_FAILED_TO_SETUP
+    SENSOR_DETECTION_ISSUE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_SENSOR_DETECTION_ISSUE
+    CANNOT_START_SENSOR_STREAM = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_CANNOT_START_SENSOR_STREAM
+    NO_GPU_DETECTED = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_NO_GPU_DETECTED
+    PLANE_NOT_FOUND = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_PLANE_NOT_FOUND
+    MODULE_NOT_COMPATIBLE_WITH_SENSOR = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_MODULE_NOT_COMPATIBLE_WITH_SENSOR
+    MOTION_SENSORS_REQUIRED = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_MOTION_SENSORS_REQUIRED
+    MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION
+    LAST = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_LAST
+
+    def __str__(self):
+        return to_str(c_toString_sensors(<c_SENSORS_ERROR_CODE>(<int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(c_toString_sensors(<c_SENSORS_ERROR_CODE>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, SENSORS_ERROR_CODE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, SENSORS_ERROR_CODE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, SENSORS_ERROR_CODE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, SENSORS_ERROR_CODE):
             return self.value >= other.value
         return NotImplemented
 
@@ -758,6 +1225,19 @@ class RESOLUTION(enum.Enum):
     VGA  = <int>c_RESOLUTION.RESOLUTION_VGA
     AUTO = <int>c_RESOLUTION.RESOLUTION_AUTO
     LAST = <int>c_RESOLUTION.RESOLUTION_LAST
+
+    ##
+    # Converts a string to the corresponding RESOLUTION enum value.
+    # \param name : The string representation of the RESOLUTION enum value.
+    # \return The corresponding RESOLUTION enum value. If the string does not match any RESOLUTION, RESOLUTION.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_RESOLUTION val = c_RESOLUTION.RESOLUTION_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return RESOLUTION.LAST
+        return RESOLUTION(val)
 
     def __lt__(self, other):
         if isinstance(other, RESOLUTION):
@@ -897,6 +1377,16 @@ cdef class DeviceProperties:
     @serial_number.setter
     def serial_number(self, serial_number):
         self.c_device_properties.serial_number = serial_number
+
+    ##
+    # GMSL port of the camera.
+    @property
+    def gmsl_port(self) -> int:
+        return self.c_device_properties.gmsl_port
+
+    @gmsl_port.setter
+    def gmsl_port(self, int gmsl_port):
+        self.c_device_properties.gmsl_port = gmsl_port
 
     ##
     # sensor_address when available (ZED-X HDR/XOne HDR only)
@@ -1080,9 +1570,11 @@ cdef class Matrix3f:
     ##
     # Creates an identity sl.Matrix3f.
     # \return A sl.Matrix3f set to identity.
-    def identity(self) -> Matrix3f:
-        new_mat = Matrix3f()
-        return new_mat.set_identity()
+    @staticmethod
+    def identity() -> Matrix3f:
+        cdef Matrix3f mat = Matrix3f()
+        mat.mat[0] = c_Matrix3f.identity()
+        return mat
 
     ##
     # Sets the sl.Matrix3f to zero.
@@ -1092,10 +1584,11 @@ cdef class Matrix3f:
     ##
     # Creates a sl.Matrix3f filled with zeros.
     # \return A sl.Matrix3f filled with zeros.
-    def zeros(self) -> Matrix3f:
-        output_mat = Matrix3f()
-        output_mat.mat[0] = self.mat.zeros()
-        return output_mat
+    @staticmethod
+    def zeros() -> Matrix3f:
+        cdef Matrix3f mat = Matrix3f()
+        mat.mat[0] = c_Matrix3f.zeros()
+        return mat
 
     ##
     # Returns the components of the sl.Matrix3f in a string.
@@ -1108,7 +1601,7 @@ cdef class Matrix3f:
     @property
     def matrix_name(self) -> str:
         if not self.mat.matrix_name.empty():
-           return self.mat.matrix_name.get().decode()
+            return self.mat.matrix_name.get().decode()
         else:
             return ""
 
@@ -1116,6 +1609,8 @@ cdef class Matrix3f:
     def matrix_name(self, name: str):
         self.mat.matrix_name.set(name.encode())
 
+    ##
+    # Number of elements in the matrix (always 9).
     @property
     def nbElem(self) -> int:
         return 9
@@ -1254,9 +1749,11 @@ cdef class Matrix4f:
     ##
     # Creates an identity sl.Matrix4f.
     # \return A sl.Matrix3f set to identity.
-    def identity(self) -> Matrix4f:
-        new_mat = Matrix4f()
-        return new_mat.set_identity()
+    @staticmethod
+    def identity():
+        cdef Matrix4f mat = Matrix4f()
+        mat.mat[0] = c_Matrix4f.identity()
+        return mat
 
     ##
     # Sets the sl.Matrix4f to zero.
@@ -1266,10 +1763,11 @@ cdef class Matrix4f:
     ##
     # Creates a sl.Matrix4f filled with zeros.
     # \return A sl.Matrix4f filled with zeros.
-    def zeros(self) -> Matrix4f:
-        output_mat = Matrix4f()
-        output_mat.mat[0] = self.mat.zeros()
-        return output_mat
+    @staticmethod
+    def zeros() -> Matrix4f:
+        cdef Matrix4f mat = Matrix4f()
+        mat.mat[0] = c_Matrix4f.zeros()
+        return mat
 
     ##
     # Returns the components of the sl.Matrix4f in a string.
@@ -1351,6 +1849,12 @@ cdef class Matrix4f:
                 raise IndexError("Numpy array must be of size 16.")
         else:
             raise TypeError("Argument must be numpy array or list type.")
+
+    ##
+    # Number of elements in the matrix (always 16).
+    @property
+    def nbElem(self) -> int:
+        return 16
 
     def __mul__(self, other):
         matrix = Matrix4f()
@@ -1477,6 +1981,19 @@ class DEPTH_MODE(enum.Enum):
     NEURAL_PLUS = <int>c_DEPTH_MODE.DEPTH_MODE_NEURAL_PLUS
     LAST = <int>c_DEPTH_MODE.DEPTH_MODE_LAST
 
+    ##
+    # Converts a string to the corresponding DEPTH_MODE enum value.
+    # \param name : The string representation of the DEPTH_MODE enum value.
+    # \return The corresponding DEPTH_MODE enum value. If the string does not match any DEPTH_MODE, DEPTH_MODE.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_DEPTH_MODE val = c_DEPTH_MODE.DEPTH_MODE_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return DEPTH_MODE.LAST
+        return DEPTH_MODE(val)
+
     def __lt__(self, other):
         if isinstance(other, DEPTH_MODE):
             return self.value < other.value
@@ -1515,6 +2032,19 @@ class UNIT(enum.Enum):
     INCH = <int>c_UNIT.UNIT_INCH
     FOOT = <int>c_UNIT.UNIT_FOOT
     LAST = <int>c_UNIT.UNIT_LAST
+
+    ##
+    # Converts a string to the corresponding UNIT enum value.
+    # \param name : The string representation of the UNIT enum value.
+    # \return The corresponding UNIT enum value. If the string does not match any UNIT, UNIT.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_UNIT val = c_UNIT.UNIT_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return UNIT.LAST
+        return UNIT(val)
 
     def __lt__(self, other):
         if isinstance(other, UNIT):
@@ -1558,6 +2088,19 @@ class COORDINATE_SYSTEM(enum.Enum):
     LEFT_HANDED_Z_UP = <int>c_COORDINATE_SYSTEM.COORDINATE_SYSTEM_LEFT_HANDED_Z_UP
     RIGHT_HANDED_Z_UP_X_FWD = <int>c_COORDINATE_SYSTEM.COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
     LAST = <int>c_COORDINATE_SYSTEM.COORDINATE_SYSTEM_LAST
+
+    ##
+    # Converts a string to the corresponding COORDINATE_SYSTEM enum value.
+    # \param name : The string representation of the COORDINATE_SYSTEM enum value.
+    # \return The corresponding COORDINATE_SYSTEM enum value. If the string does not match any COORDINATE_SYSTEM, COORDINATE_SYSTEM.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_COORDINATE_SYSTEM val = c_COORDINATE_SYSTEM.COORDINATE_SYSTEM_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return COORDINATE_SYSTEM.LAST
+        return COORDINATE_SYSTEM(val)
 
     def __str__(self):
         return to_str(toString(<c_COORDINATE_SYSTEM>(<int>self.value))).decode()
@@ -1667,6 +2210,8 @@ class MEASURE(enum.Enum):
 # | RIGHT      | Right BGRA image. Each pixel contains 4 unsigned char (B, G, R, A).\n Type: \ref sl.MAT_TYPE "sl.MAT_TYPE.U8_C4" |
 # | LEFT_GRAY  | Left gray image. Each pixel contains 1 unsigned char.\n Type: \ref sl.MAT_TYPE "sl.MAT_TYPE.U8_C1"|
 # | RIGHT_GRAY | Right gray image. Each pixel contains 1 unsigned char.\n Type: \ref sl.MAT_TYPE "sl.MAT_TYPE.U8_C1"|
+# | LEFT_NV12_UNRECTIFIED  | Left NV12 unrectified image. Each pixel contains 1 unsigned char for Y plane and 1 unsigned char for UV plane.\n Type: \ref sl.MAT_TYPE "sl.MAT_TYPE.NV12"|
+# | RIGHT_NV12_UNRECTIFIED | Right NV12 unrectified image. Each pixel contains 1 unsigned char for Y plane and 1 unsigned char for UV plane.\n Type: \ref sl.MAT_TYPE "sl.MAT_TYPE.NV12"|
 # | LEFT_UNRECTIFIED | Left BGRA unrectified image. Each pixel contains 4 unsigned char (B, G, R, A).\n Type: \ref sl.MAT_TYPE "sl.MAT_TYPE.U8_C4" |
 # | RIGHT_UNRECTIFIED | Right BGRA unrectified image. Each pixel contains 4 unsigned char (B, G, R, A).\n Type: \ref sl.MAT_TYPE "sl.MAT_TYPE.U8_C4" |
 # | LEFT_UNRECTIFIED_GRAY | Left gray unrectified image. Each pixel contains 1 unsigned char.\n Type: \ref sl.MAT_TYPE "sl.MAT_TYPE.U8_C1" |
@@ -1682,6 +2227,8 @@ class VIEW(enum.Enum):
     RIGHT = <int>c_VIEW.VIEW_RIGHT
     LEFT_GRAY = <int>c_VIEW.VIEW_LEFT_GRAY
     RIGHT_GRAY = <int>c_VIEW.VIEW_RIGHT_GRAY
+    LEFT_NV12_UNRECTIFIED = <int>c_VIEW.VIEW_LEFT_NV12_UNRECTIFIED
+    RIGHT_NV12_UNRECTIFIED = <int>c_VIEW.VIEW_RIGHT_NV12_UNRECTIFIED
     LEFT_UNRECTIFIED = <int>c_VIEW.VIEW_LEFT_UNRECTIFIED
     RIGHT_UNRECTIFIED = <int>c_VIEW.VIEW_RIGHT_UNRECTIFIED
     LEFT_UNRECTIFIED_GRAY = <int>c_VIEW.VIEW_LEFT_UNRECTIFIED_GRAY
@@ -2115,14 +2662,14 @@ cdef class Landmark2D:
     ##
     # The position of the landmark in the image.
     @property
-    def position(self) -> np.array:
-        cdef Vector2[unsigned int] vec
+    def position(self) -> npt.NDArray:
+        cdef Vector2[uint] vec
         vec = self.landmark2d.image_position
         return np.array([vec[0], vec[1]])
 
     @position.setter
     def position(self, list position):
-        cdef Vector2[unsigned int] vec
+        cdef Vector2[uint] vec
         if(len(position) == 2):
             vec[0] = position[0]
             vec[1] = position[1]
@@ -2139,6 +2686,46 @@ cdef class Landmark2D:
     @property
     def dynamic_confidence(self) -> float:
         return self.landmark2d.dynamic_confidence
+
+##
+# Represents a keyframe in the tracking system.
+cdef class KeyFrame:
+    cdef c_KeyFrame keyframe
+
+    ##
+    # Position and orientation of the keyframe.
+    @property
+    def pose(self) -> Transform:
+        cdef Transform pose = Transform()
+        for i in range(16):
+            pose.transform.m[i] = self.keyframe.pose.m[i]
+        return pose
+
+    @pose.setter
+    def pose(self, Transform pose):
+        self.keyframe.pose = deref(pose.transform)
+
+    ##
+    # Timestamp when the keyframe was captured.
+    @property
+    def timestamp(self) -> Timestamp:
+        cdef Timestamp timestamp = Timestamp()
+        timestamp.timestamp = self.keyframe.timestamp
+        return timestamp
+
+    @timestamp.setter
+    def timestamp(self, value: Timestamp):
+        self.keyframe.timestamp = value.timestamp
+
+    ##
+    # Boolean indicating if the keyframe come from a loaded area file.
+    @property
+    def is_loaded(self) -> bool:
+        return self.keyframe.is_loaded
+
+    @is_loaded.setter
+    def is_loaded(self, bool is_loaded):
+        self.keyframe.is_loaded = is_loaded
 
 ##
 # Lists the different status of the positional tracking
@@ -2180,6 +2767,8 @@ cdef class PositionalTrackingStatus:
 cdef class FusedPositionalTrackingStatus:
     cdef c_FusedPositionalTrackingStatus positional_status
 
+    ##
+    # Represents the current state of Visual-Inertial Odometry (VIO) tracking between the previous frame and the current frame.
     @property
     def odometry_status(self) -> ODOMETRY_STATUS:
         return ODOMETRY_STATUS(<int>self.positional_status.odometry_status)
@@ -2188,6 +2777,8 @@ cdef class FusedPositionalTrackingStatus:
     def odometry_status(self, odometry_status):
         self.positional_status.odometry_status = (<c_ODOMETRY_STATUS> (<int>odometry_status))
 
+    ##
+    # Represents the current state of camera tracking in the global map.
     @property
     def spatial_memory_status(self) -> SPATIAL_MEMORY_STATUS:
         return SPATIAL_MEMORY_STATUS(<int>self.positional_status.spatial_memory_status)
@@ -2196,6 +2787,8 @@ cdef class FusedPositionalTrackingStatus:
     def spatial_memory_status(self, spatial_memory_status):
         self.positional_status.spatial_memory_status = (<c_SPATIAL_MEMORY_STATUS> (<int>spatial_memory_status))
 
+    ##
+    # Represents the current state of positional tracking fusion.
     @property
     def tracking_fusion_status(self) -> POSITIONAL_TRACKING_FUSION_STATUS:
         return POSITIONAL_TRACKING_FUSION_STATUS(<int>self.positional_status.tracking_fusion_status)
@@ -2204,6 +2797,8 @@ cdef class FusedPositionalTrackingStatus:
     def tracking_fusion_status(self, tracking_fusion_status):
         self.positional_status.tracking_fusion_status = (<c_POSITIONAL_TRACKING_FUSION_STATUS> (<int>tracking_fusion_status))
 
+    ##
+    # Represents the current status of GNSS.
     @property
     def gnss_status(self) -> GNSS_STATUS:
         return GNSS_STATUS(<int>self.positional_status.gnss_status)
@@ -2212,6 +2807,8 @@ cdef class FusedPositionalTrackingStatus:
     def gnss_status(self, gnss_status):
         self.positional_status.gnss_status = (<c_GNSS_STATUS> (<int>gnss_status))
 
+    ##
+    # Represents the current mode of GNSS.
     @property
     def gnss_mode(self) -> GNSS_MODE:
         return GNSS_MODE(<int>self.positional_status.gnss_mode)
@@ -2220,6 +2817,8 @@ cdef class FusedPositionalTrackingStatus:
     def gnss_mode(self, gnss_mode):
         self.positional_status.gnss_mode = (<c_GNSS_MODE> (<int>gnss_mode))
 
+    ##
+    # Represents the current state of GNSS fusion for global localization.
     @property
     def gnss_fusion_status(self) -> GNSS_FUSION_STATUS:
         return GNSS_FUSION_STATUS(<int>self.positional_status.gnss_fusion_status)
@@ -2241,6 +2840,19 @@ class POSITIONAL_TRACKING_MODE(enum.Enum):
     GEN_1 = <int>c_POSITIONAL_TRACKING_MODE.POSITIONAL_TRACKING_MODE_GEN_1
     GEN_2 = <int>c_POSITIONAL_TRACKING_MODE.POSITIONAL_TRACKING_MODE_GEN_2
     GEN_3 = <int>c_POSITIONAL_TRACKING_MODE.POSITIONAL_TRACKING_MODE_GEN_3
+
+    ##
+    # Converts a string to the corresponding POSITIONAL_TRACKING_MODE enum value.
+    # \param name : The string representation of the POSITIONAL_TRACKING_MODE enum value.
+    # \return The corresponding POSITIONAL_TRACKING_MODE enum value. If the string does not match any POSITIONAL_TRACKING_MODE, POSITIONAL_TRACKING_MODE.GEN_1 is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_POSITIONAL_TRACKING_MODE val = c_POSITIONAL_TRACKING_MODE.POSITIONAL_TRACKING_MODE_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return POSITIONAL_TRACKING_MODE.LAST
+        return POSITIONAL_TRACKING_MODE(val)
 
     def __str__(self):
         return to_str(toString(<c_POSITIONAL_TRACKING_MODE>(<int>self.value))).decode()
@@ -2327,6 +2939,19 @@ class REFERENCE_FRAME(enum.Enum):
     WORLD = <int>c_REFERENCE_FRAME.REFERENCE_FRAME_WORLD
     CAMERA = <int>c_REFERENCE_FRAME.REFERENCE_FRAME_CAMERA
     LAST = <int>c_REFERENCE_FRAME.REFERENCE_FRAME_LAST
+
+    ##
+    # Converts a string to the corresponding REFERENCE_FRAME enum value.
+    # \param name : The string representation of the REFERENCE_FRAME enum value.
+    # \return The corresponding REFERENCE_FRAME enum value. If the string does not match any REFERENCE_FRAME, REFERENCE_FRAME.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_REFERENCE_FRAME val = c_REFERENCE_FRAME.REFERENCE_FRAME_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return REFERENCE_FRAME.LAST
+        return REFERENCE_FRAME(val)
 
     def __str__(self):
         return to_str(toString(<c_REFERENCE_FRAME>(<int>self.value))).decode()
@@ -2448,6 +3073,19 @@ class SVO_COMPRESSION_MODE(enum.Enum):
     H265_LOSSLESS = <int>c_SVO_COMPRESSION_MODE.SVO_COMPRESSION_MODE_H265_LOSSLESS
     LAST = <int>c_SVO_COMPRESSION_MODE.SVO_COMPRESSION_MODE_LAST
 
+    ##
+    # Converts a string to the corresponding SVO_COMPRESSION_MODE enum value.
+    # \param name : The string representation of the SVO_COMPRESSION_MODE enum value.
+    # \return The corresponding SVO_COMPRESSION_MODE enum value. If the string does not match any SVO_COMPRESSION_MODE, SVO_COMPRESSION_MODE.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_SVO_COMPRESSION_MODE val = c_SVO_COMPRESSION_MODE.SVO_COMPRESSION_MODE_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return SVO_COMPRESSION_MODE.LAST
+        return SVO_COMPRESSION_MODE(val)
+
     def __str__(self):
         return to_str(toString(<c_SVO_COMPRESSION_MODE>(<int>self.value))).decode()
 
@@ -2473,6 +3111,17 @@ class SVO_COMPRESSION_MODE(enum.Enum):
         if isinstance(other, SVO_COMPRESSION_MODE):
             return self.value >= other.value
         return NotImplemented
+
+##
+# Reset the internal benchmark timer.
+#
+# When setting the env var `ZED_SDK_BENCHMARK_MODE=1`, it triggers an internal timer measurement.
+# See zed-benchmarks for an example usage details.
+#
+# When calling this function, the internal timer is reset to zero.
+# It is recommended to call this function right before starting the benchmarked code section and after a warm-up phase.
+def reset_benchmark_timer():
+    c_resetBenchmarkTimer()
 
 ##
 # Lists available memory type.
@@ -2524,6 +3173,7 @@ class COPY_TYPE(enum.Enum):
 # | U8_C4      | 4-channel matrix of unsigned char |
 # | U16_C1     | 1-channel matrix of unsigned short |
 # | S8_C4      | 4-channel matrix of signed char |
+# | NV12       | YUV 4:2:0 semi-planar data Y UVUVUV |
 class MAT_TYPE(enum.Enum):
     F32_C1 = <int>c_MAT_TYPE.MAT_TYPE_F32_C1
     F32_C2 = <int>c_MAT_TYPE.MAT_TYPE_F32_C2
@@ -2535,6 +3185,33 @@ class MAT_TYPE(enum.Enum):
     U8_C4 = <int>c_MAT_TYPE.MAT_TYPE_U8_C4
     U16_C1 = <int>c_MAT_TYPE.MAT_TYPE_U16_C1
     S8_C4 = <int>c_MAT_TYPE.MAT_TYPE_S8_C4
+    NV12 = <int>c_MAT_TYPE.MAT_TYPE_NV12
+
+##
+# \brief Lists available color formats for the Tensor.
+# \ingroup Core_group
+class TENSOR_COLOR_FORMAT(enum.Enum):
+    GRAY = <int>c_TENSOR_COLOR_FORMAT.TENSOR_COLOR_FORMAT_GRAY
+    Y = <int>c_TENSOR_COLOR_FORMAT.TENSOR_COLOR_FORMAT_Y
+    RGB = <int>c_TENSOR_COLOR_FORMAT.TENSOR_COLOR_FORMAT_RGB
+    BGR = <int>c_TENSOR_COLOR_FORMAT.TENSOR_COLOR_FORMAT_BGR
+    RGBA = <int>c_TENSOR_COLOR_FORMAT.TENSOR_COLOR_FORMAT_RGBA
+    BGRA = <int>c_TENSOR_COLOR_FORMAT.TENSOR_COLOR_FORMAT_BGRA
+
+##
+# \brief Lists available memory layouts for the Tensor.
+# \ingroup Core_group
+class TENSOR_LAYOUT(enum.Enum):
+    NCHW = <int>c_TENSOR_LAYOUT.TENSOR_LAYOUT_NCHW
+    NHWC = <int>c_TENSOR_LAYOUT.TENSOR_LAYOUT_NHWC
+
+##
+# \brief Lists available pixel data types for the Tensor elements.
+# \ingroup Core_group
+class TENSOR_PIXEL_TYPE(enum.Enum):
+    FLOAT = <int>c_TENSOR_PIXEL_TYPE.TENSOR_PIXEL_TYPE_FLOAT
+    HALF = <int>c_TENSOR_PIXEL_TYPE.TENSOR_PIXEL_TYPE_HALF
+    UCHAR = <int>c_TENSOR_PIXEL_TYPE.TENSOR_PIXEL_TYPE_UCHAR
 
 ##
 # Lists available sensor types.
@@ -2645,6 +3322,19 @@ class OBJECT_CLASS(enum.Enum):
     FRUIT_VEGETABLE = <int>c_OBJECT_CLASS.OBJECT_CLASS_FRUIT_VEGETABLE
     SPORT = <int>c_OBJECT_CLASS.OBJECT_CLASS_SPORT
     LAST = <int>c_OBJECT_CLASS.OBJECT_CLASS_LAST
+
+    ##
+    # Converts a string to the corresponding OBJECT_CLASS enum value.
+    # \param name : The string representation of the OBJECT_CLASS enum value.
+    # \return The corresponding OBJECT_CLASS enum value. If the string does not match any OBJECT_CLASS, OBJECT_CLASS.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_OBJECT_CLASS val = c_OBJECT_CLASS.OBJECT_CLASS_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return OBJECT_CLASS.LAST
+        return OBJECT_CLASS(val)
 
     def __str__(self):
         return to_str(toString(<c_OBJECT_CLASS>(<int>self.value))).decode()
@@ -2986,7 +3676,7 @@ cdef class ObjectData:
     # Object 3D centroid.
     # \note It is defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     @property
-    def position(self) -> np.array[float]:
+    def position(self) -> npt.NDArray[float]:
         cdef np.ndarray position = np.zeros(3)
         for i in range(3):
             position[i] = self.object_data.position[i]
@@ -3001,7 +3691,7 @@ cdef class ObjectData:
     # Object 3D velocity.
     # \note It is defined in ```sl.InitParameters.coordinate_units / s``` and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     @property
-    def velocity(self) -> np.array[float]:
+    def velocity(self) -> npt.NDArray[float]:
         cdef np.ndarray velocity = np.zeros(3)
         for i in range(3):
             velocity[i] = self.object_data.velocity[i]
@@ -3024,7 +3714,7 @@ cdef class ObjectData:
     #  4 ------ 7
     # \endcode
     @property
-    def bounding_box(self) -> np.array[float][float]:
+    def bounding_box(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.object_data.bounding_box.size(), 3), dtype=np.float32)
         for i in range(self.object_data.bounding_box.size()):
             for j in range(3):
@@ -3050,7 +3740,7 @@ cdef class ObjectData:
     # D ------ C
     # \endcode
     @property
-    def bounding_box_2d(self) -> np.array[int][int]:
+    def bounding_box_2d(self) -> npt.NDArray[int][int]:
         cdef np.ndarray arr = np.zeros((self.object_data.bounding_box_2d.size(), 2))
         for i in range(self.object_data.bounding_box_2d.size()):
             for j in range(2):
@@ -3059,7 +3749,7 @@ cdef class ObjectData:
 
     @bounding_box_2d.setter
     def bounding_box_2d(self, np.ndarray coordinates):
-        cdef Vector2[unsigned int] vec
+        cdef Vector2[uint] vec
         self.object_data.bounding_box_2d.clear()
         for i in range(4):
             vec[0] = coordinates[i][0]
@@ -3095,7 +3785,7 @@ cdef class ObjectData:
     # 3D object dimensions: width, height, length.
     # \note It is defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     @property
-    def dimensions(self) -> np.array[float]:
+    def dimensions(self) -> npt.NDArray[float]:
         cdef np.ndarray dimensions = np.zeros(3)
         for i in range(3):
             dimensions[i] = self.object_data.dimensions[i]
@@ -3111,7 +3801,7 @@ cdef class ObjectData:
     # \note It is defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     # \warning Not available with [sl.OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_XXX](\ref OBJECT_DETECTION_MODEL).
     @property
-    def head_bounding_box(self) -> np.array[float][float]:
+    def head_bounding_box(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.object_data.head_bounding_box.size(), 3), dtype=np.float32)
         for i in range(self.object_data.head_bounding_box.size()):
             for j in range(3):
@@ -3123,7 +3813,7 @@ cdef class ObjectData:
     # \note Expressed in pixels on the original image resolution, ```[0, 0]``` is the top left corner.
     # \warning Not available with [sl.OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_XXX](\ref OBJECT_DETECTION_MODEL).
     @property
-    def head_bounding_box_2d(self) -> np.array[int][int]:
+    def head_bounding_box_2d(self) -> npt.NDArray[int][int]:
         cdef np.ndarray arr = np.zeros((self.object_data.head_bounding_box_2d.size(), 2))
         for i in range(self.object_data.head_bounding_box_2d.size()):
             for j in range(2):
@@ -3135,7 +3825,7 @@ cdef class ObjectData:
     # \note It is defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     # \warning Not available with [sl.OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_XXX](\ref OBJECT_DETECTION_MODEL).
     @property
-    def head_position(self) -> np.array[float]:
+    def head_position(self) -> npt.NDArray[float]:
         cdef np.ndarray head_position = np.zeros(3)
         for i in range(3):
             head_position[i] = self.object_data.head_position[i]
@@ -3156,7 +3846,7 @@ cdef class ObjectData:
     # \endcode
     # where pi is ```position_covariance[i]```
     @property
-    def position_covariance(self) -> np.array[float]:
+    def position_covariance(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(6)
         for i in range(6) :
             arr[i] = self.object_data.position_covariance[i]
@@ -3231,7 +3921,7 @@ cdef class BodyData:
     # Body/person 3D centroid.
     # \note It is defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     @property
-    def position(self) -> np.array[float]:
+    def position(self) -> npt.NDArray[float]:
         cdef np.ndarray position = np.zeros(3)
         for i in range(3):
             position[i] = self.body_data.position[i]
@@ -3246,7 +3936,7 @@ cdef class BodyData:
     # Body/person 3D velocity.
     # \note It is defined in ```sl.InitParameters.coordinate_units / s``` and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     @property
-    def velocity(self) -> np.array[float]:
+    def velocity(self) -> npt.NDArray[float]:
         cdef np.ndarray velocity = np.zeros(3)
         for i in range(3):
             velocity[i] = self.body_data.velocity[i]
@@ -3269,7 +3959,7 @@ cdef class BodyData:
     #  4 ------ 7
     # \endcode
     @property
-    def bounding_box(self) -> np.array[float][float]:
+    def bounding_box(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.body_data.bounding_box.size(), 3), dtype=np.float32)
         for i in range(self.body_data.bounding_box.size()):
             for j in range(3):
@@ -3295,7 +3985,7 @@ cdef class BodyData:
     # D ------ C
     # \endcode
     @property
-    def bounding_box_2d(self) -> np.array[int][int]:
+    def bounding_box_2d(self) -> npt.NDArray[int][int]:
         cdef np.ndarray arr = np.zeros((self.body_data.bounding_box_2d.size(), 2))
         for i in range(self.body_data.bounding_box_2d.size()):
             for j in range(2):
@@ -3304,7 +3994,7 @@ cdef class BodyData:
 
     @bounding_box_2d.setter
     def bounding_box_2d(self, np.ndarray coordinates):
-        cdef Vector2[unsigned int] vec
+        cdef Vector2[uint] vec
         self.body_data.bounding_box_2d.clear()
         for i in range(4):
             vec[0] = coordinates[i][0]
@@ -3326,7 +4016,7 @@ cdef class BodyData:
     # NumPy array of detection covariance for each keypoint.
     # \warning In some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected. Their covariances will be 0.
     @property
-    def keypoints_covariance(self) -> np.array[float][float]:
+    def keypoints_covariance(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.body_data.keypoint_covariances.size(), 6), dtype=np.float32)
         for i in range(self.body_data.keypoint_covariances.size()):
             for j in range(6):
@@ -3355,7 +4045,7 @@ cdef class BodyData:
     # \endcode
     # where pi is ```position_covariance[i]```
     @property
-    def position_covariance(self) -> np.array[float]:
+    def position_covariance(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(6)
         for i in range(6) :
             arr[i] = self.body_data.position_covariance[i]
@@ -3385,7 +4075,7 @@ cdef class BodyData:
     # 3D body/person dimensions: width, height, length.
     # \note It is defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     @property
-    def dimensions(self) -> np.array[float]:
+    def dimensions(self) -> npt.NDArray[float]:
         cdef np.ndarray dimensions = np.zeros(3)
         for i in range(3):
             dimensions[i] = self.body_data.dimensions[i]
@@ -3401,7 +4091,7 @@ cdef class BodyData:
     # \note They are defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     # \warning In some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected. They will have non finite values.
     @property
-    def keypoint(self) -> np.array[float][float]:
+    def keypoint(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.body_data.keypoint.size(), 3), dtype=np.float32)
         for i in range(self.body_data.keypoint.size()):
             for j in range(3):
@@ -3413,7 +4103,7 @@ cdef class BodyData:
     # \note Expressed in pixels on the original image resolution, ```[0, 0]``` is the top left corner.
     # \warning In some cases, eg. body partially out of the image, some keypoints can not be detected. They will have negatives coordinates.
     @property
-    def keypoint_2d(self) -> np.array[int][int]:
+    def keypoint_2d(self) -> npt.NDArray[int][int]:
         cdef np.ndarray arr = np.zeros((self.body_data.keypoint_2d.size(), 2))
         for i in range(self.body_data.keypoint_2d.size()):
             for j in range(2):
@@ -3425,7 +4115,7 @@ cdef class BodyData:
     # 3D bounding box of the head of the body/person represented as eight 3D points.
     # \note It is defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     @property
-    def head_bounding_box(self) -> np.array[float][float]:
+    def head_bounding_box(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.body_data.head_bounding_box.size(), 3), dtype=np.float32)
         for i in range(self.body_data.head_bounding_box.size()):
             for j in range(3):
@@ -3436,7 +4126,7 @@ cdef class BodyData:
     # 2D bounding box of the head of the body/person represented as four 2D points starting at the top left corner and rotation clockwise.
     # \note Expressed in pixels on the original image resolution, ```[0, 0]``` is the top left corner.
     @property
-    def head_bounding_box_2d(self) -> np.array[int][int]:
+    def head_bounding_box_2d(self) -> npt.NDArray[int][int]:
         cdef np.ndarray arr = np.zeros((self.body_data.head_bounding_box_2d.size(), 2))
         for i in range(self.body_data.head_bounding_box_2d.size()):
             for j in range(2):
@@ -3447,7 +4137,7 @@ cdef class BodyData:
     # 3D centroid of the head of the body/person.
     # \note It is defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     @property
-    def head_position(self) -> np.array[float]:
+    def head_position(self) -> npt.NDArray[float]:
         cdef np.ndarray head_position = np.zeros(3)
         for i in range(3):
             head_position[i] = self.body_data.head_position[i]
@@ -3463,7 +4153,7 @@ cdef class BodyData:
     # \note They can not be lower than the sl.BodyTrackingRuntimeParameters.detection_confidence_threshold.
     # \warning In some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected. They will have non finite values.
     @property
-    def keypoint_confidence(self) -> np.array[float]:
+    def keypoint_confidence(self) -> npt.NDArray[float]:
         cdef np.ndarray out_arr = np.zeros(self.body_data.keypoint_confidence.size())
         for i in range(self.body_data.keypoint_confidence.size()):
             out_arr[i] = self.body_data.keypoint_confidence[i]
@@ -3474,7 +4164,7 @@ cdef class BodyData:
     # \note They are expressed in [sl.REFERENCE_FRAME.CAMERA](\ref REFERENCE_FRAME) or [sl.REFERENCE_FRAME.WORLD](\ref REFERENCE_FRAME).
     # \warning Not available with [sl.BODY_FORMAT.BODY_18](\ref BODY_FORMAT).
     @property
-    def local_position_per_joint(self) -> np.array[float][float]:
+    def local_position_per_joint(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.body_data.local_position_per_joint.size(), 3), dtype=np.float32)
         for i in range(self.body_data.local_position_per_joint.size()):
             for j in range(3):
@@ -3486,7 +4176,7 @@ cdef class BodyData:
     # \note The orientation is represented by a quaternion.
     # \warning Not available with [sl.BODY_FORMAT.BODY_18](\ref BODY_FORMAT).
     @property
-    def local_orientation_per_joint(self) -> np.array[float][float]:
+    def local_orientation_per_joint(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.body_data.local_orientation_per_joint.size(), 4), dtype=np.float32)
         for i in range(self.body_data.local_orientation_per_joint.size()):
             for j in range(4):
@@ -3499,7 +4189,7 @@ cdef class BodyData:
     # \note The global root position is already accessible in \ref keypoint attribute by using the root index of a given sl.BODY_FORMAT.
     # \warning Not available with [sl.BODY_FORMAT.BODY_18](\ref BODY_FORMAT).
     @property
-    def global_root_orientation(self) -> np.array[float]:
+    def global_root_orientation(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(4)
         for i in range(4):
             arr[i] = self.body_data.global_root_orientation[i]
@@ -3542,7 +4232,7 @@ cdef class CustomBoxObjectData:
     # D ------ C
     # \endcode
     @property
-    def bounding_box_2d(self) -> np.array[int][int]:
+    def bounding_box_2d(self) -> npt.NDArray[int][int]:
         cdef np.ndarray arr = np.zeros((self.custom_box_object_data.bounding_box_2d.size(), 2))
         for i in range(self.custom_box_object_data.bounding_box_2d.size()):
             for j in range(2):
@@ -3551,7 +4241,7 @@ cdef class CustomBoxObjectData:
 
     @bounding_box_2d.setter
     def bounding_box_2d(self, np.ndarray coordinates):
-        cdef Vector2[unsigned int] vec
+        cdef Vector2[uint] vec
         self.custom_box_object_data.bounding_box_2d.clear()
         for i in range(4):
             vec[0] = coordinates[i][0]
@@ -3633,6 +4323,59 @@ cdef class CustomBoxObjectData:
     def tracking_max_dist(self, float tracking_max_dist):
         self.custom_box_object_data.tracking_max_dist = tracking_max_dist
 
+    ##
+    # Manually override the acceleration preset.
+    # If set, this value takes precedence over the selected preset, allowing for a custom maximum acceleration.
+    # Unit is m/s^2.
+    @property
+    def max_allowed_acceleration(self) -> float:
+        return self.custom_box_object_data.max_allowed_acceleration
+
+    @max_allowed_acceleration.setter
+    def max_allowed_acceleration(self, float max_allowed_acceleration):
+        self.custom_box_object_data.max_allowed_acceleration = max_allowed_acceleration
+
+    ##
+    # Control the smoothing of the velocity estimation.
+    # Values between 0.0 and 1.0.
+    @property
+    def velocity_smoothing_factor(self) -> float:
+        return self.custom_box_object_data.velocity_smoothing_factor
+
+    @velocity_smoothing_factor.setter
+    def velocity_smoothing_factor(self, float velocity_smoothing_factor):
+        self.custom_box_object_data.velocity_smoothing_factor = velocity_smoothing_factor
+
+    ##
+    # Threshold to force an object's velocity to zero.
+    @property
+    def min_velocity_threshold(self) -> float:
+        return self.custom_box_object_data.min_velocity_threshold
+
+    @min_velocity_threshold.setter
+    def min_velocity_threshold(self, float min_velocity_threshold):
+        self.custom_box_object_data.min_velocity_threshold = min_velocity_threshold
+
+    ##
+    # Duration to keep predicting a track's position after occlusion.
+    @property
+    def prediction_timeout_s(self) -> float:
+        return self.custom_box_object_data.prediction_timeout_s
+
+    @prediction_timeout_s.setter
+    def prediction_timeout_s(self, float prediction_timeout_s):
+        self.custom_box_object_data.prediction_timeout_s = prediction_timeout_s
+
+    ##
+    # Minimum confirmation time in seconds required to validate a track.
+    @property
+    def min_confirmation_time_s(self) -> float:
+        return self.custom_box_object_data.min_confirmation_time_s
+
+    @min_confirmation_time_s.setter
+    def min_confirmation_time_s(self, float min_confirmation_time_s):
+        self.custom_box_object_data.min_confirmation_time_s = min_confirmation_time_s
+
 ##
 # Class storing externally detected objects.
 # \ingroup Object_group
@@ -3664,7 +4407,7 @@ cdef class CustomMaskObjectData:
     # D ------ C
     # \endcode
     @property
-    def bounding_box_2d(self) -> np.array[int][int]:
+    def bounding_box_2d(self) -> npt.NDArray[int][int]:
         cdef np.ndarray arr = np.zeros((self.custom_mask_object_data.bounding_box_2d.size(), 2))
         for i in range(self.custom_mask_object_data.bounding_box_2d.size()):
             for j in range(2):
@@ -3673,7 +4416,7 @@ cdef class CustomMaskObjectData:
 
     @bounding_box_2d.setter
     def bounding_box_2d(self, np.ndarray coordinates):
-        cdef Vector2[unsigned int] vec
+        cdef Vector2[uint] vec
         self.custom_mask_object_data.bounding_box_2d.clear()
         for i in range(4):
             vec[0] = coordinates[i][0]
@@ -3754,6 +4497,62 @@ cdef class CustomMaskObjectData:
     @tracking_max_dist.setter
     def tracking_max_dist(self, float tracking_max_dist):
         self.custom_box_object_data.tracking_max_dist = tracking_max_dist
+
+    ##
+    # Manually override the acceleration preset.
+    # If set, this value takes precedence over the selected preset, allowing for a custom maximum acceleration.
+    # Unit is m/s^2.
+    @property
+    def max_allowed_acceleration(self) -> float:
+        return self.custom_mask_object_data.max_allowed_acceleration
+
+    @max_allowed_acceleration.setter
+    def max_allowed_acceleration(self, float max_allowed_acceleration):
+        self.custom_mask_object_data.max_allowed_acceleration = max_allowed_acceleration
+
+    ##
+    # Control the smoothing of the velocity estimation.
+    # Values between 0.0 and 1.0.
+    @property
+    def velocity_smoothing_factor(self) -> float:
+        return self.custom_mask_object_data.velocity_smoothing_factor
+
+    @velocity_smoothing_factor.setter
+    def velocity_smoothing_factor(self, float velocity_smoothing_factor):
+        self.custom_mask_object_data.velocity_smoothing_factor = velocity_smoothing_factor
+
+    ##
+    # Threshold to force an object's velocity to zero.
+    # Unit is m/s.
+    @property
+    def min_velocity_threshold(self) -> float:
+        return self.custom_mask_object_data.min_velocity_threshold
+
+    @min_velocity_threshold.setter
+    def min_velocity_threshold(self, float min_velocity_threshold):
+        self.custom_mask_object_data.min_velocity_threshold = min_velocity_threshold
+
+    ##
+    # Duration to keep predicting a track's position after occlusion.
+    # Unit is s.
+    @property
+    def prediction_timeout_s(self) -> float:
+        return self.custom_mask_object_data.prediction_timeout_s
+
+    @prediction_timeout_s.setter
+    def prediction_timeout_s(self, float prediction_timeout_s):
+        self.custom_mask_object_data.prediction_timeout_s = prediction_timeout_s
+
+    ##
+    # Minimum confirmation time in seconds required to validate a track.
+    # Unit is s.
+    @property
+    def min_confirmation_time_s(self) -> float:
+        return self.custom_mask_object_data.min_confirmation_time_s
+
+    @min_confirmation_time_s.setter
+    def min_confirmation_time_s(self, float min_confirmation_time_s):
+        self.custom_mask_object_data.min_confirmation_time_s = min_confirmation_time_s
 
     ##
     # Mask defining which pixels which belong to the object (in \ref bounding_box_2d and set to 255) and those of the background (set to 0).
@@ -4004,6 +4803,20 @@ class BODY_FORMAT(enum.Enum):
     BODY_38 = <int>c_BODY_FORMAT.BODY_FORMAT_BODY_38
     LAST = <int>c_BODY_FORMAT.BODY_FORMAT_LAST
 
+    ##
+    # Converts a string to the corresponding BODY_FORMAT enum value.
+    # \param name : The string representation of the BODY_FORMAT enum value.
+    # \return The corresponding BODY_FORMAT enum value. If the string does not match any BODY_FORMAT, BODY_FORMAT.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_BODY_FORMAT val = c_BODY_FORMAT.BODY_FORMAT_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return BODY_FORMAT.LAST
+        return BODY_FORMAT(val)
+
+
 ##
 # \brief Lists supported models for skeleton keypoints selection.
 # \ingroup Body_group
@@ -4016,6 +4829,20 @@ class BODY_KEYPOINTS_SELECTION(enum.Enum):
     FULL = <int>c_BODY_KEYPOINTS_SELECTION.BODY_KEYPOINTS_SELECTION_FULL
     UPPER_BODY = <int>c_BODY_KEYPOINTS_SELECTION.BODY_KEYPOINTS_SELECTION_UPPER_BODY
     LAST = <int>c_BODY_KEYPOINTS_SELECTION.BODY_KEYPOINTS_SELECTION_LAST
+
+    ##
+    # Converts a string to the corresponding BODY_KEYPOINTS_SELECTION enum value.
+    # \param name : The string representation of the BODY_KEYPOINTS_SELECTION enum value.
+    # \return The corresponding BODY_KEYPOINTS_SELECTION enum value. If the string does not match any BODY_KEYPOINTS_SELECTION, BODY_KEYPOINTS_SELECTION.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_BODY_KEYPOINTS_SELECTION val = c_BODY_KEYPOINTS_SELECTION.BODY_KEYPOINTS_SELECTION_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return BODY_KEYPOINTS_SELECTION.LAST
+        return BODY_KEYPOINTS_SELECTION(val)
+
 
 ##
 # \brief Lists links of human body keypoints for \ref BODY_FORMAT "sl.BODY_FORMAT.BODY_18".
@@ -4207,7 +5034,7 @@ cdef class ObjectsBatch:
     ##
     # NumPy array of positions for each object.
     @property
-    def positions(self) -> np.array[float][float]:
+    def positions(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.objects_batch.positions.size(), 3), dtype=np.float32)
         for i in range(self.objects_batch.positions.size()):
             for j in range(3):
@@ -4217,7 +5044,7 @@ cdef class ObjectsBatch:
     ##
     # NumPy array of positions' covariances for each object.
     @property
-    def position_covariances(self) -> np.array[float][float]:
+    def position_covariances(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.objects_batch.position_covariances.size(), 6), dtype=np.float32)
         for i in range(self.objects_batch.position_covariances.size()):
             for j in range(6):
@@ -4227,7 +5054,7 @@ cdef class ObjectsBatch:
     ##
     # NumPy array of 3D velocities for each object.
     @property
-    def velocities(self)-> np.array[float][float]:
+    def velocities(self)-> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.objects_batch.velocities.size(), 3), dtype=np.float32)
         for i in range(self.objects_batch.velocities.size()):
             for j in range(3):
@@ -4257,7 +5084,7 @@ cdef class ObjectsBatch:
     #  4 ------ 7
     # \endcode
     @property
-    def bounding_boxes(self) -> np.array[float][float][float]:
+    def bounding_boxes(self) -> npt.NDArray[float][float][float]:
         # A 3D bounding box should have 8 indices, 3 coordinates
         cdef np.ndarray arr = np.zeros((self.objects_batch.bounding_boxes.size(),8,3))
         for i in range(self.objects_batch.bounding_boxes.size()):
@@ -4275,7 +5102,7 @@ cdef class ObjectsBatch:
     # D ------ C
     # \endcode
     @property
-    def bounding_boxes_2d(self) -> np.array[int][int][int]:
+    def bounding_boxes_2d(self) -> npt.NDArray[int][int][int]:
         # A 2D bounding box should have 4 indices, 2 coordinates
         cdef np.ndarray arr = np.zeros((self.objects_batch.bounding_boxes_2d.size(),4,2))
         for i in range(self.objects_batch.bounding_boxes_2d.size()):
@@ -4287,7 +5114,7 @@ cdef class ObjectsBatch:
     ##
     # NumPy array of confidences for each object.
     @property
-    def confidences(self) -> np.array[float]:
+    def confidences(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.objects_batch.confidences.size()))
         for i in range(self.objects_batch.confidences.size()):
             arr[i] = self.objects_batch.confidences[i]
@@ -4303,11 +5130,11 @@ cdef class ObjectsBatch:
         return action_states_out
 
     ##
-        # NumPy array of 2D bounding box of the head for each object (person).
+    # NumPy array of 2D bounding box of the head for each object (person).
     # \note Expressed in pixels on the original image resolution, ```[0, 0]``` is the top left corner.
     # \warning Not available with [sl.OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_XXX](\ref OBJECT_DETECTION_MODEL).
     @property
-    def head_bounding_boxes_2d(self) -> np.array[int][int][int]:
+    def head_bounding_boxes_2d(self) -> npt.NDArray[int][int][int]:
         cdef np.ndarray arr = np.zeros((self.objects_batch.head_bounding_boxes_2d.size(),4,2))
         for i in range(self.objects_batch.head_bounding_boxes_2d.size()):
             for j in range(4):
@@ -4316,11 +5143,11 @@ cdef class ObjectsBatch:
         return arr
 
     ##
-        # NumPy array of 3D bounding box of the head for each object (person).
+    # NumPy array of 3D bounding box of the head for each object (person).
     # \note They are defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     # \warning Not available with [sl.OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_XXX](\ref OBJECT_DETECTION_MODEL).
     @property
-    def head_bounding_boxes(self) -> np.array[float][float][float]:
+    def head_bounding_boxes(self) -> npt.NDArray[float][float][float]:
         cdef np.ndarray arr = np.zeros((self.objects_batch.head_bounding_boxes.size(),8,3))
         for i in range(self.objects_batch.head_bounding_boxes.size()):
             for j in range(8):
@@ -4329,11 +5156,11 @@ cdef class ObjectsBatch:
         return arr
 
     ##
-        # NumPy array of 3D centroid of the head for each object (person).
+    # NumPy array of 3D centroid of the head for each object (person).
     # \note They are defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     # \warning Not available with [sl.OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_XXX](\ref OBJECT_DETECTION_MODEL).
     @property
-    def head_positions(self) -> np.array[float][float]:
+    def head_positions(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.objects_batch.head_positions.size(),3))
         for i in range(self.objects_batch.head_positions.size()):
             for j in range(3):
@@ -4443,7 +5270,7 @@ cdef class BodiesBatch:
     ##
     # NumPy array of positions for each body/person.
     @property
-    def positions(self) -> np.array[float][float]:
+    def positions(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.bodies_batch.positions.size(), 3), dtype=np.float32)
         for i in range(self.bodies_batch.positions.size()):
             for j in range(3):
@@ -4453,7 +5280,7 @@ cdef class BodiesBatch:
     ##
     # NumPy array of positions' covariances for each body/person.
     @property
-    def position_covariances(self) -> np.array[float][float]:
+    def position_covariances(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.bodies_batch.position_covariances.size(), 6), dtype=np.float32)
         for i in range(self.bodies_batch.position_covariances.size()):
             for j in range(6):
@@ -4463,7 +5290,7 @@ cdef class BodiesBatch:
     ##
     # NumPy array of 3D velocities for each body/person.
     @property
-    def velocities(self)-> np.array[float][float]:
+    def velocities(self)-> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.bodies_batch.velocities.size(), 3), dtype=np.float32)
         for i in range(self.bodies_batch.velocities.size()):
             for j in range(3):
@@ -4493,7 +5320,7 @@ cdef class BodiesBatch:
     #  4 ------ 7
     # \endcode
     @property
-    def bounding_boxes(self) -> np.array[float][float][float]:
+    def bounding_boxes(self) -> npt.NDArray[float][float][float]:
         # A 3D bounding box should have 8 indices, 3 coordinates
         cdef np.ndarray arr = np.zeros((self.bodies_batch.bounding_boxes.size(),8,3))
         for i in range(self.bodies_batch.bounding_boxes.size()):
@@ -4511,7 +5338,7 @@ cdef class BodiesBatch:
     # D ------ C
     # \endcode
     @property
-    def bounding_boxes_2d(self) -> np.array[int][int][int]:
+    def bounding_boxes_2d(self) -> npt.NDArray[int][int][int]:
         # A 2D bounding box should have 4 indices, 2 coordinates
         cdef np.ndarray arr = np.zeros((self.bodies_batch.bounding_boxes_2d.size(),4,2))
         for i in range(self.bodies_batch.bounding_boxes_2d.size()):
@@ -4523,7 +5350,7 @@ cdef class BodiesBatch:
     ##
     # NumPy array of confidences for each body/person.
     @property
-    def confidences(self) -> np.array[float]:
+    def confidences(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.bodies_batch.confidences.size()))
         for i in range(self.bodies_batch.confidences.size()):
             arr[i] = self.bodies_batch.confidences[i]
@@ -4539,10 +5366,10 @@ cdef class BodiesBatch:
         return action_states_out
 
     ##
-        # NumPy array of 2D keypoints for each body/person.
+    # NumPy array of 2D keypoints for each body/person.
     # \warning In some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected. They will have non finite values.
     @property
-    def keypoints_2d(self) -> np.array[int][int][int]:
+    def keypoints_2d(self) -> npt.NDArray[int][int][int]:
         # 18 keypoints
         cdef np.ndarray arr = np.zeros((self.bodies_batch.keypoints_2d.size(),self.bodies_batch.keypoints_2d[0].size(),2))
         for i in range(self.bodies_batch.keypoints_2d.size()):
@@ -4551,11 +5378,11 @@ cdef class BodiesBatch:
                     arr[i,j,k] = self.bodies_batch.keypoints_2d[i][j][k]
         return arr
 
-        ##
-        # NumPy array of 3D keypoints for each body/person.
+    ##
+    # NumPy array of 3D keypoints for each body/person.
     # \warning In some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected. They will have non finite values.
     @property
-    def keypoints(self) -> np.array[float][float][float]:
+    def keypoints(self) -> npt.NDArray[float][float][float]:
         # 18 keypoints
         cdef np.ndarray arr = np.zeros((self.bodies_batch.keypoints.size(),self.bodies_batch.keypoints[0].size(),3))
         for i in range(self.bodies_batch.keypoints.size()):
@@ -4565,10 +5392,10 @@ cdef class BodiesBatch:
         return arr
 
     ##
-        # NumPy array of 2D bounding box of the head for each body/person.
+    # NumPy array of 2D bounding box of the head for each body/person.
     # \note Expressed in pixels on the original image resolution, ```[0, 0]``` is the top left corner.
     @property
-    def head_bounding_boxes_2d(self) -> np.array[int][int][int]:
+    def head_bounding_boxes_2d(self) -> npt.NDArray[int][int][int]:
         cdef np.ndarray arr = np.zeros((self.bodies_batch.head_bounding_boxes_2d.size(),4,2))
         for i in range(self.bodies_batch.head_bounding_boxes_2d.size()):
             for j in range(4):
@@ -4577,10 +5404,10 @@ cdef class BodiesBatch:
         return arr
 
     ##
-        # NumPy array of 3D bounding box of the head for each body/person.
+    # NumPy array of 3D bounding box of the head for each body/person.
     # \note They are defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     @property
-    def head_bounding_boxes(self) -> np.array[float][float][float]:
+    def head_bounding_boxes(self) -> npt.NDArray[float][float][float]:
         cdef np.ndarray arr = np.zeros((self.bodies_batch.head_bounding_boxes.size(),8,3))
         for i in range(self.bodies_batch.head_bounding_boxes.size()):
             for j in range(8):
@@ -4589,22 +5416,22 @@ cdef class BodiesBatch:
         return arr
 
     ##
-        # NumPy array of 3D centroid of the head for each body/person.
+    # NumPy array of 3D centroid of the head for each body/person.
     # \note They are defined in sl.InitParameters.coordinate_units and expressed in sl.RuntimeParameters.measure3D_reference_frame.
     @property
-    def head_positions(self) -> np.array[float][float]:
+    def head_positions(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.bodies_batch.head_positions.size(),3))
         for i in range(self.bodies_batch.head_positions.size()):
             for j in range(3):
                 arr[i,j] = self.bodies_batch.head_positions[i][j]
         return arr
 
-        ##
-        # NumPy array of detection confidences NumPy array for each keypoint for each body/person.
+    ##
+    # NumPy array of detection confidences NumPy array for each keypoint for each body/person.
     # \note They can not be lower than the sl.BodyTrackingRuntimeParameters.detection_confidence_threshold.
     # \warning In some cases, eg. body partially out of the image or missing depth data, some keypoints can not be detected. They will have non finite values.
     @property
-    def keypoint_confidences(self) -> np.array[float][float]:
+    def keypoint_confidences(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros(self.bodies_batch.keypoint_confidences.size())
         for i in range(self.bodies_batch.keypoint_confidences.size()):
             arr[i] = self.bodies_batch.keypoint_confidences[i]
@@ -5000,8 +5827,104 @@ cdef class ObjectDetectionParameters:
         return self.object_detection.instance_module_id
 
     @instance_module_id.setter
-    def instance_module_id(self, unsigned int instance_module_id):
+    def instance_module_id(self, uint instance_module_id):
         self.object_detection.instance_module_id = instance_module_id
+
+##
+# Class containing tracking parameters for object detection.
+# \ingroup Object_group
+#
+# Used to configure how objects are tracked over time.
+cdef class ObjectTrackingParameters:
+    cdef c_ObjectTrackingParameters object_tracking_params
+
+    ##
+    # Constructor with optional parameters.
+    #
+    # \param velocity_smoothing_factor  Velocity smoothing factor (0.0 to 1.0).
+    #                                   Pass a value < 0 to use the ZED SDK default.
+    # \param min_velocity_threshold     Minimum velocity threshold in m/s.
+    #                                   Pass a value < 0 to use the ZED SDK default.
+    # \param prediction_timeout_s       Prediction timeout in seconds.
+    #                                   Pass a value < 0 to use the ZED SDK default.
+    # \param min_confirmation_time_s    Minimum confirmation time in seconds.
+    #                                   Pass a value < 0 to use the ZED SDK default.
+    def __cinit__(self,
+                  float velocity_smoothing_factor = -1.0,
+                  float min_velocity_threshold = -1.0,
+                  float prediction_timeout_s = -1.0,
+                  float min_confirmation_time_s = -1.0):
+        if velocity_smoothing_factor >= 0:
+            self.object_tracking_params.velocity_smoothing_factor = velocity_smoothing_factor
+        if min_velocity_threshold >= 0:
+            self.object_tracking_params.min_velocity_threshold = min_velocity_threshold
+        if prediction_timeout_s >= 0:
+            self.object_tracking_params.prediction_timeout_s = prediction_timeout_s
+        if min_confirmation_time_s >= 0:
+            self.object_tracking_params.min_confirmation_time_s = min_confirmation_time_s
+
+    ##
+    # Object acceleration preset.
+    # Default: OBJECT_ACCELERATION_PRESET.DEFAULT
+    @property
+    def object_acceleration_preset(self) -> OBJECT_ACCELERATION_PRESET:
+        return OBJECT_ACCELERATION_PRESET(<int>self.object_tracking_params.object_acceleration_preset)
+
+    @object_acceleration_preset.setter
+    def object_acceleration_preset(self, preset):
+        self.object_tracking_params.object_acceleration_preset = <c_OBJECT_ACCELERATION_PRESET>(<int>preset.value)
+
+    ##
+    # Velocity smoothing factor.
+    # Controls the smoothing of the velocity estimation.
+    # Values between 0.0 and 1.0.
+    # A negative value (e.g. -1) lets the ZED SDK interpret the min_confirmation_time_s.
+    # Default: -1
+    @property
+    def velocity_smoothing_factor(self) -> float:
+        return self.object_tracking_params.velocity_smoothing_factor
+
+    @velocity_smoothing_factor.setter
+    def velocity_smoothing_factor(self, float value):
+        self.object_tracking_params.velocity_smoothing_factor = value
+
+    ##
+    # Minimum velocity threshold.
+    # Threshold to force an object's velocity to zero (Zero-Snap).
+    # A negative value (e.g. -1) lets the ZED SDK interpret the min_confirmation_time_s.
+    # Default: -1
+    @property
+    def min_velocity_threshold(self) -> float:
+        return self.object_tracking_params.min_velocity_threshold
+
+    @min_velocity_threshold.setter
+    def min_velocity_threshold(self, float value):
+        self.object_tracking_params.min_velocity_threshold = value
+
+    ##
+    # Prediction timeout in seconds.
+    # Duration to keep predicting a track's position after occlusion.
+    # A negative value (e.g. -1) lets the ZED SDK interpret the min_confirmation_time_s.
+    # Default: -1
+    @property
+    def prediction_timeout_s(self) -> float:
+        return self.object_tracking_params.prediction_timeout_s
+
+    @prediction_timeout_s.setter
+    def prediction_timeout_s(self, float value):
+        self.object_tracking_params.prediction_timeout_s = value
+
+    ##
+    # Minimum confirmation time required to validate a track.
+    # A negative value (e.g. -1) lets the ZED SDK interpret the min_confirmation_time_s.
+    # Default: -1
+    @property
+    def min_confirmation_time_s(self) -> float:
+        return self.object_tracking_params.min_confirmation_time_s
+
+    @min_confirmation_time_s.setter
+    def min_confirmation_time_s(self, float value):
+        self.object_tracking_params.min_confirmation_time_s = value
 
 ##
 # Class containing a set of runtime parameters for the object detection module.
@@ -5090,6 +6013,49 @@ cdef class ObjectDetectionRuntimeParameters:
         for k,v in object_class_detection_confidence_threshold_dict.items():
             self.object_detection_rt.object_class_detection_confidence_threshold[<c_OBJECT_CLASS>(<int>k.value)] = v
 
+    ##
+    # Default tracking parameters applied to all object classes.
+    # These can be overridden per-class via object_class_tracking_parameters.
+    @property
+    def object_tracking_parameters(self) -> ObjectTrackingParameters:
+        params = ObjectTrackingParameters()
+        params.object_tracking_params.object_acceleration_preset = self.object_detection_rt.object_tracking_parameters.object_acceleration_preset
+        params.object_tracking_params.velocity_smoothing_factor = self.object_detection_rt.object_tracking_parameters.velocity_smoothing_factor
+        params.object_tracking_params.min_velocity_threshold = self.object_detection_rt.object_tracking_parameters.min_velocity_threshold
+        params.object_tracking_params.prediction_timeout_s = self.object_detection_rt.object_tracking_parameters.prediction_timeout_s
+        params.object_tracking_params.min_confirmation_time_s = self.object_detection_rt.object_tracking_parameters.min_confirmation_time_s
+        return params
+
+    @object_tracking_parameters.setter
+    def object_tracking_parameters(self, ObjectTrackingParameters params):
+        self.object_detection_rt.object_tracking_parameters = params.object_tracking_params
+
+    ##
+    # Per-class tracking parameters that override the default object_tracking_parameters.
+    # Keys are OBJECT_CLASS values, values are ObjectTrackingParameters.
+    @property
+    def object_class_tracking_parameters(self) -> dict:
+        result = {}
+        cdef map[c_OBJECT_CLASS, c_ObjectTrackingParameters].iterator it = self.object_detection_rt.object_class_tracking_parameters.begin()
+        while it != self.object_detection_rt.object_class_tracking_parameters.end():
+            params = ObjectTrackingParameters()
+            params.object_tracking_params.object_acceleration_preset = deref(it).second.object_acceleration_preset
+            params.object_tracking_params.velocity_smoothing_factor = deref(it).second.velocity_smoothing_factor
+            params.object_tracking_params.min_velocity_threshold = deref(it).second.min_velocity_threshold
+            params.object_tracking_params.prediction_timeout_s = deref(it).second.prediction_timeout_s
+            params.object_tracking_params.min_confirmation_time_s = deref(it).second.min_confirmation_time_s
+            result[OBJECT_CLASS(<int>deref(it).first)] = params
+            postincrement(it)
+        return result
+
+    @object_class_tracking_parameters.setter
+    def object_class_tracking_parameters(self, dict params_dict):
+        self.object_detection_rt.object_class_tracking_parameters.clear()
+        for k, v in params_dict.items():
+            if not isinstance(v, ObjectTrackingParameters):
+                raise TypeError("Values must be ObjectTrackingParameters objects")
+            self.object_detection_rt.object_class_tracking_parameters[<c_OBJECT_CLASS>(<int>k.value)] = (<ObjectTrackingParameters>v).object_tracking_params
+
 
 ##
 # Class containing a set of runtime properties of a certain class ID for the object detection module using a custom model.
@@ -5097,8 +6063,96 @@ cdef class ObjectDetectionRuntimeParameters:
 #
 # The default constructor sets all parameters to their default settings.
 # \note Parameters can be adjusted by the user.
+
+##
+# Class containing tracking parameters for object detection.
+# \ingroup Object_group
+#
+# Used to configure how objects are tracked over time.
+cdef class ObjectTrackingParametersProxy:
+    cdef c_CustomObjectDetectionProperties* _parent_props
+
+    def __cinit__(self):
+        self._parent_props = NULL
+
+    cdef void _set_parent(self, c_CustomObjectDetectionProperties* parent):
+        self._parent_props = parent
+
+    ##
+    # Preset defining the expected maximum acceleration of the tracked object.
+    # Determines how the ZED SDK interprets object acceleration, affecting tracking behavior and predictions.
+    @property
+    def object_acceleration_preset(self) -> OBJECT_ACCELERATION_PRESET:
+        return OBJECT_ACCELERATION_PRESET(<int>self._parent_props.object_tracking_parameters.object_acceleration_preset)
+
+    @object_acceleration_preset.setter
+    def object_acceleration_preset(self, preset):
+        self._parent_props.object_tracking_parameters.object_acceleration_preset = <c_OBJECT_ACCELERATION_PRESET>(<int>preset.value)
+
+    ##
+    # Values between 0.0 and 1.0.
+    # - High value (closer to 1.0): Very smooth, but may lag behind rapid changes.
+    # - Low value (closer to 0.0): Very responsive to velocity changes, but may be jittery.
+    # - 0.5: ZED SDK base tuning. Balanced smoothing and responsiveness.
+    # A negative value (e.g. -1) lets the ZED SDK interpret the velocity_smoothing_factor.
+    # Default: -1
+    @property
+    def velocity_smoothing_factor(self) -> float:
+        return self._parent_props.object_tracking_parameters.velocity_smoothing_factor
+
+    @velocity_smoothing_factor.setter
+    def velocity_smoothing_factor(self, float value):
+        self._parent_props.object_tracking_parameters.velocity_smoothing_factor = value
+
+    ##
+    # Threshold to force an object's velocity to zero.
+    # If the calculated speed (m/s) is below this threshold, the object is considered static.
+    # This helps eliminate drift on stationary objects.
+    # A negative value (e.g. -1) lets the ZED SDK interpret the min_velocity_threshold.
+    # Default: -1
+    @property
+    def min_velocity_threshold(self) -> float:
+        return self._parent_props.object_tracking_parameters.min_velocity_threshold
+
+    @min_velocity_threshold.setter
+    def min_velocity_threshold(self, float value):
+        self._parent_props.object_tracking_parameters.min_velocity_threshold = value
+
+    ##
+    # Duration to keep predicting a track's position after occlusion.
+    # When an object is no longer visible (occluded or out of frame),
+    # the tracker will predict its position for this duration before deleting the track.
+    # - Short (e.g., 0.2s): Prevents "ghost" objects but may break tracks during short occlusions.
+    # - Long (e.g., 2.0s): Maintains ID during long occlusions but may report objects that are gone.
+    # A negative value (e.g. -1) lets the ZED SDK interpret the prediction_timeout_s.
+    # Default: -1
+    @property
+    def prediction_timeout_s(self) -> float:
+        return self._parent_props.object_tracking_parameters.prediction_timeout_s
+
+    @prediction_timeout_s.setter
+    def prediction_timeout_s(self, float value):
+        self._parent_props.object_tracking_parameters.prediction_timeout_s = value
+
+    ##
+    # Minimum confirmation time required to validate a track.
+    # The minimum duration (in seconds) an object must be continuously detected
+    # before it is reported as a valid track. Helps filter out spurious false
+    # positives that appear only briefly.
+    # A negative value (e.g. -1) lets the ZED SDK interpret the prediction_timeout_s.
+    # Default: -1
+    @property
+    def min_confirmation_time_s(self) -> float:
+        return self._parent_props.object_tracking_parameters.min_confirmation_time_s
+
+    @min_confirmation_time_s.setter
+    def min_confirmation_time_s(self, float value):
+        self._parent_props.object_tracking_parameters.min_confirmation_time_s = value
+
+
 cdef class CustomObjectDetectionProperties:
     cdef c_CustomObjectDetectionProperties* custom_object_detection_props
+    cdef ObjectTrackingParametersProxy _tracking_params_proxy
 
     ##
     # Default constructor.
@@ -5123,12 +6177,24 @@ cdef class CustomObjectDetectionProperties:
                   float min_box_height_meters = -1.,
                   native_mapped_class: OBJECT_SUBCLASS = OBJECT_SUBCLASS.LAST,
                   object_acceleration_preset: OBJECT_ACCELERATION_PRESET = OBJECT_ACCELERATION_PRESET.DEFAULT,
-                  float max_allowed_acceleration = NAN
+                  float max_allowed_acceleration = NAN,
+                  float velocity_smoothing_factor = 0.5,
+                  float min_velocity_threshold = 0.1,
+                  float prediction_timeout_s = 0.5,
+                  float min_confirmation_time_s = 0.2 # default to some small time instead of frames
     ) -> CustomObjectDetectionProperties:
         if not isinstance(native_mapped_class, OBJECT_SUBCLASS):
             raise ValueError("native_mapped_class must be an OBJECT_SUBCLASS")
         if not isinstance(object_acceleration_preset, OBJECT_ACCELERATION_PRESET):
             raise ValueError("object_acceleration_preset must be an OBJECT_ACCELERATION_PRESET")
+        
+        cdef c_ObjectTrackingParameters tracking_params
+        tracking_params.prediction_timeout_s = prediction_timeout_s
+        tracking_params.min_confirmation_time_s = min_confirmation_time_s
+        tracking_params.velocity_smoothing_factor = velocity_smoothing_factor
+        tracking_params.min_velocity_threshold = min_velocity_threshold
+        tracking_params.object_acceleration_preset = <c_OBJECT_ACCELERATION_PRESET>(<int>object_acceleration_preset.value)
+
         self.custom_object_detection_props = new c_CustomObjectDetectionProperties(enabled,
                                                                                    detection_confidence_threshold,
                                                                                    is_grounded,
@@ -5145,7 +6211,11 @@ cdef class CustomObjectDetectionProperties:
                                                                                    min_box_height_meters,
                                                                                    <c_OBJECT_SUBCLASS>(<int>native_mapped_class.value),
                                                                                    <c_OBJECT_ACCELERATION_PRESET>(<int>object_acceleration_preset.value),
-                                                                                   max_allowed_acceleration)
+                                                                                   max_allowed_acceleration,
+                                                                                   tracking_params)
+        # Initialize the proxy for object_tracking_parameters
+        self._tracking_params_proxy = ObjectTrackingParametersProxy()
+        self._tracking_params_proxy._set_parent(self.custom_object_detection_props)
 
     def __dealloc__(self):
         if self.custom_object_detection_props is not NULL:
@@ -5377,6 +6447,75 @@ cdef class CustomObjectDetectionProperties:
     def max_allowed_acceleration(self, float max_allowed_acceleration):
         self.custom_object_detection_props.max_allowed_acceleration = max_allowed_acceleration
 
+    ##
+    # Object tracking parameters for this class.
+    # Returns a proxy object that allows direct modification of tracking settings.
+    # Example: props.object_tracking_parameters.velocity_smoothing_factor = 0.65
+    @property
+    def object_tracking_parameters(self) -> ObjectTrackingParametersProxy:
+        return self._tracking_params_proxy
+
+    @object_tracking_parameters.setter
+    def object_tracking_parameters(self, ObjectTrackingParameters params):
+        self.custom_object_detection_props.object_tracking_parameters = params.object_tracking_params
+
+    ##
+    # Control the smoothing of the velocity estimation.
+    # Values between 0.0 and 1.0.
+    # - High value (closer to 1.0): Very smooth, but may lag behind rapid changes.
+    # - Low value (closer to 0.0): Very responsive to velocity changes, but may be jittery.
+    # - 0.5: ZED SDK base tuning. Balanced smoothing and responsiveness.
+    @property
+    def velocity_smoothing_factor(self) -> float:
+        return self.custom_object_detection_props.object_tracking_parameters.velocity_smoothing_factor
+
+    @velocity_smoothing_factor.setter
+    def velocity_smoothing_factor(self, float velocity_smoothing_factor):
+        self.custom_object_detection_props.object_tracking_parameters.velocity_smoothing_factor = velocity_smoothing_factor
+
+    ##
+    # Threshold to force an object's velocity to zero.
+    # If the calculated speed (m/s) is below this threshold, the object is considered static.
+    # This helps eliminate drift on stationary objects.
+    # Unit is m/s.
+    @property
+    def min_velocity_threshold(self) -> float:
+        return self.custom_object_detection_props.object_tracking_parameters.min_velocity_threshold
+
+    @min_velocity_threshold.setter
+    def min_velocity_threshold(self, float min_velocity_threshold):
+        self.custom_object_detection_props.object_tracking_parameters.min_velocity_threshold = min_velocity_threshold
+
+    ##
+    # Duration to keep predicting a track's position after occlusion.
+    # When an object is no longer visible (occluded or out of frame), 
+    # the tracker will predict its position for this duration before deleting the track.
+    # - Short (e.g., 0.2s): Prevents "ghost" objects but may break tracks during short occlusions.
+    # - Long (e.g., 2.0s): Maintains ID during long occlusions but may report objects that are gone.
+    # Unit is s.
+    @property
+    def prediction_timeout_s(self) -> float:
+        return self.custom_object_detection_props.object_tracking_parameters.prediction_timeout_s
+
+    @prediction_timeout_s.setter
+    def prediction_timeout_s(self, float prediction_timeout_s):
+        self.custom_object_detection_props.object_tracking_parameters.prediction_timeout_s = prediction_timeout_s
+
+    ##
+    # Minimum confirmation time required to validate a track.
+    # The minimum duration (in seconds) an object must be continuously detected
+    # before it is reported as a valid track. Helps filter out spurious false
+    # positives that appear only briefly.
+    # A negative value (e.g. -1) lets the ZED SDK interpret the prediction_timeout_s.
+    # Default: -1
+    @property
+    def min_confirmation_time_s(self) -> float:
+        return self.custom_object_detection_props.object_tracking_parameters.min_confirmation_time_s
+
+    @min_confirmation_time_s.setter
+    def min_confirmation_time_s(self, float min_confirmation_time_s):
+        self.custom_object_detection_props.object_tracking_parameters.min_confirmation_time_s = min_confirmation_time_s
+
 
 ##
 # Class containing a set of runtime parameters for the object detection module using your own model ran by the SDK.
@@ -5461,7 +6600,11 @@ cdef class CustomObjectDetectionRuntimeParameters:
                 item.second.min_box_height_meters,
                 OBJECT_SUBCLASS(<int>item.second.native_mapped_class),
                 OBJECT_ACCELERATION_PRESET(<int>item.second.object_acceleration_preset),
-                item.second.max_allowed_acceleration
+                item.second.max_allowed_acceleration,
+                item.second.object_tracking_parameters.velocity_smoothing_factor,
+                item.second.object_tracking_parameters.min_velocity_threshold,
+                item.second.object_tracking_parameters.prediction_timeout_s,
+                item.second.object_tracking_parameters.min_confirmation_time_s
             )
             result[item.first] = props
 
@@ -5649,7 +6792,7 @@ cdef class BodyTrackingParameters:
         return self.bodyTrackingParameters.instance_module_id
 
     @instance_module_id.setter
-    def instance_module_id(self, unsigned int instance_module_id):
+    def instance_module_id(self, uint instance_module_id):
         self.bodyTrackingParameters.instance_module_id = instance_module_id
 
 
@@ -5795,7 +6938,7 @@ cdef class RegionOfInterestParameters:
         auto_apply_module_out = set()
         cdef unordered_set[c_MODULE].iterator it = self.roi_params.auto_apply_module.begin()
         while(it != self.roi_params.auto_apply_module.end()):
-            auto_apply_module_out.add(MODULE(deref(it)))
+            auto_apply_module_out.add(MODULE(<c_MODULE>(deref(it))))
             postincrement(it)
         return auto_apply_module_out
 
@@ -5803,7 +6946,7 @@ cdef class RegionOfInterestParameters:
     def auto_apply_module(self, auto_apply_module):
         self.roi_params.auto_apply_module.clear()
         for v in auto_apply_module:
-            self.roi_params.auto_apply_module.insert(<c_MODULE> (<int>v.value))
+            self.roi_params.auto_apply_module.insert(<c_MODULE>(<int>v.value))
 
 # Returns the current timestamp at the time the function is called.
 # \ingroup Core_group
@@ -5909,12 +7052,12 @@ cdef class Rect:
     ##
     # Returns the area of the rectangle.
     def area(self) -> int:
-        return self.rect.width * self.rect.height
+        return self.rect.area()
 
     ##
     # Tests if the given sl.Rect is empty (width or/and height is null).
     def is_empty(self) -> bool:
-        return (self.rect.width * self.rect.height == 0)
+        return self.rect.isEmpty()
 
     ##
     # Tests if this sl.Rect contains the <b>target</b> sl.Rect.
@@ -5923,12 +7066,24 @@ cdef class Rect:
     def contains(self, target: Rect, proper = False) -> bool:
         return self.rect.contains(target.rect, proper)
 
+
+    ##
+    # Tests if this sl.Rect is contained inside the given <b>resolution</b> sl.Resolution.
+    #
+    # It tests if the current rectangle is contained inside a sl::Rect defined by Rect(0, 0, resolution.width, resolution.height).
+    #
+    # \return Ttrue if this rectangle is inside the rectangle defined by Rect(0, 0, resolution.width, resolution.height), otherwise false.
+    # \note This method only returns true if this rectangle is entirely inside the rectangle defined by the resolution (not on the edge).
+    def is_contained_in_resolution(self, Resolution resolution, bool proper=False) -> bool:
+        cdef c_Resolution res = c_Resolution(resolution.width, resolution.height)
+        return self.rect.isContained_Resolution(res, proper)
+
     ##
     # \brief Tests if this sl.Rect is contained inside the given <b>target</b> sl.Rect.
     # \return True if this rectangle is inside the current <b>target</b> sl.Rect, otherwise False.
     # \note This method only returns True if this rectangle is entirely inside the <target> rectangle (not on the edge).
     def is_contained(self, target: Rect, proper = False) -> bool:
-        return self.rect.isContained((<c_Rect>target.rect), proper)
+        return self.rect.isContained_Rect((<c_Rect>target.rect), proper)
 
     def __richcmp__(Rect left, Rect right, int op):
         if op == 2:
@@ -6105,7 +7260,7 @@ cdef class CalibrationParameters:
         self.py_right_cam = CameraParameters()
         self.py_stereo_transform = Transform()
 
-    def set(self):
+    def _set(self):
         self.py_left_cam.camera_params = self.calibration.left_cam
         self.py_right_cam.camera_params = self.calibration.right_cam
 
@@ -6126,7 +7281,7 @@ cdef class CalibrationParameters:
     @left_cam.setter
     def left_cam(self, CameraParameters left_cam_) :
         self.calibration.left_cam = left_cam_.camera_params
-        self.set()
+        self._set()
 
     ##
     # Intrinsic sl.CameraParameters of the right camera.
@@ -6137,7 +7292,7 @@ cdef class CalibrationParameters:
     @right_cam.setter
     def right_cam(self, CameraParameters right_cam_) :
         self.calibration.right_cam = right_cam_.camera_params
-        self.set()
+        self._set()
 
     ##
     # Left to right camera transform, expressed in user coordinate system and unit (defined by \ref InitParameters "sl.InitParameters.coordinate_system").
@@ -6163,7 +7318,7 @@ cdef class SensorParameters:
     cdef c_SENSORS_UNIT sensor_unit
     cdef bool is_available
 
-    def set(self):
+    def _set(self):
         self.sensor_type = self.c_sensor_parameters.type
         self.resolution = self.c_sensor_parameters.resolution
         self.sampling_rate = self.c_sensor_parameters.sampling_rate
@@ -6202,7 +7357,7 @@ cdef class SensorParameters:
     ##
     # Range (NumPy array) of the sensor (minimum: `sensor_range[0]`, maximum: `sensor_range[1]`).
     @property
-    def sensor_range(self) -> np.array[float]:
+    def sensor_range(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(2)
         for i in range(2):
             arr[i] = self.c_sensor_parameters.range[i]
@@ -6215,7 +7370,7 @@ cdef class SensorParameters:
     def set_sensor_range(self, value1: float, value2: float) -> None:
         self.c_sensor_parameters.range[0] = value1
         self.c_sensor_parameters.range[1] = value2
-        self.set()
+        self._set()
 
     ##
     # White noise density given as continuous (frequency-independent).
@@ -6261,7 +7416,7 @@ cdef class SensorParameters:
 # \note This class is meant to be used as a read-only container.
 # \note Editing any of its fields will not impact the ZED SDK.
 cdef class SensorsConfiguration:
-    cdef unsigned int firmware_version
+    cdef uint firmware_version
     cdef Transform camera_imu_transform
     cdef Transform imu_magnetometer_transform
     cdef SensorParameters accelerometer_parameters
@@ -6283,17 +7438,17 @@ cdef class SensorsConfiguration:
         config = caminfo.sensors_configuration
         self.accelerometer_parameters = SensorParameters()
         self.accelerometer_parameters.c_sensor_parameters = config.accelerometer_parameters
-        self.accelerometer_parameters.set()
+        self.accelerometer_parameters._set()
         self.gyroscope_parameters = SensorParameters()
         self.gyroscope_parameters.c_sensor_parameters = config.gyroscope_parameters
-        self.gyroscope_parameters.set()
+        self.gyroscope_parameters._set()
         self.magnetometer_parameters = SensorParameters()
         self.magnetometer_parameters.c_sensor_parameters = config.magnetometer_parameters
-        self.magnetometer_parameters.set()
+        self.magnetometer_parameters._set()
         self.firmware_version = config.firmware_version
         self.barometer_parameters = SensorParameters()
         self.barometer_parameters.c_sensor_parameters = config.barometer_parameters
-        self.barometer_parameters.set()
+        self.barometer_parameters._set()
         self.camera_imu_transform = Transform()
         for i in range(16):
             self.camera_imu_transform.transform.m[i] = config.camera_imu_transform.m[i]
@@ -6307,17 +7462,17 @@ cdef class SensorsConfiguration:
         config = caminfo.sensors_configuration
         self.accelerometer_parameters = SensorParameters()
         self.accelerometer_parameters.c_sensor_parameters = config.accelerometer_parameters
-        self.accelerometer_parameters.set()
+        self.accelerometer_parameters._set()
         self.gyroscope_parameters = SensorParameters()
         self.gyroscope_parameters.c_sensor_parameters = config.gyroscope_parameters
-        self.gyroscope_parameters.set()
+        self.gyroscope_parameters._set()
         self.magnetometer_parameters = SensorParameters()
         self.magnetometer_parameters.c_sensor_parameters = config.magnetometer_parameters
-        self.magnetometer_parameters.set()
+        self.magnetometer_parameters._set()
         self.firmware_version = config.firmware_version
         self.barometer_parameters = SensorParameters()
         self.barometer_parameters.c_sensor_parameters = config.barometer_parameters
-        self.barometer_parameters.set()
+        self.barometer_parameters._set()
         self.camera_imu_transform = Transform()
         for i in range(16):
             self.camera_imu_transform.transform.m[i] = config.camera_imu_transform.m[i]
@@ -6399,11 +7554,13 @@ cdef class SensorsConfiguration:
 cdef class CameraConfiguration:
     cdef CalibrationParameters py_calib
     cdef CalibrationParameters py_calib_raw
-    cdef unsigned int firmware_version
+    cdef uint firmware_version
     cdef c_Resolution py_res
     cdef float camera_fps
 
-    def __cinit__(self, Camera py_camera, Resolution resizer=Resolution(0,0), int firmware_version_=0, int fps_=0, CalibrationParameters py_calib_= CalibrationParameters(), CalibrationParameters py_calib_raw_= CalibrationParameters()):
+    def __cinit__(self, Camera py_camera, Resolution resizer=None, int firmware_version_=0, int fps_=0, CalibrationParameters py_calib_=None, CalibrationParameters py_calib_raw_=None):
+        if resizer is None:
+            resizer = Resolution(0, 0)
         res = c_Resolution(resizer.width, resizer.height)
         self.py_calib = CalibrationParameters()
         caminfo = py_camera.camera.getCameraInformation(res)
@@ -6411,8 +7568,8 @@ cdef class CameraConfiguration:
         self.py_calib.calibration = camconfig.calibration_parameters
         self.py_calib_raw = CalibrationParameters()
         self.py_calib_raw.calibration = camconfig.calibration_parameters_raw
-        self.py_calib.set()
-        self.py_calib_raw.set()
+        self.py_calib._set()
+        self.py_calib_raw._set()
         self.firmware_version = camconfig.firmware_version
         self.py_res = camconfig.resolution
         self.camera_fps = camconfig.fps
@@ -6456,7 +7613,7 @@ cdef class CameraConfiguration:
 # \note This object is meant to be used as a read-only container, editing any of its fields won't impact the SDK.
 # \warning \ref CalibrationParameters are returned in \ref COORDINATE_SYSTEM.IMAGE , they are not impacted by the \ref InitParameters.coordinate_system
 cdef class CameraInformation:
-    cdef unsigned int serial_number
+    cdef uint serial_number
     cdef c_MODEL camera_model
     cdef c_INPUT_TYPE input_type
     cdef CameraConfiguration py_camera_configuration
@@ -6569,7 +7726,7 @@ cdef class Mat:
     # \param memory_type : Where the buffer will be stored. Default: [sl.MEM.CPU](\ref MEM) (you cannot change this default value)
     def init_mat_resolution(self, resolution: Resolution, mat_type: MAT_TYPE, memory_type=MEM.CPU) -> None:
         if isinstance(mat_type, MAT_TYPE) and isinstance(memory_type, MEM):
-            c_Mat(c_Resolution(resolution.width, resolution.height), <c_MAT_TYPE>(<int>mat_type.value), <c_MEM>(<int>memory_type.value)).move(self.mat)
+            c_Mat(resolution.width, resolution.height, <c_MAT_TYPE>(<int>mat_type.value), <c_MEM>(<int>memory_type.value)).move(self.mat)
         else:
             raise TypeError("Argument are not of MAT_TYPE or MEM type.")
 
@@ -6583,7 +7740,7 @@ cdef class Mat:
     # \param memory_type : Where the buffer will be stored. Default: [sl.MEM.CPU](\ref MEM) (you cannot change this default value)
     def init_mat_resolution_cpu(self, resolution: Resolution, mat_type, ptr, step, memory_type=MEM.CPU) -> None:
         if isinstance(mat_type, MAT_TYPE) and isinstance(memory_type, MEM):
-            c_Mat(c_Resolution(resolution.width, resolution.height), <c_MAT_TYPE>(<int>mat_type.value), ptr.encode(), step, <c_MEM>(<int>memory_type.value)).move(self.mat)
+            c_Mat(resolution.width, resolution.height, <c_MAT_TYPE>(<int>mat_type.value), ptr.encode(), step, <c_MEM>(<int>memory_type.value)).move(self.mat)
         else:
             raise TypeError("Argument are not of MAT_TYPE or MEM type.")
 
@@ -6682,7 +7839,8 @@ cdef class Mat:
     # - [MAT_TYPE.U8_C3](\ref MAT_TYPE) for PNG/JPG
     # - [MAT_TYPE.U8_C4](\ref MAT_TYPE) for PNG/JPG
     def read(self, filepath: str) -> ERROR_CODE:
-        return _error_code_cache.get(<int>self.mat.read(filepath.encode()), ERROR_CODE.FAILURE)
+        filepath_read = filepath.encode()
+        return _error_code_cache.get(<int>self.mat.read(String(<char*>filepath_read)), ERROR_CODE.FAILURE)
 
     ##
     # Writes the sl.Mat (only if [sl.MEM.CPU](\ref MEM) is available on the current sl.Mat) into a file as an image.
@@ -6702,7 +7860,8 @@ cdef class Mat:
     # - [MAT_TYPE.U8_C3](\ref MAT_TYPE) for PNG/JPG
     # - [MAT_TYPE.U8_C4](\ref MAT_TYPE) for PNG/JPG
     def write(self, filepath: str, memory_type=MEM.CPU, compression_level = -1) -> ERROR_CODE:
-        return _error_code_cache.get(<int>self.mat.write(filepath.encode(), <c_MEM>(<int>memory_type.value), compression_level), ERROR_CODE.FAILURE)
+        filepath_write = filepath.encode()
+        return _error_code_cache.get(<int>self.mat.write(String(<char*>filepath_write), <c_MEM>(<int>memory_type.value), compression_level), ERROR_CODE.FAILURE)
 
     ##
     # Fills the sl.Mat with the given value.
@@ -6779,7 +7938,7 @@ cdef class Mat:
     # \return [sl.ERROR_CODE.SUCCESS](\ref ERROR_CODE) if everything went well, [sl.ERROR_CODE.FAILURE](\ref ERROR_CODE) otherwise.
     #
     # \warning Not efficient for [sl.MEM.GPU](\ref MEM), use it on sparse data.
-    def get_value(self, x: int, y: int, memory_type=MEM.CPU) -> ERROR_CODE:
+    def get_value(self, x: int, y: int, memory_type=MEM.CPU) -> Tuple[ERROR_CODE, np.ndarray[Any]]:
         cdef uchar1 value1u
         cdef Vector2[uchar1] value2u = Vector2[uchar1](0,0)
         cdef Vector3[uchar1] value3u = Vector3[uchar1](0,0,0)
@@ -6865,7 +8024,7 @@ cdef class Mat:
     # \param force : Whether the memory of the sl.Mat need to be duplicated.
     # \return NumPy array containing the sl.Mat data.
     # \note The fastest is \b force at False but the sl.Mat memory must not be released to use the NumPy array.
-    def numpy(self, force=False) -> np.array:
+    def numpy(self, force=False) -> npt.NDArray:
         return self.get_data(memory_type=MEM.CPU, deep_copy=force)
 
     ##
@@ -6874,7 +8033,7 @@ cdef class Mat:
     # \param deep_copy : Whether the memory of the sl.Mat need to be duplicated.
     # \return NumPy array containing the sl.Mat data.
     # \note The fastest is \b deep_copy at False but the sl.Mat memory must not be released to use the NumPy array.
-    def get_data(self, memory_type=MEM.CPU, deep_copy=False) -> np.array:
+    def get_data(self, memory_type=MEM.CPU, deep_copy=False) -> npt.NDArray:
 
         if not isinstance(memory_type, MEM):
             raise TypeError("Argument is not of MEM type.")
@@ -7044,7 +8203,7 @@ cdef class Mat:
     # \param py_mat : sl.Mat to copy.
     #
     # This method copies the data array(s) and it marks the new sl.Mat as the memory owner.
-    def clone(self, py_mat: Mat) -> ERROR_CODE:
+    def clone(self, Mat py_mat) -> ERROR_CODE:
         return _error_code_cache.get(<int>self.mat.clone(py_mat.mat), ERROR_CODE.FAILURE)
 
     ##
@@ -7053,30 +8212,30 @@ cdef class Mat:
     # This method gives the attribute of the current s.Mat to the specified one. (No copy.)
     # \param py_mat : sl.Mat to move to.
     # \note : The current sl.Mat is then no more usable since its loose its attributes.
-    def move(self, py_mat: Mat) -> ERROR_CODE:
+    def move(self, Mat py_mat) -> ERROR_CODE:
         return _error_code_cache.get(<int>self.mat.move(py_mat.mat), ERROR_CODE.FAILURE)
 
     ##
     #  Convert the color channels of the Mat (RGB<->BGR or RGBA<->BGRA)
     # This methods works only on 8U_C4 or 8U_C3
     def convert_color_inplace(self, memory_type=MEM.CPU) -> ERROR_CODE:
-        return _error_code_cache.get(<int>self.mat.convertColor(<c_MEM>(<unsigned int>memory_type.value)), ERROR_CODE.FAILURE)
+        return _error_code_cache.get(<int>self.mat.convertColor(<c_MEM>(<int>memory_type.value)), ERROR_CODE.FAILURE)
 
     ##
     # Convert the color channels of the Mat into another Mat
     # This methods works only on 8U_C4 if remove_alpha_channels is enabled, or 8U_C4 and 8U_C3 if swap_RB_channels is enabled
     # The inplace method sl::Mat::convertColor can be used for only swapping the Red and Blue channel efficiently
     @staticmethod
-    def convert_color(mat1: Mat, mat2: Mat, swap_RB_channels: bool, remove_alpha_channels: bool, memory_type=MEM.CPU) -> ERROR_CODE:
+    def convert_color(Mat mat1, Mat mat2, bool swap_RB_channels, bool remove_alpha_channels, memory_type=MEM.CPU) -> ERROR_CODE:
         cls = Mat()
-        return _error_code_cache.get(<int>cls.mat.convertColor(mat1.mat, mat2.mat, swap_RB_channels, remove_alpha_channels, <c_MEM>(<unsigned int>memory_type.value)), ERROR_CODE.FAILURE)
+        return _error_code_cache.get(<int>cls.mat.convertColor(mat1.mat, mat2.mat, swap_RB_channels, remove_alpha_channels, <c_MEM>(<int>memory_type.value), <cudaStream_t>0), ERROR_CODE.FAILURE)
 
     ##
     # Swaps the content of the provided sl::Mat (only swaps the pointers, no data copy).
     # \param mat1 : First matrix to swap.
     # \param mat2 : Second matrix to swap.
     @staticmethod
-    def swap(mat1: Mat, mat2: Mat) -> None:
+    def swap(Mat mat1, Mat mat2) -> None:
         cdef c_Mat tmp
         tmp = mat1.mat
         mat1.mat = mat2.mat
@@ -7108,7 +8267,7 @@ cdef class Mat:
     ##
     # Timestamp of the last manipulation of the data of the matrix by a method/function.
     @property
-    def timestamp(self) -> int:
+    def timestamp(self) -> Timestamp:
         ts = Timestamp()
         ts.timestamp = self.mat.timestamp
         return ts
@@ -7129,6 +8288,192 @@ cdef class Mat:
 
     def __repr__(self):
         return self.get_infos()
+
+##
+# \brief Class containing the parameters of a Tensor
+# \ingroup Core_group
+cdef class TensorParameters:
+    cdef c_TensorParameters par
+
+    def __cinit__(self,
+                  Resolution target_size=Resolution(0,0),
+                  pixel_type=TENSOR_PIXEL_TYPE.FLOAT,
+                  mean=[0.485, 0.456, 0.406],
+                  std=[0.229, 0.224, 0.225],
+                  bool stretch=False,
+                  scale=[1./255., 1./255., 1./255.],
+                  color_format=TENSOR_COLOR_FORMAT.BGR,
+                  layout=TENSOR_LAYOUT.NCHW,
+                  batch_size=1,
+                  memory_type=MEM.GPU):
+        self.par.target_size = target_size.resolution
+        self.par.pixel_type = <c_TENSOR_PIXEL_TYPE>(<int>pixel_type.value)
+        self.par.mean = Vector3[float](mean[0], mean[1], mean[2])
+        self.par.std = Vector3[float](std[0], std[1], std[2])
+        self.par.stretch = stretch
+        self.par.scale = Vector3[float](scale[0], scale[1], scale[2])
+        self.par.color_format = <c_TENSOR_COLOR_FORMAT>(<int>color_format.value)
+        self.par.layout = <c_TENSOR_LAYOUT>(<int>layout.value)
+        self.par.batch_size = batch_size
+        self.par.memory_type = <c_MEM>(<int>memory_type.value)
+
+    ##
+    # Target size for the input image (Width, Height).
+    # Default: (640,640).
+    @property
+    def target_size(self) -> Resolution:
+        res = Resolution()
+        res.resolution = self.par.target_size
+        return res
+    @target_size.setter
+    def target_size(self, Resolution res):
+        self.par.target_size = res.resolution
+
+    ##
+    # Pixel data type for the Tensor elements.
+    # \note Specifies the underlying data type: UCHAR (8-bit), FLOAT (32-bit), or HALF (16-bit).
+    # Default: [TENSOR_PIXEL_TYPE.FLOAT](\ref TENSOR_PIXEL_TYPE).
+    @property
+    def pixel_type(self) -> TENSOR_PIXEL_TYPE:
+        return TENSOR_PIXEL_TYPE(<int>self.par.pixel_type)
+    @pixel_type.setter
+    def pixel_type(self, pixel_type: TENSOR_PIXEL_TYPE):
+        self.par.pixel_type = <c_TENSOR_PIXEL_TYPE>(<int>pixel_type.value)
+
+    ##
+    # Normalization parameter: Mean.
+    # \note Pixel = (Pixel * Scale - Mean) / Std.
+    # Default: ImageNet Standard [0.485, 0.456, 0.406].
+    @property
+    def mean(self) -> list[float]:
+        return [self.par.mean[0], self.par.mean[1], self.par.mean[2]]
+    @mean.setter
+    def mean(self, val):
+        if isinstance(val, (int, float)):
+            self.par.mean = Vector3[float](val, val, val)
+        else:
+            self.par.mean = Vector3[float](val[0], val[1], val[2])
+
+    ##
+    # Normalization parameter: Standard Deviation.
+    # \note Pixel = (Pixel * Scale - Mean) / Std.
+    # Default: ImageNet Standard [0.229, 0.224, 0.225].
+    @property
+    def std(self) -> list[float]:
+        return [self.par.std[0], self.par.std[1], self.par.std[2]]
+    @std.setter
+    def std(self, val):
+        if isinstance(val, (int, float)):
+            self.par.std = Vector3[float](val, val, val)
+        else:
+            self.par.std = Vector3[float](val[0], val[1], val[2])
+
+    ##
+    # If true, stretches the image to target_size. If false, keeps aspect ratio and applies letterboxing (padding).
+    @property
+    def stretch(self) -> bool:
+        return self.par.stretch
+    @stretch.setter
+    def stretch(self, bool val):
+        self.par.stretch = val
+
+    ##
+    # Scale factor applied to the pixel values before normalization.
+    @property
+    def scale(self) -> list[float]:
+        return [self.par.scale[0], self.par.scale[1], self.par.scale[2]]
+    @scale.setter
+    def scale(self, val):
+        if isinstance(val, (int, float)):
+            self.par.scale = Vector3[float](val, val, val)
+        else:
+            self.par.scale = Vector3[float](val[0], val[1], val[2])
+
+    ##
+    # Desired color format for the output Tensor.
+    @property
+    def color_format(self) -> TENSOR_COLOR_FORMAT:
+        return TENSOR_COLOR_FORMAT(<int>self.par.color_format)
+    @color_format.setter
+    def color_format(self, color_format: TENSOR_COLOR_FORMAT):
+        self.par.color_format = <c_TENSOR_COLOR_FORMAT>(<int>color_format.value)
+
+    ##
+    # Desired memory layout for the output Tensor.
+    # \note NCHW (planar) is common for PyTorch models.
+    # \note NHWC (interleaved) is common for TensorFlow models.
+    @property
+    def layout(self) -> TENSOR_LAYOUT:
+        return TENSOR_LAYOUT(<int>self.par.layout)
+    @layout.setter
+    def layout(self, layout: TENSOR_LAYOUT):
+        self.par.layout = <c_TENSOR_LAYOUT>(<int>layout.value)
+
+    ##
+    # Number of images in the batch.
+    @property
+    def batch_size(self) -> int:
+        return self.par.batch_size
+    @batch_size.setter
+    def batch_size(self, int val):
+        self.par.batch_size = val
+
+    ##
+    # Where the Tensor should be stored (CPU or GPU).
+    @property
+    def memory_type(self) -> MEM:
+        return MEM(<int>self.par.memory_type)
+    @memory_type.setter
+    def memory_type(self, memory_type: MEM):
+        self.par.memory_type = <c_MEM>(<int>memory_type.value)
+
+    ##
+    # \brief Returns the size in bytes of a single pixel element based on \ref pixel_type.
+    # \return The size in bytes (1 for UCHAR, 2 for HALF, 4 for FLOAT).
+    def get_pixel_size(self) -> int:
+        return self.par.getPixelSize()
+
+    ##
+    # \brief Returns the number of channels associated with the \ref color_format.
+    # \return The number of channels.
+    def get_requested_channels(self) -> int:
+        return self.par.getRequestedChannels()
+
+##
+# \brief Class representing a Tensor, used for inference.
+# \ingroup Core_group
+cdef class Tensor:
+    cdef c_Tensor tensor
+
+    def __cinit__(self, TensorParameters params=None):
+        if params is not None:
+            self.tensor.alloc(params.par)
+
+    ##
+    # \brief Allocates the Tensor memory.
+    # \param params : Parameters defining the Tensor creation.
+    def alloc(self, TensorParameters params):
+        self.tensor.alloc(params.par)
+
+    ##
+    # \brief Returns the dimensions of the Tensor.
+    # \return A vector containing the size of each dimension (e.g., {Batch, Channels, Height, Width} for NCHW).
+    def get_dims(self):
+        return self.tensor.getDims()
+
+    ##
+    # \brief Returns the total number of elements in the Tensor.
+    # \return The product of all dimensions.
+    def get_element_count(self):
+        return self.tensor.getElementCount()
+
+    ##
+    # \brief Returns the parameters used to create or define the Tensor.
+    # \return The \ref TensorParameters associated with this Tensor.
+    def get_parameters(self):
+        tp = TensorParameters()
+        tp.par = self.tensor.getParameters()
+        return tp
 
 ##
 # \brief Convert an image into a GPU Tensor in planar channel configuration (NCHW), ready to use for deep learning model
@@ -7158,7 +8503,7 @@ cdef class Mat:
 #
 # \endcode
 def blob_from_image(mat1: Mat, mat2: Mat, resolution: Resolution, scale: float, mean: tuple, stdev: tuple, keep_aspect_ratio: bool, swap_RB_channels: bool) -> ERROR_CODE:
-    return _error_code_cache.get(<int>c_blobFromImage(mat1.mat, mat2.mat, resolution.resolution, scale, Vector3[float](mean[0], mean[1], mean[2]), Vector3[float](stdev[0], stdev[1], stdev[2]), keep_aspect_ratio, swap_RB_channels), ERROR_CODE.FAILURE)
+    return _error_code_cache.get(<int>c_blobFromImage(mat1.mat, mat2.mat, resolution.resolution, scale, Vector3[float](mean[0], mean[1], mean[2]), Vector3[float](stdev[0], stdev[1], stdev[2]), keep_aspect_ratio, swap_RB_channels, <cudaStream_t>0), ERROR_CODE.FAILURE)
 
 ##
 # \brief Check if the camera is a ZED One (Monocular) or ZED (Stereo)
@@ -7266,7 +8611,7 @@ cdef class Rotation(Matrix3f):
     ##
     # Returns the 3x1 rotation vector obtained from 3x3 rotation matrix using Rodrigues formula.
     # \return Rotation vector (NumPy array) created from the sl.Orientation values.
-    def get_rotation_vector(self) -> np.array[float]:
+    def get_rotation_vector(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(3)
         for i in range(3):
             arr[i] = self.rotation.getRotationVector()[i]
@@ -7284,7 +8629,7 @@ cdef class Rotation(Matrix3f):
     # Converts the sl.Rotation into Euler angles.
     # \param radian : Whether the angle will be returned in radian or degree. Default: True
     # \return Euler angles (NumPy array) created from the sl.Rotation values representing the rotations around the X, Y and Z axes using YZX convention.
-    def get_euler_angles(self, radian=True) -> np.array[float]:
+    def get_euler_angles(self, radian=True) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(3)
         if isinstance(radian, bool):
             for i in range(3):
@@ -7318,7 +8663,7 @@ cdef class Translation:
         # Handle initialization with values
         if input_translation is not None:
             if hasattr(input_translation, '__len__') and len(input_translation) == 3:
-                # Initialize from list/array of 3 values [x, y, z]
+                # Initialize from list/array of 3 values [tx, ty, tz]
                 self.translation = c_Translation(
                     float(input_translation[0]),
                     float(input_translation[1]),
@@ -7379,7 +8724,7 @@ cdef class Translation:
     ##
     # Gets the sl.Translation as an NumPy array.
     # \return NumPy array containing the components of the sl.Translation.
-    def get(self) -> np.array[float]:
+    def get(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(self.size())
         for i in range(self.size()):
             arr[i] = <float>self.translation(i)
@@ -7476,7 +8821,9 @@ cdef class Orientation:
     ##
     # Creates an sl.Orientation initialized to identity.
     # \return Identity sl.Orientation.
-    def identity(self, Orientation orient=Orientation()) -> Orientation:
+    def identity(self, Orientation orient=None) -> Orientation:
+        if orient is None:
+            orient = Orientation()
         (<Orientation>orient).orientation.setIdentity()
         return orient
 
@@ -7488,7 +8835,9 @@ cdef class Orientation:
     ##
     # Creates an sl.Orientation filled with zeros.
     # \return sl.Orientation filled with zeros.
-    def zeros(self, Orientation orient=Orientation()) -> Orientation:
+    def zeros(self, Orientation orient=None) -> Orientation:
+        if orient is None:
+            orient = Orientation()
         (<Orientation>orient).orientation.setZeros()
         return orient
 
@@ -7515,7 +8864,7 @@ cdef class Orientation:
     ##
     # Returns a numpy array of the \ref Orientation .
     # \return A numpy array of the \ref Orientation .
-    def get(self) -> np.array[float]:
+    def get(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(self.size())
         for i in range(self.size()):
             arr[i] = <float>self.orientation(i)
@@ -7574,7 +8923,7 @@ cdef class Transform(Matrix4f):
     ##
     # Deep copy from another sl.Transform.
     # \param motion : sl.Transform to copy.
-    def init_transform(self, motion: Transform) -> None:
+    def init_transform(self, Transform motion) -> None:
         for i in range(16):
             self.transform.m[i] = motion.transform.m[i]
 
@@ -7653,7 +9002,7 @@ cdef class Transform(Matrix4f):
     ##
     # Returns the 3x1 rotation vector obtained from 3x3 rotation matrix using Rodrigues formula.
     # \return Rotation vector (NumPy array) created from the sl.Transform values.
-    def get_rotation_vector(self) -> np.array[float]:
+    def get_rotation_vector(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(3)
         for i in range(3):
             arr[i] = self.transform.getRotationVector()[i]
@@ -7671,7 +9020,7 @@ cdef class Transform(Matrix4f):
     # Converts the rotation component of the sl.Transform into Euler angles.
     # \param radian : Whether the angle will be returned in radian or degree. Default: True
     # \return Euler angles (Numpy array) created from the sl.Transform values representing the rotations around the X, Y and Z axes using YZX convention.
-    def get_euler_angles(self, radian=True) -> np.array[float]:
+    def get_euler_angles(self, radian=True) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(3)
         if isinstance(radian, bool):
             for i in range(3):
@@ -7806,7 +9155,7 @@ cdef class PointCloudChunk :
     # NumPy array of vertices.
     # Vertices are defined by a colored 3D point ```[x, y, z, rgba]```.
     @property
-    def vertices(self) -> np.array[float]:
+    def vertices(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.chunk.vertices.size(), 4), dtype=np.float32)
         for i in range(self.chunk.vertices.size()):
             for j in range(4):
@@ -7818,7 +9167,7 @@ cdef class PointCloudChunk :
     # Normals are defined by three components ```[nx, ny, nz]```.
     # \note A normal is defined for each vertex.
     @property
-    def normals(self) -> np.array[float]:
+    def normals(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.chunk.normals.size(), 3), dtype=np.float32)
         for i in range(self.chunk.normals.size()):
             for j in range(3):
@@ -7834,7 +9183,7 @@ cdef class PointCloudChunk :
     ##
     # 3D centroid of the chunk.
     @property
-    def barycenter(self) -> np.array[float]:
+    def barycenter(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(3, dtype=np.float32)
         for i in range(3):
             arr[i] = self.chunk.barycenter[i]
@@ -7866,7 +9215,7 @@ cdef class Chunk:
     # NumPy array of vertices.
     # Vertices are defined by a 3D point ```[x, y, z]```.
     @property
-    def vertices(self) -> np.array[float]:
+    def vertices(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.chunk.vertices.size(), 3), dtype=np.float32)
         for i in range(self.chunk.vertices.size()):
             for j in range(3):
@@ -7877,7 +9226,7 @@ cdef class Chunk:
     # NumPy array of triangles/faces.
     # Triangle defined as a set of three vertices indexes ```[v1, v2, v3]```.
     @property
-    def triangles(self) -> np.array[int]:
+    def triangles(self) -> npt.NDArray[int]:
         cdef np.ndarray arr = np.zeros((self.chunk.triangles.size(), 3), dtype = np.uint32)
         for i in range(self.chunk.triangles.size()):
             for j in range(3):
@@ -7889,7 +9238,7 @@ cdef class Chunk:
     # Normals are defined by three components ```[nx, ny, nz]```.
     # \note A normal is defined for each vertex.
     @property
-    def normals(self) -> np.array[float]:
+    def normals(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.chunk.normals.size(), 3), dtype=np.float32)
         for i in range(self.chunk.normals.size()):
             for j in range(3):
@@ -7901,7 +9250,7 @@ cdef class Chunk:
     # Colors are defined by three components ```[r, g, b]```.
     # \note A color is defined for each vertex.
     @property
-    def colors(self) -> np.array[int]:
+    def colors(self) -> npt.NDArray[int]:
         cdef np.ndarray arr = np.zeros((self.chunk.colors.size(), 3), dtype = np.ubyte)
         for i in range(self.chunk.colors.size()):
             for j in range(3):
@@ -7914,7 +9263,7 @@ cdef class Chunk:
     # \n In order to display a textured mesh you need to bind the texture and then draw each triangle by picking its uv values.
     # \note Contains data only if your mesh has textures (by loading it or calling sl.Mesh.apply_texture()).
     @property
-    def uv(self) -> np.array[float]:
+    def uv(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.chunk.uv.size(), 2), dtype=np.float32)
         for i in range(self.chunk.uv.size()):
             for j in range(2):
@@ -7930,7 +9279,7 @@ cdef class Chunk:
     ##
     # 3D centroid of the chunk.
     @property
-    def barycenter(self) -> np.array[float]:
+    def barycenter(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(3, dtype=np.float32)
         for i in range(3):
             arr[i] = self.chunk.barycenter[i]
@@ -7981,7 +9330,7 @@ cdef class FusedPointCloud :
     # NumPy array of vertices.
     # Vertices are defined by a colored 3D point ```[x, y, z, rgba]```.
     @property
-    def vertices(self) -> np.array[float]:
+    def vertices(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.fpc.vertices.size(), 4), dtype=np.float32)
         for i in range(self.fpc.vertices.size()):
             for j in range(4):
@@ -7993,7 +9342,7 @@ cdef class FusedPointCloud :
     # Normals are defined by three components ```[nx, ny, nz]```.
     # \note A normal is defined for each vertex.
     @property
-    def normals(self) -> np.array[float]:
+    def normals(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.fpc.normals.size(), 3), dtype=np.float32)
         for i in range(self.fpc.normals.size()):
             for j in range(3):
@@ -8046,6 +9395,10 @@ cdef class FusedPointCloud :
     def get_number_of_points(self) -> int:
         return self.fpc.getNumberOfPoints()
 
+class MESH_CREATION(enum.Enum):
+    NONE = <int>c_MESH_CREATION.MESH_CREATION_NONE
+    LIVE = <int>c_MESH_CREATION.MESH_CREATION_LIVE
+    LOAD = <int>c_MESH_CREATION.MESH_CREATION_LOAD
 
 ##
 # Class representing a mesh and containing the geometric (and optionally texture) data of the scene captured by the spatial mapping module.
@@ -8086,7 +9439,9 @@ cdef class Mesh:
     #
     # \note The filtering is a costly operation.
     # \note It is not recommended to call it every time you retrieve a mesh but only at the end of your spatial mapping process.
-    def filter(self, params=MeshFilterParameters(), update_chunk_only=False) -> bool:
+    def filter(self, params=None, update_chunk_only=False) -> bool:
+        if params is None:
+            params = MeshFilterParameters()
         if isinstance(update_chunk_only, bool):
             return self.mesh.filter(deref((<MeshFilterParameters>params).meshFilter), update_chunk_only)
         else:
@@ -8152,7 +9507,7 @@ cdef class Mesh:
     # NumPy array of vertices.
     # Vertices are defined by a 3D point ```[x, y, z]```.
     @property
-    def vertices(self) -> np.array[float]:
+    def vertices(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.mesh.vertices.size(), 3), dtype=np.float32)
         for i in range(self.mesh.vertices.size()):
             for j in range(3):
@@ -8163,7 +9518,7 @@ cdef class Mesh:
     # NumPy array of triangles/faces.
     # Triangle defined as a set of three vertices indexes ```[v1, v2, v3]```.
     @property
-    def triangles(self) -> np.array[int]:
+    def triangles(self) -> npt.NDArray[int]:
         cdef np.ndarray arr = np.zeros((self.mesh.triangles.size(), 3))
         for i in range(self.mesh.triangles.size()):
             for j in range(3):
@@ -8175,7 +9530,7 @@ cdef class Mesh:
     # Normals are defined by three components ```[nx, ny, nz]```.
     # \note A normal is defined for each vertex.
     @property
-    def normals(self) -> np.array[float]:
+    def normals(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.mesh.normals.size(), 3), dtype=np.float32)
         for i in range(self.mesh.normals.size()):
             for j in range(3):
@@ -8187,7 +9542,7 @@ cdef class Mesh:
     # Colors are defined by three components ```[r, g, b]```.
     # \note A color is defined for each vertex.
     @property
-    def colors(self) -> np.array[int]:
+    def colors(self) -> npt.NDArray[int]:
         cdef np.ndarray arr = np.zeros((self.mesh.colors.size(), 3), dtype=np.ubyte)
         for i in range(self.mesh.colors.size()):
             for j in range(3):
@@ -8200,7 +9555,7 @@ cdef class Mesh:
     # In order to display a textured mesh you need to bind the texture and then draw each triangle by picking its uv values.
     # \note Contains data only if your mesh has textures (by loading it or calling sl.Mesh.apply_texture()).
     @property
-    def uv(self) -> np.array[float]:
+    def uv(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros((self.mesh.uv.size(), 2), dtype=np.float32)
         for i in range(self.mesh.uv.size()):
             for j in range(2):
@@ -8225,7 +9580,7 @@ cdef class Mesh:
     ##
     # Compute the indices of boundary vertices.
     # \return The indices of boundary vertices.
-    def get_boundaries(self) -> np.array[int]:
+    def get_boundaries(self) -> npt.NDArray[int]:
         cdef np.ndarray arr = np.zeros(self.mesh.getBoundaries().size(), dtype=np.uint32)
         for i in range(self.mesh.getBoundaries().size()):
             arr[i] = self.mesh.getBoundaries()[i]
@@ -8247,7 +9602,7 @@ cdef class Mesh:
     # \return The estimated gravity vector (NumPy array).
     #
     # \note This can be used to find the gravity to create realistic physical interactions.
-    def get_gravity_estimate(self) -> np.array[float]:
+    def get_gravity_estimate(self) -> npt.NDArray[float]:
         gravity = self.mesh.getGravityEstimate()
         cdef np.ndarray arr = np.zeros(3)
         for i in range(3):
@@ -8305,7 +9660,7 @@ cdef class Plane:
     ##
     # Gets the plane normal vector.
     # \return sl.Plane normalized normal vector (NumPy array).
-    def get_normal(self) -> np.array[float]:
+    def get_normal(self) -> npt.NDArray[float]:
         normal = self.plane.getNormal()
         cdef np.ndarray arr = np.zeros(3)
         for i in range(3):
@@ -8315,7 +9670,7 @@ cdef class Plane:
     ##
     # Gets the plane center point
     # \return sl.Plane center point
-    def get_center(self) -> np.array[float]:
+    def get_center(self) -> npt.NDArray[float]:
         center = self.plane.getCenter()
         cdef np.ndarray arr = np.zeros(3)
         for i in range(3):
@@ -8327,7 +9682,9 @@ cdef class Plane:
     # \param py_pose : sl.Transform to fill (or it creates one by default).
     # \return Transformation matrix (rotation and translation) of the plane pose.
     # \note Can be used to transform the global reference frame center ```(0, 0, 0)``` to the plane center.
-    def get_pose(self, py_pose = Transform()) -> Transform:
+    def get_pose(self, py_pose = None) -> Transform:
+        if py_pose is None:
+            py_pose = Transform()
         tmp =  self.plane.getPose()
         for i in range(16):
             (<Transform>py_pose).transform.m[i] = tmp.m[i]
@@ -8337,7 +9694,7 @@ cdef class Plane:
     # Gets the width and height of the bounding rectangle around the plane contours.
     # \return Width and height of the bounding plane contours (NumPy array).
     # \warning This value is expressed in the plane reference frame.
-    def get_extents(self) -> np.array[float]:
+    def get_extents(self) -> npt.NDArray[float]:
         extents = self.plane.getExtents()
         cdef np.ndarray arr = np.zeros(2)
         for i in range(2):
@@ -8348,7 +9705,7 @@ cdef class Plane:
     # Gets the plane equation.
     # \return Plane equation coefficients ```[a, b, c, d]``` (NumPy array).
     # \note The plane equation has the following form: ```ax + by + cz = d```.
-    def get_plane_equation(self) -> np.array[float]:
+    def get_plane_equation(self) -> npt.NDArray[float]:
         plane_eq = self.plane.getPlaneEquation()
         cdef np.ndarray arr = np.zeros(4)
         for i in range(4):
@@ -8358,7 +9715,7 @@ cdef class Plane:
     ##
     # Gets the polygon bounds of the plane.
     # \return Vector of 3D points forming a polygon bounds corresponding to the current visible limits of the plane (NumPy array).
-    def get_bounds(self) -> np.array[float][float]:
+    def get_bounds(self) -> npt.NDArray[float][float]:
         cdef np.ndarray arr = np.zeros((self.plane.getBounds().size(), 3))
         for i in range(self.plane.getBounds().size()):
             for j in range(3):
@@ -8428,6 +9785,8 @@ class MAPPING_RANGE(enum.Enum):
 class SPATIAL_MAP_TYPE(enum.Enum):
     MESH = <int>c_SPATIAL_MAP_TYPE.SPATIAL_MAP_TYPE_MESH
     FUSED_POINT_CLOUD = <int>c_SPATIAL_MAP_TYPE.SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD
+    LAST = <int>c_SPATIAL_MAP_TYPE.SPATIAL_MAP_TYPE_LAST
+
 
 ##
 # Lists available LIVE input type in the ZED SDK.
@@ -8450,8 +9809,38 @@ class BUS_TYPE(enum.Enum):
 # \param serial_l : Serial number of the left camera.
 # \param serial_r : Serial number of the right camera.
 # \return A unique hash for the given pair of serial numbers, or 0 if an error occurred (e.g: same serial number).
-def generate_virtual_stereo_serial_number(unsigned int serial_left, unsigned int serial_right) -> "unsigned int":
+def generate_virtual_stereo_serial_number(uint serial_left, uint serial_right) -> uint:
     return c_generateVirtualStereoSerialNumber(serial_left, serial_right)
+
+##
+# Lists input types in the ZED SDK.
+#
+# | Enumerator     |                  |
+# |----------------|------------------|
+# | USB_ID,        | USB input from an id |
+# | USB_SERIAL,    | USB input from a serial number |
+# | SVO_FILE,      | SVO file input |
+# | STREAM,        | STREAM input (requires to use \ref Camera.enableStreaming "enableStreaming()" / \ref Camera.disableStreaming "disableStreaming()"" on the "sender" side) |
+# | GMSL_ID,       | GMSL input from an id (only on NVIDIA Jetson) |
+# | GMSL_SERIAL,   | GMSL input from a serial number (only on NVIDIA Jetson) |
+# | GMSL_PORT,     | GMSL input from a physical GMSL port (only on NVIDIA Jetson) |
+# | AUTO,          | AUTO input type, automatically selects the right input type between USB and GMSL |
+class TYPE_OF_INPUT_TYPE(enum.Enum):
+    USB_ID = <int>c_TYPE_OF_INPUT_TYPE.TYPE_OF_INPUT_TYPE_USB_ID
+    USB_SERIAL = <int>c_TYPE_OF_INPUT_TYPE.TYPE_OF_INPUT_TYPE_USB_SERIAL
+    SVO_FILE = <int>c_TYPE_OF_INPUT_TYPE.TYPE_OF_INPUT_TYPE_SVO_FILE
+    STREAM = <int>c_TYPE_OF_INPUT_TYPE.TYPE_OF_INPUT_TYPE_STREAM
+    GMSL_ID = <int>c_TYPE_OF_INPUT_TYPE.TYPE_OF_INPUT_TYPE_GMSL_ID
+    GMSL_SERIAL = <int>c_TYPE_OF_INPUT_TYPE.TYPE_OF_INPUT_TYPE_GMSL_SERIAL
+    GMSL_PORT = <int>c_TYPE_OF_INPUT_TYPE.TYPE_OF_INPUT_TYPE_GMSL_PORT
+    AUTO = <int>c_TYPE_OF_INPUT_TYPE.TYPE_OF_INPUT_TYPE_AUTO
+    LAST = <int>c_TYPE_OF_INPUT_TYPE.TYPE_OF_INPUT_TYPE_LAST
+
+    def __str__(self):
+        return to_str(toString(<c_TYPE_OF_INPUT_TYPE>(<int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_TYPE_OF_INPUT_TYPE>(<int>self.value))).decode()
 
 ##
 # Class defining the input type used in the ZED SDK.
@@ -8497,9 +9886,22 @@ cdef class InputType:
 
     ##
     # Set the input as the camera with specified serial number.
-    # \param camera_serial_number : Serial number of the camera to open
-    def set_from_serial_number(self, uint serial_number) -> None:
-        self.input_ptr.setFromSerialNumber(serial_number)
+    # 
+    # For ZED/ZEDOne cameras (numeric serial numbers), pass an int or a numeric string.
+    # For Lidar sensors (string-based serial numbers like "991937000508"), pass a string.
+    # \param serial_number : Serial number of the camera/sensor to open (int or str).
+    def set_from_serial_number(self, serial_number) -> None:
+        if isinstance(serial_number, int):
+            self.input_ptr.setFromSerialNumber(<uint>serial_number)
+        else:
+            serial_str = str(serial_number).encode()
+            self.input_ptr.setFromSerialNumber(String(<char*>serial_str))
+
+    ##
+    # Set the input as the camera with specified GMSL port.
+    # \param gmsl_port : GMSL port number of the camera to open. Default: -1. Any number < 0 will try to open the first available GMSL camera.
+    def set_from_serial_port(self, int gmsl_port = -1) -> None:
+        self.input_ptr.setFromGMSLPort(gmsl_port)
 
     ##
     # Set the input as a virtual stereo camera from two cameras with specified ids.
@@ -8545,9 +9947,9 @@ cdef class InputType:
         self.input_ptr.setFromStream(String(<char*>sender_ip_), port)
 
     ##
-    # Returns the current input type.
-    def get_type(self) -> INPUT_TYPE:
-        return INPUT_TYPE(<int>self.input_ptr.getType())
+    # Returns the current type of the input type.
+    def get_type(self) -> TYPE_OF_INPUT_TYPE:
+        return TYPE_OF_INPUT_TYPE(<int>self.input_ptr.getType())
 
     ##
     # Returns the current input configuration as a string e.g: SVO name, serial number, streaming ip, etc.
@@ -8608,6 +10010,7 @@ cdef class InputType:
 # \note The parameters can also be saved and reloaded using its \ref save() and \ref load() methods.
 cdef class InitParameters:
     cdef c_InitParameters* init
+
     ##
     # Default constructor.
     #
@@ -8757,6 +10160,8 @@ cdef class InitParameters:
 
     ##
     # Enable async image retrieval.
+    #
+    # \deprecated This parameter is deprecated and no longer has any effect.
     #
     # If set to true will camera image retrieve at a framerate different from \ref grab() application framerate. This is useful for recording SVO or sending camera stream at different rate than application.
     # \n Default: false
@@ -9013,7 +10418,7 @@ cdef class InitParameters:
         self.init.sdk_verbose_log_file.set(<char*>value_filename)
 
     ##
-        # Defines whether the depth needs to be stabilized and to what extent.
+    # Defines whether the depth needs to be stabilized and to what extent.
     #
     # Regions of generated depth map can oscillate from one frame to another.
     # \n These oscillations result from a lack of texture (too homogeneous) on an object and by image noise.
@@ -9085,17 +10490,15 @@ cdef class InitParameters:
     # See \ref InputType for complementary information.
     #
     # \warning Using the ZED SDK Python API, using init_params.input.set_from_XXX won't work, use init_params.set_from_XXX instead
-    # @property
-    # def input(self) -> InputType:
-    #    input_t = InputType()
-    #    input_t.input = self.init.input
-    #    return input_t
+    @property
+    def input(self) -> InputType:
+        input_t = InputType()
+        input_t.input_ptr[0] = self.init.input
+        return input_t
 
-    # @input.setter
+    @input.setter
     def input(self, InputType input_t):
         self.init.input = deref(input_t.input_ptr)
-
-    input = property(None, input)
 
     ##
     # Optional path where the ZED SDK has to search for the settings file (<i>SN<XXXX>.conf</i> file).
@@ -9240,9 +10643,16 @@ cdef class InitParameters:
 
     ##
     # Defines the input source with a serial number to initialize and open an sl.Camera object from.
-    # \param serial_number : Serial number of the desired camera to open.
-    def set_from_serial_number(self, uint serial_number) -> None:
-        self.init.input.setFromSerialNumber(serial_number)
+    # 
+    # For ZED/ZEDOne cameras (numeric serial numbers), pass an int or a numeric string.
+    # For Lidar sensors (string-based serial numbers like "991937000508"), pass a string.
+    # \param serial_number : Serial number of the desired camera/sensor to open (int or str).
+    def set_from_serial_number(self, serial_number) -> None:
+        if isinstance(serial_number, int):
+            self.init.input.setFromSerialNumber(<uint>serial_number)
+        else:
+            serial_str = str(serial_number).encode()
+            self.init.input.setFromSerialNumber(String(<char*>serial_str))
 
     ##
     # Defines the input source with an SVO file to initialize and open an sl.Camera object from.
@@ -9420,9 +10830,11 @@ cdef class PositionalTrackingParameters:
     # \code
     # params = sl.PositionalTrackingParameters(init_pos=sl.Transform(), _enable_pose_smoothing=True)
     # \endcode
-    def __cinit__(self, _init_pos=Transform(), _enable_memory=True, _enable_pose_smoothing=False, _area_path=None,
+    def __cinit__(self, _init_pos=None, _enable_memory=True, _enable_pose_smoothing=False, _area_path=None,
                   _set_floor_as_origin=False, _enable_imu_fusion=True, _set_as_static=False, _depth_min_range=-1,
                   _set_gravity_as_origin=True, _mode=POSITIONAL_TRACKING_MODE.GEN_1, _enable_localization_only = False, enable_2d_ground_mode_ = False) -> PositionalTrackingParameters:
+        if _init_pos is None:
+            _init_pos = Transform()
         if _area_path is None:
             self.tracking = new c_PositionalTrackingParameters((<Transform>_init_pos).transform[0], _enable_memory, _enable_pose_smoothing, String(), _set_floor_as_origin, _enable_imu_fusion, _set_as_static, _depth_min_range, _set_gravity_as_origin, <c_POSITIONAL_TRACKING_MODE>(<int>_mode.value), _enable_localization_only, enable_2d_ground_mode_)
         else :
@@ -9456,7 +10868,9 @@ cdef class PositionalTrackingParameters:
     # \n Default: Identity matrix.
     #
     # \note The camera frame (which defines the reference frame for the camera) is by default positioned at the world frame when tracking is started.
-    def initial_world_transform(self, init_pos = Transform()) -> Transform:
+    def initial_world_transform(self, init_pos = None) -> Transform:
+        if init_pos is None:
+            init_pos = Transform()
         for i in range(16):
             (<Transform>init_pos).transform.m[i] = self.tracking.initial_world_transform.m[i]
         return init_pos
@@ -9624,6 +11038,19 @@ class STREAMING_CODEC(enum.Enum):
     H265 = <int>c_STREAMING_CODEC.STREAMING_CODEC_H265
     LAST = <int>c_STREAMING_CODEC.STREAMING_CODEC_LAST
 
+    ##
+    # Converts a string to the corresponding STREAMING_CODEC enum value.
+    # \param name : The string representation of the STREAMING_CODEC enum value.
+    # \return The corresponding STREAMING_CODEC enum value. If the string does not match any STREAMING_CODEC, STREAMING_CODEC.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_STREAMING_CODEC val = c_STREAMING_CODEC.STREAMING_CODEC_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return STREAMING_CODEC.LAST
+        return STREAMING_CODEC(val)
+
 ##
 # Class containing information about the properties of a streaming device.
 # \ingroup Video_group
@@ -9689,6 +11116,18 @@ cdef class StreamingProperties:
     @codec.setter
     def codec(self, codec):
         self.c_streaming_properties.codec = <c_STREAMING_CODEC>(<int>codec.value)
+
+    ##
+    # Model of the streaming device.
+    #
+    # Default: sl.MODEL.LAST
+    @property
+    def camera_model(self) -> MODEL:
+        return MODEL(<int>self.c_streaming_properties.camera_model)
+
+    @camera_model.setter
+    def camera_model(self, camera_model):
+        self.c_streaming_properties.camera_model = <c_MODEL>(<int>camera_model.value)
 
 
 ##
@@ -9846,9 +11285,9 @@ cdef class RecordingParameters:
     # \param transcode_streaming_input : Enables \ref transcode_streaming_input
     #
     # \code
-    # params = sl.RecordingParameters(video_filename="record.svo",compression_mode=SVO_COMPRESSION_MODE.H264)
+    # params = sl.RecordingParameters(video_filename="record.svo",compression_mode=SVO_COMPRESSION_MODE.H265)
     # \endcode
-    def __cinit__(self, video_filename="myRecording.svo2", compression_mode=SVO_COMPRESSION_MODE.H264, target_framerate=0,
+    def __cinit__(self, video_filename="myRecording.svo2", compression_mode=SVO_COMPRESSION_MODE.H265, target_framerate=0,
                     bitrate=0, transcode_streaming_input=False) -> RecordingParameters:
         if (isinstance(compression_mode, SVO_COMPRESSION_MODE)) :
             video_filename_c = video_filename.encode()
@@ -9875,7 +11314,7 @@ cdef class RecordingParameters:
     ##
     # Compression mode the recording.
     #
-    # Default: \ref SVO_COMPRESSION_MODE "sl.SVO_COMPRESSION_MODE.H264"
+    # Default: \ref SVO_COMPRESSION_MODE "sl.SVO_COMPRESSION_MODE.H265"
     @property
     def compression_mode(self) -> SVO_COMPRESSION_MODE:
         return SVO_COMPRESSION_MODE(<int>self.record.compression_mode)
@@ -10095,7 +11534,7 @@ cdef class SpatialMappingParameters:
     # - \b allowed_range.first is the minimum value allowed
     # - \b allowed_range.second is the maximum value allowed
     @property
-    def allowed_range(self) -> np.array[float]:
+    def allowed_range(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(2)
         arr[0] = self.spatial.allowed_range.first
         arr[1] = self.spatial.allowed_range.second
@@ -10119,7 +11558,7 @@ cdef class SpatialMappingParameters:
     # - \b allowed_resolution.first is the minimum value allowed
     # - \b allowed_resolution.second is the maximum value allowed
     @property
-    def allowed_resolution(self) -> np.array[float]:
+    def allowed_resolution(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(2)
         arr[0] = self.spatial.allowed_resolution.first
         arr[1] = self.spatial.allowed_resolution.second
@@ -10195,7 +11634,9 @@ cdef class Pose:
     # Returns the sl.Translation corresponding to the current sl.Pose.
     # \param py_translation : sl.Translation to be returned. It creates one by default.
     # \return sl.Translation filled with values from the sl.Pose.
-    def get_translation(self, py_translation = Translation()) -> Translation:
+    def get_translation(self, py_translation = None) -> Translation:
+        if py_translation is None:
+            py_translation = Translation()
         (<Translation>py_translation).translation = self.pose.getTranslation()
         return py_translation
 
@@ -10203,7 +11644,9 @@ cdef class Pose:
     # Returns the sl.Orientation corresponding to the current sl.Pose.
     # \param py_orientation : sl.Orientation to be returned. It creates one by default.
     # \return sl.Orientation filled with values from the sl.Pose.
-    def get_orientation(self, py_orientation = Orientation()) -> Orientation:
+    def get_orientation(self, py_orientation = None) -> Orientation:
+        if py_orientation is None:
+            py_orientation = Orientation()
         (<Orientation>py_orientation).orientation = self.pose.getOrientation()
         return py_orientation
 
@@ -10211,7 +11654,9 @@ cdef class Pose:
     # Returns the sl.Rotation corresponding to the current sl.Pose.
     # \param py_rotation : sl.Rotation to be returned. It creates one by default.
     # \return sl.Rotation filled with values from the sl.Pose.
-    def get_rotation_matrix(self, py_rotation = Rotation()) -> Rotation:
+    def get_rotation_matrix(self, py_rotation = None) -> Rotation:
+        if py_rotation is None:
+            py_rotation = Rotation()
         cdef c_Rotation tmp = self.pose.getRotationMatrix()
         for i in range(9):
             (<Rotation>py_rotation).rotation.r[i] = tmp.r[i]
@@ -10221,7 +11666,7 @@ cdef class Pose:
     # Returns the the 3x1 rotation vector (obtained from 3x3 rotation matrix using Rodrigues formula) corresponding to the current sl.Pose.
     # \param py_rotation : sl.Rotation to be returned. It creates one by default.
     # \return Rotation vector (NumPy array) created from the sl.Pose values.
-    def get_rotation_vector(self) -> np.array[float]:
+    def get_rotation_vector(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(3)
         for i in range(3):
             arr[i] = self.pose.getRotationVector()[i]
@@ -10231,7 +11676,7 @@ cdef class Pose:
     # Converts the rotation component of the sl.Pose into Euler angles.
     # \param radian : Whether the angle will be returned in radian or degree. Default: True
     # \return Euler angles (Numpy array) created from the sl.Pose values representing the rotations around the X, Y and Z axes using YZX convention.
-    def get_euler_angles(self, radian=True) -> np.array[float]:
+    def get_euler_angles(self, radian=True) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(3)
         if isinstance(radian, bool):
             for i in range(3):
@@ -10268,7 +11713,9 @@ cdef class Pose:
     # sl.Transform containing the rotation and translation data of the sl.Pose.
     # \param pose_data : sl.Transform to be returned. It creates one by default.
     # \return sl.Transform containing the rotation and translation data of the sl.Pose.
-    def pose_data(self, pose_data = Transform()) -> Transform:
+    def pose_data(self, pose_data = None) -> Transform:
+        if pose_data is None:
+            pose_data = Transform()
         for i in range(16):
             (<Transform>pose_data).transform.m[i] = self.pose.pose_data.m[i]
         return pose_data
@@ -10290,7 +11737,7 @@ cdef class Pose:
     # 6x6 pose covariance matrix (NumPy array) of translation (the first 3 values) and rotation in so3 (the last 3 values).
     # \note Computed only if \ref PositionalTrackingParameters.enable_spatial_memory is disabled.
     @property
-    def pose_covariance(self) -> np.array[float]:
+    def pose_covariance(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(36)
         for i in range(36) :
             arr[i] = self.pose.pose_covariance[i]
@@ -10305,7 +11752,7 @@ cdef class Pose:
     # Twist of the camera available in reference camera.
     # This expresses velocity in free space, broken into its linear and angular parts.
     @property
-    def twist(self) -> np.array[float]:
+    def twist(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(6)
         for i in range(6):
             arr[i] = self.pose.twist[i]
@@ -10320,7 +11767,7 @@ cdef class Pose:
     # Row-major representation of the 6x6 twist covariance matrix of the camera.
     # This expresses the uncertainty of the twist.
     @property
-    def twist_covariance(self) -> np.array[float]:
+    def twist_covariance(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(36)
         for i in range(36):
             arr[i] = self.pose.twist_covariance[i]
@@ -10539,7 +11986,7 @@ cdef class MagnetometerData:
     # \note The magnetometer raw values are affected by soft and hard iron interferences.
     # \note The sensor must be calibrated by placing the camera in the working environment and using \b ZED \b Sensor \b Viewer tool.
     # \note Not available in SVO or STREAM mode.
-    def get_magnetic_field_uncalibrated(self) -> np.array[float]:
+    def get_magnetic_field_uncalibrated(self) -> npt.NDArray[float]:
         cdef np.ndarray magnetic_field = np.zeros(3)
         for i in range(3):
             magnetic_field[i] = self.magnetometerData.magnetic_field_uncalibrated[i]
@@ -10548,7 +11995,7 @@ cdef class MagnetometerData:
     ##
     # Gets the magnetic field local vector in microtesla (μT).
     # \note To calibrate the magnetometer sensor, please use \b ZED \b Sensor \b Viewer tool after placing the camera in the final operating environment.
-    def get_magnetic_field_calibrated(self) -> np.array[float]:
+    def get_magnetic_field_calibrated(self) -> npt.NDArray[float]:
         cdef np.ndarray magnetic_field = np.zeros(3)
         for i in range(3):
             magnetic_field[i] = self.magnetometerData.magnetic_field_calibrated[i]
@@ -10557,7 +12004,7 @@ cdef class MagnetometerData:
     ##
     # Data acquisition timestamp.
     @property
-    def timestamp(self) -> int:
+    def timestamp(self) -> Timestamp:
         ts = Timestamp()
         ts.timestamp = self.magnetometerData.timestamp
         return ts
@@ -10706,7 +12153,9 @@ cdef class IMUData:
     # \param angular_velocity_covariance : sl.Matrix3f to be returned. It creates one by default.
     # \return sl.Matrix3f filled with the covariance matrix of the angular velocity.
     # \note Not available in SVO or STREAM mode.
-    def get_angular_velocity_covariance(self, angular_velocity_covariance = Matrix3f()) -> Matrix3f:
+    def get_angular_velocity_covariance(self, angular_velocity_covariance = None) -> Matrix3f:
+        if angular_velocity_covariance is None:
+            angular_velocity_covariance = Matrix3f()
         for i in range(9):
             (<Matrix3f>angular_velocity_covariance).mat.r[i] = self.imuData.angular_velocity_covariance.r[i]
         return angular_velocity_covariance
@@ -10716,7 +12165,9 @@ cdef class IMUData:
     # \param linear_acceleration_covariance : sl.Matrix3f to be returned. It creates one by default.
     # \return sl.Matrix3f filled with the covariance matrix of the linear acceleration.
     # \note Not available in SVO or STREAM mode.
-    def get_linear_acceleration_covariance(self, linear_acceleration_covariance = Matrix3f()) -> Matrix3f:
+    def get_linear_acceleration_covariance(self, linear_acceleration_covariance = None) -> Matrix3f:
+        if linear_acceleration_covariance is None:
+            linear_acceleration_covariance = Matrix3f()
         for i in range(9):
             (<Matrix3f>linear_acceleration_covariance).mat.r[i] = self.imuData.linear_acceleration_covariance.r[i]
         return linear_acceleration_covariance
@@ -10734,7 +12185,7 @@ cdef class IMUData:
     ##
     # Data acquisition timestamp.
     @property
-    def timestamp(self) -> int:
+    def timestamp(self) -> Timestamp:
         ts = Timestamp()
         ts.timestamp = self.imuData.timestamp
         return ts
@@ -10757,7 +12208,9 @@ cdef class IMUData:
     # Covariance matrix of the IMU pose (\ref get_pose()).
     # \param pose_covariance : sl.Matrix3f to be returned. It creates one by default.
     # \return sl.Matrix3f filled with the covariance matrix.
-    def get_pose_covariance(self, pose_covariance = Matrix3f()) -> Matrix3f:
+    def get_pose_covariance(self, pose_covariance = None) -> Matrix3f:
+        if pose_covariance is None:
+            pose_covariance = Matrix3f()
         for i in range(9):
             (<Matrix3f>pose_covariance).mat.r[i] = self.imuData.pose_covariance.r[i]
         return pose_covariance
@@ -10767,7 +12220,9 @@ cdef class IMUData:
     # IMU pose (IMU 6-DoF fusion).
     # \param pose : sl.Transform() to be returned. It creates one by default.
     # \return sl.Transform filled with the IMU pose.
-    def get_pose(self, pose = Transform()) -> Transform:
+    def get_pose(self, pose = None) -> Transform:
+        if pose is None:
+            pose = Transform()
         for i in range(16):
             (<Transform>pose).transform.m[i] = self.imuData.pose.m[i]
         return pose
@@ -10893,7 +12348,7 @@ cdef class RecordingStatus:
         return self.recordingState.current_compression_time
 
     @current_compression_time.setter
-    def current_compression_time(self, value: double):
+    def current_compression_time(self, double value):
         self.recordingState.current_compression_time = value
 
     ##
@@ -10903,7 +12358,7 @@ cdef class RecordingStatus:
         return self.recordingState.current_compression_ratio
 
     @current_compression_ratio.setter
-    def current_compression_ratio(self, value: double):
+    def current_compression_ratio(self, double value):
         self.recordingState.current_compression_ratio = value
 
     ##
@@ -10913,7 +12368,7 @@ cdef class RecordingStatus:
         return self.recordingState.average_compression_time
 
     @average_compression_time.setter
-    def average_compression_time(self, value: double):
+    def average_compression_time(self, double value):
         self.recordingState.average_compression_time = value
 
     ##
@@ -10923,7 +12378,7 @@ cdef class RecordingStatus:
         return self.recordingState.average_compression_ratio
 
     @average_compression_ratio.setter
-    def average_compression_ratio(self, value: double):
+    def average_compression_ratio(self, double value):
         self.recordingState.average_compression_ratio = value
 
     ##
@@ -11145,7 +12600,9 @@ cdef class Camera:
     # \n <b>Image size</b>
     # \n By default, images are returned in the resolution provided by \ref Resolution "get_camera_information().camera_configuration.resolution".
     # \n However, you can request custom resolutions. For example, requesting a smaller image can help you speed up your application.
+    #
     # \warning A sl.Mat resolution higher than the camera resolution <b>cannot</b> be requested.
+    # \warning If \ref VIEW is \ref VIEW "VIEW::LEFT_NV12_UNRECTIFIED" or \ref VIEW "VIEW::RIGHT_NV12_UNRECTIFIED", \b image_size must be native, and \b type must be \ref MEM "MEM::GPU".
     #
     # \param py_mat[out] : The \ref sl.Mat to store the image.
     # \param view[in] : Defines the image you want (see \ref VIEW). Default: \ref VIEW "VIEW.LEFT".
@@ -11181,6 +12638,36 @@ cdef class Camera:
         cdef c_MEM c_type = <c_MEM>(<int>mem_type.value)
         with nogil:
             err = self.camera.retrieveImage(py_mat.mat, c_view, c_type, resolution.resolution)
+        return _error_code_cache.get(<int>err, ERROR_CODE.FAILURE)
+
+    ##
+    # \brief Retrieved a sl::Tensor, containing the input image pre-processed for inference with SVO or live camera.
+    #
+    # This method provides a way to obtain the pre-processed input image in a format suitable for deep learning inference tasks.
+    # The retrieved Tensor is allocated on the GPU, allowing for efficient processing and integration with deep learning frameworks.
+    #
+    # The pre-processing steps applied to the input image include resizing, normalization, and any other transformations required
+    # to prepare the image for inference.
+    #
+    # This method is particularly useful when working with deep learning models that require specific input formats and pre-processing
+    # steps. By retrieving the pre-processed Tensor directly from the Camera class, users can streamline their workflow and ensure
+    # compatibility with their deep learning pipelines.
+    #
+    # \note This method requires that the camera has been opened in either LIVE mode, SVO mode or STREAM mode.
+    # \note The retrieved Tensor is allocated on the GPU, so ensure that your system has sufficient GPU memory to accommodate
+    # the Tensor size.
+    #
+    # \param dest : The Tensor to store the pre-processed input image for inference.
+    # \param params : Options to configure the pre-processing steps applied to the input image.
+    # \return \ref ERROR_CODE "ERROR_CODE::SUCCESS" if the method succeeded.
+    # \return \ref ERROR_CODE "ERROR_CODE::INVALID_FUNCTION_PARAMETERS" if the provided params are invalid.
+    # \return \ref ERROR_CODE "ERROR_CODE::CAMERA_NOT_INITIALIZED" if the camera is not opened.
+    # \return \ref ERROR_CODE "ERROR_CODE::FAILURE" if another error occurred.
+    def retrieve_tensor(self, Tensor dest, TensorParameters params):
+        cdef c_ERROR_CODE err
+        cdef c_TensorParameters c_params = params.par
+        with nogil:
+            err = self.camera.retrieveTensor(dest.tensor, c_params)
         return _error_code_cache.get(<int>err, ERROR_CODE.FAILURE)
 
     ##
@@ -11317,11 +12804,21 @@ cdef class Camera:
         return _error_code_cache.get(<int>self.camera.stopPublishing(), ERROR_CODE.FAILURE)
 
     ##
-    # Sets the playback cursor to the desired frame number in the SVO file.
+    # Returns the CommunicationParameters used.
+    # \n It corresponds to the structure given as argument to the startPublishing() method.
+    # \return \ref CommunicationParameters containing the parameters used to initialize communication with the Fusion Module.
+    def get_communication_parameters(self) -> CommunicationParameters:
+        cdef CommunicationParameters comm_params = CommunicationParameters()
+        comm_params.communicationParameters_ptr[0] = self.camera.getCommunicationParameters()
+        return comm_params
+
+    ##
+    # Sets the playback cursor to the desired position in the SVO file.
     #
-    # This method allows you to move around within a played-back SVO file. After calling, the next call to \ref grab() will read the provided frame number.
+    # This method allows you to move around within a played-back SVO file. After calling, the next call to \ref grab() will read the provided position.
     #
-    # \param frame_number : The number of the desired frame to be decoded.
+    # \param position : The position in the SVO file.
+    # \return An error code stating the success, or not.
     #
     # \note The method works only if the camera is open in SVO playback mode.
     #
@@ -11351,7 +12848,10 @@ cdef class Camera:
     #
     #         # Loop if we reached frame 50
     #         if zed.get_svo_position() == 50:
-    #             zed.set_svo_position(0)
+    #             err = zed.set_svo_position(0)
+    #             if err != sl.ERROR_CODE.SUCCESS:
+    #                 print(repr(err))
+    #                 exit(-1)
     #
     #         # Grab an image
     #         if zed.grab() == sl.ERROR_CODE.SUCCESS:
@@ -11367,8 +12867,8 @@ cdef class Camera:
     #     main()
     #
     # \endcode
-    def set_svo_position(self, int frame_number) -> None:
-        self.camera.setSVOPosition(frame_number)
+    def set_svo_position(self, int position) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.camera.setSVOPosition(position))
 
     ##
     # Pauses or resumes SVO reading when using SVO Real time mode
@@ -11451,6 +12951,7 @@ cdef class Camera:
 
         return res
 
+    ##
     # Sets the value of the requested \ref VIDEO_SETTINGS "camera setting" (gain, brightness, hue, exposure, etc.).
     #
     # This method only applies for \ref VIDEO_SETTINGS that require a single value.
@@ -11775,7 +13276,7 @@ cdef class Camera:
     #
     # It corresponds to the structure given as argument to the enable_object_detection() method.
     # \return \ref ObjectDetectionParameters containing the parameters used for object detection initialization.
-    def get_object_detection_parameters(self, unsigned int instance_module_id=0) -> ObjectDetectionParameters:
+    def get_object_detection_parameters(self, uint instance_module_id=0) -> ObjectDetectionParameters:
         object_detection = ObjectDetectionParameters()
         object_detection.object_detection.enable_tracking = self.camera.getObjectDetectionParameters(instance_module_id).enable_tracking
         object_detection.object_detection.max_range = self.camera.getObjectDetectionParameters(instance_module_id).max_range
@@ -11790,7 +13291,7 @@ cdef class Camera:
     # It corresponds to the structure given as argument to the enable_body_tracking() method.
     #
     # \return \ref BodyTrackingParameters containing the parameters used for body tracking initialization.
-    def get_body_tracking_parameters(self, unsigned int instance_id = 0) -> BodyTrackingParameters:
+    def get_body_tracking_parameters(self, uint instance_id = 0) -> BodyTrackingParameters:
         body_params = BodyTrackingParameters()
         body_params.bodyTrackingParameters.enable_tracking = self.camera.getBodyTrackingParameters(instance_id).enable_tracking
         body_params.bodyTrackingParameters.enable_segmentation = self.camera.getBodyTrackingParameters(instance_id).enable_segmentation
@@ -11976,7 +13477,7 @@ cdef class Camera:
     # \param force_disable_all_instances : Should disable all instances of the body tracking module or just <b>instance_module_id</b>.
     #
     # \note If the body tracking has been enabled, this method will automatically be called by \ref close().
-    def disable_body_tracking(self, unsigned int instance_id = 0, bool force_disable_all_instances = False) -> None:
+    def disable_body_tracking(self, uint instance_id = 0, bool force_disable_all_instances = False) -> None:
         return self.camera.disableBodyTracking(instance_id, force_disable_all_instances)
 
     ##
@@ -12002,7 +13503,7 @@ cdef class Camera:
     #         zed.retrieve_bodies(bodies)
     #         print(len(bodies.body_list), "bodies detected")
     # \endcode
-    def retrieve_bodies(self, Bodies bodies, BodyTrackingRuntimeParameters body_tracking_runtime_parameters = None, unsigned int instance_id = 0) -> ERROR_CODE:
+    def retrieve_bodies(self, Bodies bodies, BodyTrackingRuntimeParameters body_tracking_runtime_parameters = None, uint instance_id = 0) -> ERROR_CODE:
         cdef c_ERROR_CODE ret
         with nogil:
             if body_tracking_runtime_parameters is None:
@@ -12014,7 +13515,7 @@ cdef class Camera:
     ##
     # Set the body tracking runtime parameters
     #
-    def set_body_tracking_runtime_parameters(self, BodyTrackingRuntimeParameters body_tracking_runtime_parameters, unsigned int instance_module_id=0) -> ERROR_CODE:
+    def set_body_tracking_runtime_parameters(self, BodyTrackingRuntimeParameters body_tracking_runtime_parameters, uint instance_module_id=0) -> ERROR_CODE:
         cdef c_ERROR_CODE ret
         with nogil:
             ret = self.camera.setBodyTrackingRuntimeParameters(deref(body_tracking_runtime_parameters.body_tracking_rt), instance_module_id)
@@ -12022,7 +13523,7 @@ cdef class Camera:
 
     ##
     # Tells if the body tracking module is enabled.
-    def is_body_tracking_enabled(self, unsigned int instance_id = 0) -> bool:
+    def is_body_tracking_enabled(self, uint instance_id = 0) -> bool:
         return self.camera.isBodyTrackingEnabled(instance_id)
 
     ##
@@ -12209,6 +13710,24 @@ cdef class Camera:
             l2d.landmark2d = l
             landmark2d.append(l2d)
 
+        return _error_code_cache.get(<int>error, ERROR_CODE.FAILURE)
+
+    ##
+    # \brief Get the Keyframe currenlty used by the positional tracking.
+    # \param keyframes : The dictionary of keyframes_id and keyframe.
+    # \return ERROR_CODE that indicate if the function succeed or not.
+    #
+    def get_positional_tracking_keyframes(self, dict keyframes) -> ERROR_CODE:
+        cdef map[uint64_t, c_KeyFrame] keyframes_map
+        error = self.camera.getPositionalTrackingKeyframes(keyframes_map)
+
+        cdef map[uint64_t, c_KeyFrame].iterator keyframes_map_it = keyframes_map.begin()
+        while keyframes_map_it != keyframes_map.end():
+            keyframe_id = dereference(keyframes_map_it).first
+            k = KeyFrame()
+            k.keyframe = dereference(keyframes_map_it).second
+            keyframes[keyframe_id] = k
+            postincrement(keyframes_map_it)
         return _error_code_cache.get(<int>error, ERROR_CODE.FAILURE)
 
     ##
@@ -12470,7 +13989,9 @@ cdef class Camera:
     # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if a plane is found otherwise \ref ERROR_CODE "ERROR_CODE.PLANE_NOT_FOUND".
     #
     # \note The reference frame is defined by the \ref RuntimeParameters.measure3D_reference_frame given to the \ref grab() method.
-    def find_plane_at_hit(self, coord, py_plane: Plane, parameters=PlaneDetectionParameters()) -> ERROR_CODE:
+    def find_plane_at_hit(self, coord, py_plane: Plane, parameters=None) -> ERROR_CODE:
+        if parameters is None:
+            parameters = PlaneDetectionParameters()
         cdef Vector2[uint] vec = Vector2[uint](coord[0], coord[1])
         return _error_code_cache.get(<int>self.camera.findPlaneAtHit(vec, py_plane.plane, deref((<PlaneDetectionParameters>parameters).plane_detection_params)), ERROR_CODE.FAILURE)
 
@@ -12499,9 +14020,11 @@ cdef class Camera:
                          Plane py_plane,
                          Transform reset_tracking_floor_frame,
                          float floor_height_prior = float('nan'),
-                         Rotation world_orientation_prior = Rotation(Matrix3f().zeros()),
+                         Rotation world_orientation_prior = None,
                          float floor_height_prior_tolerance = float('nan')
     ) -> ERROR_CODE:
+        if world_orientation_prior is None:
+            world_orientation_prior = Rotation(Matrix3f().zeros())
         return _error_code_cache.get(
             <int>self.camera.findFloorPlane(py_plane.plane, reset_tracking_floor_frame.transform[0], floor_height_prior, (<Rotation>world_orientation_prior).rotation[0], floor_height_prior_tolerance),
             ERROR_CODE.FAILURE)
@@ -12694,6 +14217,10 @@ cdef class Camera:
         state.low_motion_sensors_reliability = self.camera.getHealthStatus().low_motion_sensors_reliability
         return state
 
+    ##
+    # Returns the resolution of the image that would be retrieved with the given resolution setting.
+    # \param resolution : The requested resolution setting. Default: Resolution(0,0) for full resolution.
+    # \return The actual resolution of the image that would be retrieved.
     def get_retrieve_image_resolution(self, Resolution resolution = None) -> Resolution:
         if resolution is None:
             resolution = Resolution(0, 0)
@@ -12701,6 +14228,10 @@ cdef class Camera:
         image_res.resolution = self.camera.getRetrieveImageResolution((<Resolution>resolution).resolution)
         return image_res
 
+    ##
+    # Returns the resolution of the measure that would be retrieved with the given resolution setting.
+    # \param resolution : The requested resolution setting. Default: Resolution(-1,-1) for full resolution.
+    # \return The actual resolution of the measure that would be retrieved.
     def get_retrieve_measure_resolution(self, Resolution resolution = None) -> Resolution:
         if resolution is None:
             resolution = Resolution(-1, -1)
@@ -12794,13 +14325,13 @@ cdef class Camera:
     # \param force_disable_all_instances : Should disable all instances of the object detection module or just <b>instance_module_id</b>.
     #
     # \note If the object detection has been enabled, this method will automatically be called by \ref close().
-    def disable_object_detection(self, unsigned int instance_module_id=0, bool force_disable_all_instances=False) -> None:
+    def disable_object_detection(self, uint instance_module_id=0, bool force_disable_all_instances=False) -> None:
         self.camera.disableObjectDetection(instance_module_id, force_disable_all_instances)
 
     ##
     # Set the object detection runtime parameters
     #
-    def set_object_detection_runtime_parameters(self, ObjectDetectionRuntimeParameters object_detection_parameters, unsigned int instance_module_id=0) -> ERROR_CODE:
+    def set_object_detection_runtime_parameters(self, ObjectDetectionRuntimeParameters object_detection_parameters, uint instance_module_id=0) -> ERROR_CODE:
         cdef c_ERROR_CODE ret
         with nogil:
             ret = self.camera.setObjectDetectionRuntimeParameters(deref(object_detection_parameters.object_detection_rt), instance_module_id)
@@ -12809,7 +14340,7 @@ cdef class Camera:
     ##
     # Set the custom object detection runtime parameters
     #
-    def set_custom_object_detection_runtime_parameters(self, CustomObjectDetectionRuntimeParameters custom_object_detection_parameters, unsigned int instance_module_id=0) -> ERROR_CODE:
+    def set_custom_object_detection_runtime_parameters(self, CustomObjectDetectionRuntimeParameters custom_object_detection_parameters, uint instance_module_id=0) -> ERROR_CODE:
         cdef c_ERROR_CODE ret
         with nogil:
             ret = self.camera.setCustomObjectDetectionRuntimeParameters(deref(custom_object_detection_parameters.custom_object_detection_rt), instance_module_id)
@@ -12842,7 +14373,7 @@ cdef class Camera:
     def retrieve_objects(self,
                          Objects py_objects,
                          ObjectDetectionRuntimeParameters py_object_detection_parameters = None,
-                         unsigned int instance_module_id = 0
+                         uint instance_module_id = 0
     ) -> ERROR_CODE:
         cdef c_ERROR_CODE ret
         with nogil:
@@ -12886,7 +14417,7 @@ cdef class Camera:
     def retrieve_custom_objects(self,
                                 Objects py_objects,
                                 CustomObjectDetectionRuntimeParameters custom_object_detection_parameters = None,
-                                unsigned int instance_module_id = 0
+                                uint instance_module_id = 0
     ) -> ERROR_CODE:
         cdef c_ERROR_CODE ret
         with nogil:
@@ -12920,7 +14451,7 @@ cdef class Camera:
     #         zed.get_objects_batch(trajectories)                   # Get batch of objects
     #         print("Size of batch: {}".format(len(trajectories)))
     # \endcode
-    def get_objects_batch(self, list trajectories, unsigned int instance_module_id=0) -> ERROR_CODE:
+    def get_objects_batch(self, list trajectories, uint instance_module_id=0) -> ERROR_CODE:
         cdef vector[c_ObjectsBatch] output_trajectories
         cdef c_ERROR_CODE status = self.camera.getObjectsBatch(output_trajectories, instance_module_id)
         for trajectory in output_trajectories:
@@ -12935,7 +14466,7 @@ cdef class Camera:
     # \param instance_module_id : Id of the object detection instance. Used when multiple instances of the object detection module are enabled at the same time.
     # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if everything went fine.
     # \note The detection should be done on the current grabbed left image as the internal process will use all currently available data to extract 3D information and perform object tracking.
-    def ingest_custom_box_objects(self, list objects_in, unsigned int instance_module_id=0) -> ERROR_CODE:
+    def ingest_custom_box_objects(self, list objects_in, uint instance_module_id=0) -> ERROR_CODE:
         cdef vector[c_CustomBoxObjectData] custom_obj
         # Convert input list into C vector
         for i in range(len(objects_in)):
@@ -12948,7 +14479,7 @@ cdef class Camera:
     # \param instance_module_id : Id of the object detection instance. Used when multiple instances of the object detection module are enabled at the same time.
     # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if everything went fine.
     # \note The detection should be done on the current grabbed left image as the internal process will use all currently available data to extract 3D information and perform object tracking.
-    def ingest_custom_mask_objects(self, list objects_in, unsigned int instance_module_id = 0) -> ERROR_CODE:
+    def ingest_custom_mask_objects(self, list objects_in, uint instance_module_id = 0) -> ERROR_CODE:
         cdef vector[c_CustomMaskObjectData] custom_obj
         # Convert input list into C vector
         for i in range(len(objects_in)):
@@ -12957,7 +14488,7 @@ cdef class Camera:
 
     ##
     # Tells if the object detection module is enabled.
-    def is_object_detection_enabled(self, unsigned int instance_id = 0) -> bool:
+    def is_object_detection_enabled(self, uint instance_id = 0) -> bool:
         return self.camera.isObjectDetectionEnabled(instance_id)
 
     ##
@@ -13010,6 +14541,7 @@ cdef class Camera:
             prop.serial_number = vect_[i].serial_number
             prop.current_bitrate = vect_[i].current_bitrate
             prop.codec = STREAMING_CODEC(<int>vect_[i].codec)
+            prop.camera_model = MODEL(<int>vect_[i].camera_model)
             vect_python.append(prop)
         return vect_python
 
@@ -13059,6 +14591,7 @@ class COMM_TYPE(enum.Enum):
     LOCAL_NETWORK = <int>c_COMM_TYPE.COMM_TYPE_LOCAL_NETWORK
     INTRA_PROCESS = <int>c_COMM_TYPE.COMM_TYPE_INTRA_PROCESS
     LAST = <int>c_COMM_TYPE.COMM_TYPE_LAST
+
 
 ##
 # Lists the types of error that can be raised by the Fusion.
@@ -13466,7 +14999,7 @@ cdef class GNSSCalibrationParameters:
     # Default value is [0,0,0], this position can be refined by the calibration if enabled
     ##
     @property
-    def gnss_antenna_position(self) -> np.array[float]:
+    def gnss_antenna_position(self) -> npt.NDArray[float]:
         cdef np.ndarray gnss_antenna_position = np.zeros(3)
         for i in range(3):
             gnss_antenna_position[i] = self.gnssCalibrationParameters.gnss_antenna_position[i]
@@ -13911,6 +15444,8 @@ cdef class CameraIdentifier:
     def __cinit__(self, serial_number : int = 0):
         self.cameraIdentifier = c_CameraIdentifier(<int>serial_number)
 
+    ##
+    # Serial number of the camera.
     @property
     def serial_number(self) -> int:
         return self.cameraIdentifier.sn
@@ -13932,7 +15467,7 @@ cdef class ECEF:
         return self.ecef.x
 
     @x.setter
-    def x(self, value: double):
+    def x(self, double value):
         self.ecef.x = value
 
     ##
@@ -13942,7 +15477,7 @@ cdef class ECEF:
         return self.ecef.y
 
     @y.setter
-    def y(self, value: double):
+    def y(self, double value):
         self.ecef.y = value
 
     ##
@@ -13952,7 +15487,7 @@ cdef class ECEF:
         return self.ecef.z
 
     @z.setter
-    def z(self, value: double):
+    def z(self, double value):
         self.ecef.z = value
 
 ##
@@ -14003,7 +15538,7 @@ cdef class LatLng:
     # \param longitude: Longitude coordinate.
     # \param altitude: Altitude coordinate.
     # \@param in_radian: Is input are in radians or in degrees.
-    def set_coordinates(self, latitude: double, longitude: double, altitude: double, in_radian=True):
+    def set_coordinates(self, double latitude, double longitude, double altitude, in_radian=True):
         self.latLng.setCoordinates(latitude, longitude, altitude, in_radian)
 
 ##
@@ -14019,7 +15554,7 @@ cdef class UTM:
         return self.utm.northing
 
     @northing.setter
-    def northing(self, value: double):
+    def northing(self, double value):
         self.utm.northing = value
 
     ##
@@ -14029,7 +15564,7 @@ cdef class UTM:
         return self.utm.easting
 
     @easting.setter
-    def easting(self, value: double):
+    def easting(self, double value):
         self.utm.easting = value
 
     ##
@@ -14039,7 +15574,7 @@ cdef class UTM:
         return self.utm.gamma
 
     @gamma.setter
-    def gamma(self, value: double):
+    def gamma(self, double value):
         self.utm.gamma = value
 
     ##
@@ -14064,7 +15599,7 @@ cdef class ENU:
     def east(self) -> double:
         return self.enu.east
     @east.setter
-    def east(self, value: double):
+    def east(self, double value):
         self.enu.east = value
 
     ##
@@ -14074,7 +15609,7 @@ cdef class ENU:
     def north(self) -> double:
         return self.enu.north
     @north.setter
-    def north(self, value: double):
+    def north(self, double value):
         self.enu.north = value
 
     ##
@@ -14084,7 +15619,7 @@ cdef class ENU:
     def up(self) -> double:
         return self.enu.up
     @up.setter
-    def up(self, value: double):
+    def up(self, double value):
         self.enu.up = value
 
 ##
@@ -14199,7 +15734,7 @@ cdef class GeoPose:
     ##
     # The pose covariance matrix in ENU.
     @property
-    def pose_covariance(self) -> np.array[float]:
+    def pose_covariance(self) -> npt.NDArray[float]:
         cdef np.ndarray arr = np.zeros(36)
         for i in range(36) :
             arr[i] = self.geopose.pose_covariance[i]
@@ -14217,7 +15752,7 @@ cdef class GeoPose:
         return self.geopose.horizontal_accuracy
 
     @horizontal_accuracy.setter
-    def horizontal_accuracy(self, value: double):
+    def horizontal_accuracy(self, double value):
         self.geopose.horizontal_accuracy = value
 
     ##
@@ -14227,7 +15762,7 @@ cdef class GeoPose:
         return self.geopose.vertical_accuracy
 
     @vertical_accuracy.setter
-    def vertical_accuracy(self, value: double):
+    def vertical_accuracy(self, double value):
         self.geopose.vertical_accuracy = value
 
     ##
@@ -14249,7 +15784,7 @@ cdef class GeoPose:
         return self.geopose.heading
 
     @heading.setter
-    def heading(self, value: double):
+    def heading(self, double value):
         self.geopose.heading = value
 
     ##
@@ -14290,7 +15825,7 @@ cdef class GNSSData:
     # \param longitude: Longitude coordinate.
     # \param altitude: Altitude coordinate.
     # \param is_radian: Are the inputs expressed in radians or in degrees.
-    def set_coordinates(self, latitude: double, longitude: double, altitude: double, in_radian=True) -> None:
+    def set_coordinates(self, double latitude, double longitude, double altitude, in_radian=True) -> None:
         self.gnss_data.setCoordinates(latitude, longitude, altitude, in_radian)
 
     ##
@@ -14300,7 +15835,7 @@ cdef class GNSSData:
         return self.gnss_data.latitude_std
 
     @latitude_std.setter
-    def latitude_std(self, value: double):
+    def latitude_std(self, double value):
         self.gnss_data.latitude_std = value
 
     ##
@@ -14310,7 +15845,7 @@ cdef class GNSSData:
         return self.gnss_data.longitude_std
 
     @longitude_std.setter
-    def longitude_std(self, value: double):
+    def longitude_std(self, double value):
         self.gnss_data.longitude_std = value
 
     ##
@@ -14320,7 +15855,7 @@ cdef class GNSSData:
         return self.gnss_data.altitude_std
 
     @altitude_std.setter
-    def altitude_std(self, value: double):
+    def altitude_std(self, double value):
         self.gnss_data.altitude_std = value
 
     ##
@@ -14382,16 +15917,17 @@ cdef class GNSSData:
 cdef class SynchronizationParameter:
     cdef c_SynchronizationParameter synchronization_parameters
 
-    #
-    # @brief Default constructor
-    #
-    def __cinit__(self, windows_size : double = 0, data_source_timeout : double = 50, keep_last_data : bool = False, maximum_lateness : double = 50):
+
+    ##
+    # Default constructor
+    def __cinit__(self, double windows_size = 0, double data_source_timeout = 50, keep_last_data : bool = False, double maximum_lateness = 50):
         self.synchronization_parameters.windows_size = windows_size
         self.synchronization_parameters.data_source_timeout = data_source_timeout
         self.synchronization_parameters.keep_last_data = keep_last_data
         self.synchronization_parameters.maximum_lateness = maximum_lateness
 
-    # @brief Size of synchronization windows in milliseconds.
+    ##
+    # Size of synchronization windows in milliseconds.
     #
     # The synchronization window is used by the synchronizer to return all data present inside the current
     # synchronization window. For efficient fusion, the synchronization window size is expected to be equal
@@ -14402,10 +15938,11 @@ cdef class SynchronizationParameter:
         return self.synchronization_parameters.windows_size
 
     @windows_size.setter
-    def windows_size(self, value: double):
+    def windows_size(self, double value):
         self.synchronization_parameters.windows_size = value
 
-    # @brief Duration in milliseconds before considering a data source inactive if no more data is present.
+    ##
+    # Duration in milliseconds before considering a data source inactive if no more data is present.
     #
     # The data_source_timeout parameter specifies the duration to wait before considering a data source as inactive
     # if no new data is received within the specified time frame.
@@ -14414,10 +15951,11 @@ cdef class SynchronizationParameter:
         return self.synchronization_parameters.data_source_timeout
 
     @data_source_timeout.setter
-    def data_source_timeout(self, value:double):
+    def data_source_timeout(self, double value):
         self.synchronization_parameters.data_source_timeout = value
 
-    # @brief Determines whether to include the last data returned by a source in the final synchronized data.
+    ##
+    # Determines whether to include the last data returned by a source in the final synchronized data.
     #
     # If the keep_last_data parameter is set to true and no data is present in the current synchronization window,
     # the last data returned by the source will be included in the final synchronized data. This ensures continuity
@@ -14430,7 +15968,8 @@ cdef class SynchronizationParameter:
     def keep_last_data(self, value: bool):
         self.synchronization_parameters.keep_last_data = value
 
-    # @brief Maximum duration in milliseconds allowed for data to be considered as the last data.
+    ##
+    # Maximum duration in milliseconds allowed for data to be considered as the last data.
     #
     # The maximum_lateness parameter sets the maximum duration within which data can be considered as the last
     # available data. If the duration between the last received data and the current synchronization window exceeds
@@ -14440,7 +15979,7 @@ cdef class SynchronizationParameter:
         return self.synchronization_parameters.maximum_lateness
 
     @maximum_lateness.setter
-    def maximum_lateness(self, value : double):
+    def maximum_lateness(self, double value):
         self.synchronization_parameters.maximum_lateness = value
 
 
@@ -14609,9 +16148,13 @@ cdef class Fusion:
     # \param uuid: The requested camera identifier.
     # \param communication_parameters: The communication parameters to connect to the camera.
     # \param pose: The World position of the camera, regarding the other camera of the setup.
+    # \param override_gravity: Indicates the behavior of the fusion with respect to given calibration pose. 
+    #     * If true : The calibration pose directly specifies the camera's absolute pose relative to a global reference frame.
+    #     * If false : The calibration pose (Pose_rel) is defined relative to the camera's IMU rotational pose. To determine the true absolute position, the Fusion process will compute Pose_abs = Pose_rel * Rot_IMU_camera.
+    #     * set to false by default 
     # \return \ref FUSION_ERROR_CODE "FUSION_ERROR_CODE.SUCCESS" if it goes as it should, otherwise it returns an FUSION_ERROR_CODE.
-    def subscribe(self, uuid : CameraIdentifier, communication_parameters: CommunicationParameters, pose: Transform) -> FUSION_ERROR_CODE:
-        return FUSION_ERROR_CODE(<int>self.fusion.subscribe(uuid.cameraIdentifier, deref(communication_parameters.communicationParameters_ptr), deref(pose.transform)))
+    def subscribe(self, uuid : CameraIdentifier, communication_parameters: CommunicationParameters, pose: Transform, override_gravity: bool = False) -> FUSION_ERROR_CODE:
+        return FUSION_ERROR_CODE(<int>self.fusion.subscribe(uuid.cameraIdentifier, deref(communication_parameters.communicationParameters_ptr), deref(pose.transform), override_gravity))
 
     ##
     # Remove the specified camera from data provider.
@@ -14692,7 +16235,9 @@ cdef class Fusion:
     # \param params: Structure containing all specific parameters for object detection fusion.
     # \n For more information, see the \ref ObjectDetectionFusionParameters documentation.
     # \return \ref FUSION_ERROR_CODE "SUCCESS" if it goes as it should, otherwise it returns an FUSION_ERROR_CODE.
-    def enable_object_detection(self, ObjectDetectionFusionParameters params = ObjectDetectionFusionParameters()) -> FUSION_ERROR_CODE:
+    def enable_object_detection(self, ObjectDetectionFusionParameters params = None) -> FUSION_ERROR_CODE:
+        if params is None:
+            params = ObjectDetectionFusionParameters()
         return _fusion_error_code_cache.get(<int>self.fusion.enableObjectDetection(params.objectDetectionFusionParameters), FUSION_ERROR_CODE.FAILURE)
 
     ##
@@ -14735,7 +16280,7 @@ cdef class Fusion:
     # \param objs: The fused objects will be saved into this dictionary of objects.
     # \param uuid: Retrieve the raw data provided by this sender.
     def retrieve_raw_objects_all_ids(self, dict objs, CameraIdentifier uuid) -> FUSION_ERROR_CODE:
-        cdef unordered_map[unsigned int, c_Objects] umap
+        cdef unordered_map[uint, c_Objects] umap
         cdef c_FUSION_ERROR_CODE ret
         with nogil:
             ret = self.fusion.retrieveObjectsAllIds(umap, uuid.cameraIdentifier)
@@ -14771,7 +16316,9 @@ cdef class Fusion:
     # \param resolution: the requested resolution of the output image, can be lower or equal (default) to the original image resolution.
     # \param uuid: If set to a sender serial number (different from 0), this will retrieve the raw data provided by this sender.
     # \return \ref FUSION_ERROR_CODE "FUSION_ERROR_CODE.SUCCESS" if it goes as it should, otherwise it returns an FUSION_ERROR_CODE.
-    def retrieve_image(self, Mat mat, CameraIdentifier uuid, Resolution resolution = Resolution(0,0)) -> FUSION_ERROR_CODE:
+    def retrieve_image(self, Mat mat, CameraIdentifier uuid, Resolution resolution = None) -> FUSION_ERROR_CODE:
+        if resolution is None:
+            resolution = Resolution(0, 0)
         cdef c_FUSION_ERROR_CODE ret
         with nogil:
             ret = self.fusion.retrieveImage(mat.mat, uuid.cameraIdentifier, resolution.resolution)
@@ -14785,7 +16332,9 @@ cdef class Fusion:
     # \param resolution: the requested resolution of the output image, can be lower or equal (default) to the original image resolution.
     # \param reference_frame: The reference frame in which the objects will be expressed. Default: \ref FUSION_REFERENCE_FRAME "FUSION_REFERENCE_FRAME::BASELINK".
     # \return \ref FUSION_ERROR_CODE "FUSION_ERROR_CODE.SUCCESS" if it goes as it should, otherwise it returns an FUSION_ERROR_CODE.
-    def retrieve_measure(self, Mat mat, CameraIdentifier uuid, measure: MEASURE, Resolution resolution = Resolution(0,0), reference_frame: FUSION_REFERENCE_FRAME = FUSION_REFERENCE_FRAME.BASELINK) -> FUSION_ERROR_CODE:
+    def retrieve_measure(self, Mat mat, CameraIdentifier uuid, measure: MEASURE, Resolution resolution = None, reference_frame: FUSION_REFERENCE_FRAME = FUSION_REFERENCE_FRAME.BASELINK) -> FUSION_ERROR_CODE:
+        if resolution is None:
+            resolution = Resolution(0, 0)
         cdef c_FUSION_ERROR_CODE ret
         cdef c_MEASURE c_measure = <c_MEASURE>(<int>measure.value)
         cdef c_FUSION_REFERENCE_FRAME c_reference_frame = <c_FUSION_REFERENCE_FRAME>(<int>reference_frame.value)
@@ -14822,6 +16371,9 @@ cdef class Fusion:
     def get_position(self, camera_pose : Pose, reference_frame : REFERENCE_FRAME = REFERENCE_FRAME.WORLD, uuid: CameraIdentifier = CameraIdentifier(), position_type : POSITION_TYPE = POSITION_TYPE.FUSION) -> POSITIONAL_TRACKING_STATE:
         return POSITIONAL_TRACKING_STATE(<int>self.fusion.getPosition(camera_pose.pose, <c_REFERENCE_FRAME>(<int>reference_frame.value), uuid.cameraIdentifier, <c_POSITION_TYPE>(<int>position_type.value)))
 
+    ##
+    # Get the current status of fused position.
+    # \return FusedPositionalTrackingStatus is the current status of fused position.
     def get_fused_positional_tracking_status(self) -> FusedPositionalTrackingStatus:
         status = FusedPositionalTrackingStatus()
         status.odometry_status = self.fusion.getFusedPositionalTrackingStatus().odometry_status
@@ -14877,6 +16429,14 @@ cdef class Fusion:
         self.fusion.disablePositionalTracking()
 
     ##
+    # \brief Return the current fusion timestamp, aligned with the synchronized GNSS and camera data.
+    # \return sl.Timestamp current fusion timestamp.
+    def get_current_timestamp(self) -> Timestamp:
+        ts = Timestamp()
+        ts.timestamp = self.fusion.getCurrentTimeStamp()
+        return ts
+
+    ##
     # Convert ENU to LatLng
     #
     # Concert an ENU position into LatLng
@@ -14897,7 +16457,7 @@ cdef class Fusion:
     # \return Output yaw uncertainty.
     # \return Output position uncertainty.
     ##
-    def get_current_gnss_calibration_std(self) -> tuple[GNSS_FUSION_STATUS, float, np.array]:
+    def get_current_gnss_calibration_std(self) -> tuple[GNSS_FUSION_STATUS, float, npt.NDArray]:
         cdef float3 position_std = float3(0, 0, 0)
         cdef float yaw_std = 0
         gnss_fusion_status = GNSS_FUSION_STATUS(<int>self.fusion.getCurrentGNSSCalibrationSTD(yaw_std, position_std))
@@ -15046,11 +16606,13 @@ cdef class SVOData:
 cdef class CameraOneConfiguration:
     cdef CameraParameters py_calib
     cdef CameraParameters py_calib_raw
-    cdef unsigned int firmware_version
+    cdef uint firmware_version
     cdef c_Resolution py_res
     cdef float camera_fps
 
-    def __cinit__(self, CameraOne py_camera, Resolution resizer=Resolution(0,0), int firmware_version_=0, int fps_=0, CameraParameters py_calib_= CameraParameters(), CameraParameters py_calib_raw_= CameraParameters()):
+    def __cinit__(self, CameraOne py_camera, Resolution resizer=None, int firmware_version_=0, int fps_=0, CameraParameters py_calib_=None, CameraParameters py_calib_raw_=None):
+        if resizer is None:
+            resizer = Resolution(0, 0)
         res = c_Resolution(resizer.width, resizer.height)
         self.py_calib = CameraParameters()
         caminfo = py_camera.camera.getCameraInformation(res)
@@ -15100,7 +16662,7 @@ cdef class CameraOneConfiguration:
 # \note This object is meant to be used as a read-only container, editing any of its fields won't impact the SDK.
 # \warning \ref CalibrationParameters are returned in \ref COORDINATE_SYSTEM.IMAGE , they are not impacted by the \ref InitParametersOne.coordinate_system
 cdef class CameraOneInformation:
-    cdef unsigned int serial_number
+    cdef uint serial_number
     cdef c_MODEL camera_model
     cdef c_INPUT_TYPE input_type
     cdef CameraOneConfiguration py_camera_configuration
@@ -15309,6 +16871,22 @@ cdef class InitParametersOne:
             raise TypeError("Argument must be of COORDINATE_SYSTEM type.")
 
     ##
+    # NVIDIA graphics card id to use.
+    #
+    # By default the SDK will use the most powerful NVIDIA graphics card found.
+    # \n However, when running several applications, or using several cameras at the same time, splitting the load over available GPUs can be useful.
+    # \n This parameter allows you to select the GPU used by the sl.CameraOne using an ID from 0 to n-1 GPUs in your PC.
+    # \n Default: -1
+    # \note A non-positive value will search for all CUDA capable devices and select the most powerful.
+    @property
+    def sdk_gpu_id(self) -> int:
+        return self.init.sdk_gpu_id
+
+    @sdk_gpu_id.setter
+    def sdk_gpu_id(self, int value):
+        self.init.sdk_gpu_id = value
+
+    ##
     # Enable the ZED SDK verbose mode.
     #
     # This parameter allows you to enable the verbosity of the ZED SDK to get a variety of runtime information in the console.
@@ -15398,17 +16976,15 @@ cdef class InitParametersOne:
     # See \ref InputType for complementary information.
     #
     # \warning Using the ZED SDK Python API, using init_params.input.set_from_XXX won't work, use init_params.set_from_XXX instead
-    # @property
-    # def input(self) -> InputType:
-    #    input_t = InputType()
-    #    input_t.input = self.init.input
-    #    return input_t
+    @property
+    def input(self) -> InputType:
+        input_t = InputType()
+        input_t.input_ptr[0] = self.init.input
+        return input_t
 
-    # @input.setter
+    @input.setter
     def input(self, InputType input_t):
         self.init.input = deref(input_t.input_ptr)
-
-    input = property(None, input)
 
     ##
     # Optional path where the ZED SDK has to search for the settings file (<i>SN<XXXX>.conf</i> file).
@@ -15479,9 +17055,16 @@ cdef class InitParametersOne:
 
     ##
     # Defines the input source with a serial number to initialize and open an sl.CameraOne object from.
-    # \param serial_number : Serial number of the desired camera to open.
-    def set_from_serial_number(self, uint serial_number) -> None:
-        self.init.input.setFromSerialNumber(serial_number)
+    # 
+    # For ZED/ZEDOne cameras (numeric serial numbers), pass an int or a numeric string.
+    # For Lidar sensors (string-based serial numbers like "991937000508"), pass a string.
+    # \param serial_number : Serial number of the desired camera/sensor to open (int or str).
+    def set_from_serial_number(self, serial_number) -> None:
+        if isinstance(serial_number, int):
+            self.init.input.setFromSerialNumber(<uint>serial_number)
+        else:
+            serial_str = str(serial_number).encode()
+            self.init.input.setFromSerialNumber(String(<char*>serial_str))
 
     ##
     # Defines the input source with an SVO file to initialize and open an sl.CameraOne object from.
@@ -15498,6 +17081,304 @@ cdef class InitParametersOne:
         sender_ip_ = sender_ip.encode()
         self.init.input.setFromStream(String(<char*>sender_ip_), port)
 
+##
+# Provide a concise sl.ERROR_CODE string.
+# \param err : the sl.ERROR_CODE to convert.
+# \return A concise sl.ERROR_CODE string for the user.
+def to_verbose(err: ERROR_CODE) -> str:
+    return toVerbose(<c_ERROR_CODE>(<int>err.value)).get().decode()
+
+##
+# Get the coordinate transform conversion matrix to change coordinate system.
+# \param src : the source coordinate system.
+# \param dst : the destination coordinate system.
+# \return Matrix3f : transformation matrix, to apply to a \ref float3 point simply multiply by this matrix (pt_coord_dst = tf_matrix * pt_coord_src).
+def get_coordinate_transform_conversion_3f(src: COORDINATE_SYSTEM, dst: COORDINATE_SYSTEM) -> Matrix3f:
+    cdef Matrix3f mat = Matrix3f()
+    mat.mat[0] = getCoordinateTransformConversion3f(<c_COORDINATE_SYSTEM>(<int>src.value), <c_COORDINATE_SYSTEM>(<int>dst.value))
+    return mat
+
+##
+# Get the coordinate transform conversion matrix to change coordinate system.
+# \param src : the source coordinate system.
+# \param dst : the destination coordinate system.
+# \return Matrix4f : transformation matrix, to apply to a \ref float4 point simply multiply by this matrix (pt_coord_dst = tf_matrix * pt_coord_src).
+def get_coordinate_transform_conversion_4f(src: COORDINATE_SYSTEM, dst: COORDINATE_SYSTEM) -> Matrix4f:
+    cdef Matrix4f mat = Matrix4f()
+    mat.mat[0] = getCoordinateTransformConversion4f(<c_COORDINATE_SYSTEM>(<int>src.value), <c_COORDINATE_SYSTEM>(<int>dst.value))
+    return mat
+
+##
+# Change the coordinate system of a transform matrix.
+# \param transform : (in/out) matrix to transform
+# \param src : the current coordinate system of transform.
+# \param dst : the destination coordinate system for transform.
+# \return \ref ERROR_CODE.SUCCESS if everything went well, \ref ERROR_CODE.FAILURE otherwise.
+def convert_coordinate_system_transform(Transform transform, src: COORDINATE_SYSTEM, dst: COORDINATE_SYSTEM) -> ERROR_CODE:
+    return _error_code_cache.get(<int>convertCoordinateSystemTransform(deref(transform.transform), <c_COORDINATE_SYSTEM>(<int>src.value), <c_COORDINATE_SYSTEM>(<int>dst.value)), ERROR_CODE.FAILURE)
+
+##
+# Change the coordinate system of a matrix.
+# \param mat : (in/out) matrix to transform, can be either a \ref MAT_TYPE.F32_C4 (the fourth value will be ignored as it contained the color information) or a \ref MAT_TYPE.F32_C3.
+# \param src : the current coordinate system of mat.
+# \param dst : the destination coordinate system for mat.
+# \param memory_type : define which memory should be transformed from mat.
+# \return \ref ERROR_CODE.SUCCESS if everything went well, \ref ERROR_CODE.FAILURE otherwise.
+# */
+def convert_coordinate_system_mat(Mat mat, src: COORDINATE_SYSTEM, dst: COORDINATE_SYSTEM, memory_type: MEM) -> ERROR_CODE:
+    return _error_code_cache.get(<int>convertCoordinateSystemMat(mat.mat, <c_COORDINATE_SYSTEM>(<int>src.value), <c_COORDINATE_SYSTEM>(<int>dst.value), <c_MEM>(<int>memory_type.value), <cudaStream_t>0), ERROR_CODE.FAILURE)
+
+##
+# Get the unit factor to change units.
+# \param src : the source coordinate system.
+# \param dst : the destination coordinate system.
+# \return float : unit scale (pt_coord_dst = factor * pt_coord_src).
+def get_unit_scale(src: UNIT, dst: UNIT) -> float:
+    return getUnitScale(<c_UNIT>(<int>src.value), <c_UNIT>(<int>dst.value))
+
+##
+# Change the unit (of the translations) of a transform matrix.
+# \param transform : (in/out) matrix to transform
+# \param src : the current unit of transform.
+# \param dst : the destination unit for transform.
+# \return \ref ERROR_CODE.SUCCESS if everything went well, \ref ERROR_CODE.FAILURE otherwise.
+def convert_unit_transform(Transform transform, src: UNIT, dst: UNIT) -> ERROR_CODE:
+    return _error_code_cache.get(<int>convertUnitTransform(deref(transform.transform), <c_UNIT>(<int>src.value), <c_UNIT>(<int>dst.value)), ERROR_CODE.FAILURE)
+
+##
+# Change the unit of a matrix.
+# \param mat : (in/out) matrix to transform, can be either a \ref MAT_TYPE::F32_C4 (the fourth value will be ignored as it contained the color information), \ref MAT_TYPE::F32_C3 or a \ref MAT_TYPE::F32_C1.
+# \param src : the current unit of mat.
+# \param dst : the destination unit for mat.
+# \param mem : define which memory should be transformed from mat.
+# \return \ref ERROR_CODE.SUCCESS if everything went well, \ref ERROR_CODE.FAILURE otherwise.
+def convert_unit_mat(Mat mat, src: UNIT, dst: UNIT, memory_type: MEM) -> ERROR_CODE:
+    return _error_code_cache.get(<int>convertUnitMat(mat.mat, <c_UNIT>(<int>src.value), <c_UNIT>(<int>dst.value), <c_MEM>(<int>memory_type.value), <cudaStream_t>0), ERROR_CODE.FAILURE)
+
+##
+# Apply a transformation (rotation and translation) to a point cloud matrix.
+# \param mat : (in/out) point cloud matrix to transform, can be either a MAT_TYPE.F32_C4 (the fourth value will be preserved as it contains the color information) or a MAT_TYPE.F32_C3.
+# \param transform : the transformation (rotation + translation) to apply to each point.
+# \param memory_type : define which memory should be transformed from mat. If MEM.BOTH is specified, the function will automatically detect which memory is allocated and transform accordingly (GPU preferred if both are allocated).
+# \return ERROR_CODE.SUCCESS if everything went well, ERROR_CODE.FAILURE otherwise.
+# \note This is useful for transforming point clouds between different reference frames (e.g., sensor to world frame).
+def apply_transform(Mat mat, Transform transform, memory_type: MEM = MEM.BOTH) -> ERROR_CODE:
+    return _error_code_cache.get(<int>applyTransform(mat.mat, deref(transform.transform), <c_MEM>(<int>memory_type.value), <cudaStream_t>0), ERROR_CODE.FAILURE)
+
+##
+# Save a JSON content into a file.
+# \param filepath : path to the file to save.
+# \param content : JSON content to save.
+# \param merge : if true, will merge the content with existing file content.
+# \return true if the file has been saved correctly, false otherwise.
+def save_json_file(str filepath, str content, bool merge) -> bool:
+    cdef String s_filepath = String(filepath.encode())
+    cdef String s_content = String(content.encode())
+    return saveJSONFile(s_filepath, s_content, merge)
+
+##
+# Load a JSON content from a file.
+# \param filepath : path to the file to load.
+# \return JSON content if the file has been loaded correctly, empty string otherwise.
+def load_json_file(str filepath) -> str:
+    cdef String s_filepath = String(filepath.encode())
+    cdef String s_content = String()
+    cdef bool res = loadJSONFile(s_filepath, s_content)
+    if res:
+        return s_content.get().decode()
+    return ""
+
+##
+# Get the object class from a specific subclass.
+# \param subclass : the object subclass.
+# \return the corresponding object class.
+def get_object_class(subclass: OBJECT_SUBCLASS) -> OBJECT_CLASS:
+    return OBJECT_CLASS(getObjectClass(<c_OBJECT_SUBCLASS>(<int>subclass.value)))
+
+##
+# Get the list of object subclasses for a specific object class.
+# \param obj_class : the object class.
+# \return list of corresponding object subclasses.
+def get_object_subclasses(obj_class: OBJECT_CLASS) -> list:
+    cdef vector[c_OBJECT_SUBCLASS] sub_classes = getObjectSubClasses(<c_OBJECT_CLASS>(<int>obj_class.value))
+    py_sub_classes = []
+    for i in range(sub_classes.size()):
+        py_sub_classes.append(OBJECT_SUBCLASS(sub_classes[i]))
+    return py_sub_classes
+
+##
+# Get the COCO object subclass from a specific subclass.
+# \param subclass : the object subclass.
+# \return the corresponding COCO object subclass.
+def get_object_subclass_as_coco(subclass: OBJECT_SUBCLASS) -> int:
+    return getObjectSubClassAsCOCO(<c_OBJECT_SUBCLASS>(<int>subclass.value))
+
+##
+# Convert a list of images into a GPU Tensor in planar channel configuration (NCHW), ready to use for deep learning model
+# \param mats : input images to convert
+# \param mat_out : output GPU tensor batched
+# \param resolution : resolution of the output image, generally square, although not mandatory
+# \param scale : Scale factor applied to each pixel value, typically to convert the char value into [0-1] float
+# \param mean : mean, statistic to normalized the pixel values, applied AFTER the scale. For instance for imagenet statistics the mean would be sl::float3(0.485, 0.456, 0.406)
+# \param stdev : standard deviation, statistic to normalized the pixel values, applied AFTER the scale. For instance for imagenet statistics the standard deviation would be sl::float3(0.229, 0.224, 0.225)
+# \param keep_aspect_ratio : indicates if the original width and height ratio should be kept using padding (sometimes refer to as letterboxing) or if the image should be stretched
+# \param swap_rb_channels : indicates if the Red and Blue channels should be swapped (RGB<->BGR or RGBA<->BGRA)
+# \return \ref ERROR_CODE.SUCCESS if everything went well, \ref ERROR_CODE.FAILURE otherwise.
+def blob_from_images(list mats, Mat mat_out, Resolution resolution, float scale, list mean, list stdev, bool keep_aspect_ratio, bool swap_rb_channels) -> ERROR_CODE:
+    cdef vector[c_Mat] c_mats
+    for m in mats:
+        c_mats.push_back((<Mat>m).mat)
+    cdef c_Resolution c_res = c_Resolution(resolution.width, resolution.height)
+    cdef Vector3[float] c_mean = Vector3[float](mean[0], mean[1], mean[2])
+    cdef Vector3[float] c_stdev = Vector3[float](stdev[0], stdev[1], stdev[2])
+    return _error_code_cache.get(<int>c_blobFromImages(c_mats, mat_out.mat, c_res, scale, c_mean, c_stdev, keep_aspect_ratio, swap_rb_channels, <cudaStream_t>0), ERROR_CODE.FAILURE)
+
+##
+# Convert Image format from Unsigned char to Signed char, designed for Unreal Engine pipeline, works on GPU memory.
+# \param image_in : input image to convert
+# \param image_signed : output image to converted
+# \return \ref ERROR_CODE.SUCCESS if everything went well, \ref ERROR_CODE.FAILURE otherwise.
+# \note If the Output Mat does not satisfies the requirements, it is freed and re-allocated.
+def convert_image(Mat image_in, Mat image_signed) -> ERROR_CODE:
+    return _error_code_cache.get(<int>c_convertImage(image_in.mat, image_signed.mat, <cudaStream_t>0), ERROR_CODE.FAILURE)
+
+##
+# Test if a specific resolution is available for the specified camera model.
+# \param resolution : The wanted resolution.
+# \param camera_model : The wanted camera model.
+# \return True if the resolution is available for the camera model, false otherwise.
+def is_resolution_available(resolution: RESOLUTION, camera_model: MODEL) -> bool:
+    return c_isResolutionAvailable(<c_RESOLUTION>(<int>resolution.value), <c_MODEL>(<int>camera_model.value))
+
+##
+# Test if a specific resolution/fps combination is available for the specified camera model.
+# \param fps : The wanted fps.
+# \param resolution : The wanted resolution.
+# \param camera_model : The wanted camera model.
+# \return True if the resolution is available for the camera model, false otherwise.
+def is_fps_available(int fps, resolution: RESOLUTION, camera_model: MODEL) -> bool:
+    return c_isFPSAvailable(fps, <c_RESOLUTION>(<int>resolution.value), <c_MODEL>(<int>camera_model.value))
+
+##
+# Returns the ZED SDK version currently installed on the computer.
+# Where ret is -1 if the ZED SDK was not found, -2 if the ZED SDK version wasn't found, 0 otherwise.
+# \return ret, major, minor, patch.
+def get_zed_sdk_runtime_version() -> tuple:
+    cdef int major = 0
+    cdef int minor = 0
+    cdef int patch = 0
+    ret = getZEDSDKRuntimeVersion(major, minor, patch)
+    return ret, major, minor, patch
+
+##
+# Available camera FPS.
+# Those values are not available for all cameras/resolutions. Use the isAvailable() function to check if a specific camera/resolution/fps is available.
+# \note The ZED SDK will automatically select the best available FPS for the camera/resolution if AUTO is selected.
+def get_available_camera_fps() -> list:
+    cdef vector[int] fps = getAvailableCameraFPS()
+    return fps
+
+##
+# Checks if a corresponding optimized engine is found for the requested Model based on your rig configuration.
+# \return The status of the given model for the specified GPU.
+def check_ai_model_status(model: AI_MODELS, int gpu_id=0) -> dict:
+    cdef c_AI_Model_status status = checkAIModelStatus(<c_AI_MODELS>(<int>model.value), gpu_id)
+    return {'downloaded': status.downloaded, 'optimized': status.optimized}
+
+##
+# Downloads the requested model.
+# \return sl.ERROR_CODE.SUCCESS if the model is already download.
+def download_ai_model(model: AI_MODELS, int gpu_id=0):
+    return _error_code_cache.get(<int>downloadAIModel(<c_AI_MODELS>(<int>model.value), gpu_id), ERROR_CODE.FAILURE)
+
+##
+# Optimizes the requested model (and download the model if it is not present on the host).
+# \return sl.ERROR_CODE.SUCCESS if the model is well optimized.
+def optimize_ai_model(model: AI_MODELS, int gpu_id=0):
+    return _error_code_cache.get(<int>optimizeAIModel(<c_AI_MODELS>(<int>model.value), gpu_id), ERROR_CODE.FAILURE)
+
+##
+# Compute the rotation matrix from the gravity vector : the rotation can used to find the world rotation from the gravity of an IMU
+# \param axis_to_align : define the axis to align with the gravity, for instance : to align the "y" axis, axis_to_align = (0, 1, 0)'
+# \param gravity : the gravity vector, acceleration set by an IMU
+# \return Rotation : rotation matrix, useful for Camera.detectFloorPlane as a gravity prior
+def compute_rotation_matrix_from_gravity(list axis_to_align, list gravity) -> Rotation:
+    cdef Vector3[float] c_axis = Vector3[float](axis_to_align[0], axis_to_align[1], axis_to_align[2])
+    cdef Vector3[float] c_gravity = Vector3[float](gravity[0], gravity[1], gravity[2])
+    cdef Rotation rot = Rotation()
+    rot.rotation[0] = computeRotationMatrixFromGravity(c_axis, c_gravity)
+    return rot
+
+##
+# Read a Configuration JSON string to configure a fusion process.
+# \param json_config_filename : The string containing the configuration (it will be parsed as JSON).
+# \param coord_sys : Defines the COORDINATE_SYSTEM of the Fusion World Pose.
+# \param unit : Defines the UNIT of the Fusion World Pose.
+#
+# \return A vector of \ref FusionConfiguration for all the cameras present in the configuration file.
+# \note Empty if no data were found for the requested camera.
+def read_fusion_configuration(str json_config_filename, coord_sys: COORDINATE_SYSTEM, unit: UNIT):
+    cdef String s_filename = String(json_config_filename.encode())
+    cdef vector[c_FusionConfiguration] configs = c_readFusionConfiguration(s_filename.get(), <c_COORDINATE_SYSTEM>(<int>coord_sys.value), <c_UNIT>(<int>unit.value))
+    py_configs = []
+    for i in range(configs.size()):
+        conf = FusionConfiguration()
+        conf.fusionConfiguration = configs[i]
+        py_configs.append(conf)
+    return py_configs
+
+##
+# This class serves as the primary interface between the camera and the various features provided by the SDK when using Monocular cameras.
+# \ingroup CameraOne_group
+#
+# A standard program will use the \ref Camera class like this:
+# \code
+#
+#        import pyzed.sl as sl
+#
+#        def main():
+#            # --- Initialize a Camera object and open the ZED
+#            # Create a ZED camera object
+#            zed = sl.CameraOne()
+#
+#            # Set configuration parameters
+#            init_params = sl.InitParametersOne()
+#            init_params.camera_resolution = sl.RESOLUTION.HD720    # Use HD720 video mode for USB cameras
+#            # init_params.camera_resolution = sl.RESOLUTION.HD1200 # Use HD1200 video mode for GMSL cameras
+#            init_params.camera_fps = 60                            # Set fps at 60
+#
+#            # Open the camera
+#            err = zed.open(init_params)
+#            if err != sl.ERROR_CODE.SUCCESS:
+#                print(repr(err))
+#                exit(-1)
+#
+#            # --- Main loop grabbing images and depth values
+#            # Capture 50 frames and stop
+#            i = 0
+#            image = sl.Mat()
+#            depth = sl.Mat()
+#            while i < 50 :
+#                # Grab an image
+#                if zed.grab() == sl.ERROR_CODE.SUCCESS: # A new image is available if grab() returns SUCCESS
+#                    # Display a pixel color
+#                    zed.retrieve_image(image, sl.VIEW.LEFT) # Get the left image
+#                    err, center_rgb = image.get_value(image.get_width() / 2, image.get_height() / 2)
+#                    if err == sl.ERROR_CODE.SUCCESS:
+#                        print("Image ", i, " center pixel R:", int(center_rgb[0]), " G:", int(center_rgb[1]), " B:", int(center_rgb[2]))
+#                    else:
+#                        print("Image ", i, " error:", err)
+#
+#                    i = i+1
+#
+#            # --- Close the Camera
+#            zed.close()
+#            return 0
+#
+#        if __name__ == "__main__":
+#            main()
+#
+# \endcode
 cdef class CameraOne:
     cdef c_CameraOne camera
 
@@ -15540,7 +17421,9 @@ cdef class CameraOne:
     #   - <b>Windows:</b> <i>C:\\Program Files (x86)\\ZED SDK\\tools\\ZED Diagnostic.exe</i>
     #   - <b>Linux:</b> <i>/usr/local/zed/tools/ZED Diagnostic</i>
     # \note If this method is called on an already opened camera, \ref close() will be called.
-    def open(self, py_init : InitParametersOne = InitParametersOne()) -> ERROR_CODE:
+    def open(self, py_init : InitParametersOne = None) -> ERROR_CODE:
+        if py_init is None:
+            py_init = InitParametersOne()
         cdef c_InitParametersOne ini = py_init.init
         return _error_code_cache.get(<int>self.camera.open(ini), ERROR_CODE.FAILURE)
 
@@ -15625,7 +17508,9 @@ cdef class CameraOne:
     #           else:
     #               print("error:", err)
     # \endcode
-    def retrieve_image(self, Mat py_mat, view=VIEW.LEFT, mem_type=MEM.CPU, Resolution resolution=Resolution(0,0)) -> ERROR_CODE:
+    def retrieve_image(self, Mat py_mat, view=VIEW.LEFT, mem_type=MEM.CPU, Resolution resolution=None) -> ERROR_CODE:
+        if resolution is None:
+            resolution = Resolution(0, 0)
         cdef c_ERROR_CODE ret
         cdef c_VIEW c_view = <c_VIEW>(<int>view.value)
         cdef c_MEM c_mem_type = <c_MEM>(<int>mem_type.value)
@@ -15634,11 +17519,64 @@ cdef class CameraOne:
         return _error_code_cache.get(<int>ret, ERROR_CODE.FAILURE)
 
     ##
-    # Sets the playback cursor to the desired frame number in the SVO file.
+    # \brief Retrieved a sl::Tensor, containing the input image pre-processed for inference with SVO or live camera.
     #
-    # This method allows you to move around within a played-back SVO file. After calling, the next call to \ref grab() will read the provided frame number.
+    # This method provides a way to obtain the pre-processed input image in a format suitable for deep learning inference tasks.
+    # The retrieved Tensor is allocated on the GPU, allowing for efficient processing and integration with deep learning frameworks.
     #
-    # \param frame_number : The number of the desired frame to be decoded.
+    # The pre-processing steps applied to the input image include resizing, normalization, and any other transformations required
+    # to prepare the image for inference.
+    #
+    # This method is particularly useful when working with deep learning models that require specific input formats and pre-processing
+    # steps. By retrieving the pre-processed Tensor directly from the Camera class, users can streamline their workflow and ensure
+    # compatibility with their deep learning pipelines.
+    #
+    # \note This method requires that the camera has been opened in either LIVE mode, SVO mode or STREAM mode.
+    # \note The retrieved Tensor is allocated on the GPU, so ensure that your system has sufficient GPU memory to accommodate
+    # the Tensor size.
+    #
+    # \param dest : The Tensor to store the pre-processed input image for inference.
+    # \param params : Options to configure the pre-processing steps applied to the input image.
+    # \return \ref ERROR_CODE "ERROR_CODE::SUCCESS" if the method succeeded.
+    # \return \ref ERROR_CODE "ERROR_CODE::INVALID_FUNCTION_PARAMETERS" if the provided params are invalid.
+    # \return \ref ERROR_CODE "ERROR_CODE::CAMERA_NOT_INITIALIZED" if the camera is not opened.
+    # \return \ref ERROR_CODE "ERROR_CODE::FAILURE" if another error occurred.
+    def retrieve_tensor(self, Tensor dest, TensorParameters params):
+        cdef c_ERROR_CODE err
+        cdef c_TensorParameters c_params = params.par
+        with nogil:
+            err = self.camera.retrieveTensor(dest.tensor, c_params)
+        return _error_code_cache.get(<int>err, ERROR_CODE.FAILURE)
+
+    ##
+    # Get the range for the specified camera settings \ref VIDEO_SETTINGS as min/max value.
+    #
+    # \param settings : Must be set at a valid \ref VIDEO_SETTINGS that accepts a min/max range and available for the current camera model.
+    # \param min : The minimum value that can be reached to be fill.
+    # \param max : The maximum value that can be reached to be fill.
+    # \return \ref ERROR_CODE to indicate if the method was successful.
+    def get_camera_settings_range(self, settings: VIDEO_SETTINGS):
+        cdef int min_val = 0
+        cdef int max_val = 0
+        err = self.camera.getCameraSettingsRange(<c_VIDEO_SETTINGS>(<int>settings.value), min_val, max_val)
+        return _error_code_cache.get(<int>err, ERROR_CODE.FAILURE), min_val, max_val
+
+    ##
+    #  Retrieves the frame index within the SVO file corresponding to the provided timestamp.
+    #
+    # \param timestamp The target timestamp for which the frame index is to be determined.
+    # \return The frame index within the SVO file that aligns with the given timestamp.
+    #         Returns -1 if the timestamp falls outside the bounds of the SVO file.
+    def get_svo_position_at_timestamp(self, Timestamp timestamp):
+        return self.camera.getSVOPositionAtTimestamp(timestamp.timestamp)
+
+    ##
+    # Sets the playback cursor to the desired position in the SVO file.
+    #
+    # This method allows you to move around within a played-back SVO file. After calling, the next call to \ref grab() will read the provided position.
+    #
+    # \param position : The position in the SVO file.
+    # \return An error code stating the success, or not.
     #
     # \note The method works only if the camera is open in SVO playback mode.
     #
@@ -15668,7 +17606,10 @@ cdef class CameraOne:
     #
     #         # Loop if we reached frame 50
     #         if zed.get_svo_position() == 50:
-    #             zed.set_svo_position(0)
+    #             err = zed.set_svo_position(0)
+    #             if err != sl.ERROR_CODE.SUCCESS:
+    #                 print(repr(err))
+    #                 exit(-1)
     #
     #         # Grab an image
     #         if zed.grab() == sl.ERROR_CODE.SUCCESS:
@@ -15684,8 +17625,8 @@ cdef class CameraOne:
     #     main()
     #
     # \endcode
-    def set_svo_position(self, frame_number: int) -> None:
-        self.camera.setSVOPosition(frame_number)
+    def set_svo_position(self, int position) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.camera.setSVOPosition(position))
 
     ##
     # Returns the current playback position in the SVO file.
@@ -15775,7 +17716,7 @@ cdef class CameraOne:
         else:
             raise TypeError("The key must be a string.")
 
-
+    ##
     # Sets the value of the requested \ref VIDEO_SETTINGS "camera setting" (gain, brightness, hue, exposure, etc.).
     #
     # This method only applies for \ref VIDEO_SETTINGS that require a single value.
@@ -15799,6 +17740,7 @@ cdef class CameraOne:
             return _error_code_cache.get(<int>self.camera.setCameraSettings(<c_VIDEO_SETTINGS>(<int>settings.value), value), ERROR_CODE.FAILURE)
         else:
             raise TypeError("Arguments must be of VIDEO_SETTINGS and boolean types.")
+
     ##
     # Sets the value of the requested \ref VIDEO_SETTINGS "camera setting" that supports two values (min/max).
     #
@@ -15830,14 +17772,13 @@ cdef class CameraOne:
     #
     # \param settings : Must be set at \ref VIDEO_SETTINGS "VIDEO_SETTINGS.AEC_AGC_ROI", otherwise the method will have no impact.
     # \param roi : Rect that defines the target to be applied for AEC/AGC computation. Must be given according to camera resolution.
-    # \param eye : \ref SIDE on which to be applied for AEC/AGC computation. Default: \ref SIDE "SIDE.BOTH"
     # \param reset : Cancel the manual ROI and reset it to the full image. Default: False
     #
     # \note The method works only if the camera is open in LIVE or STREAM mode.
     #
     # \code
     #   roi = sl.Rect(42, 56, 120, 15)
-    #   zed.set_camera_settings_roi(sl.VIDEO_SETTINGS.AEC_AGC_ROI, roi, sl.SIDE.BOTH)
+    #   zed.set_camera_settings_roi(sl.VIDEO_SETTINGS.AEC_AGC_ROI, roi)
     # \endcode
     #
     def set_camera_settings_roi(self, settings: VIDEO_SETTINGS, roi: Rect, reset = False) -> ERROR_CODE:
@@ -15910,12 +17851,11 @@ cdef class CameraOne:
     #
     # \param setting[in] : Must be set at \ref VIDEO_SETTINGS "VIDEO_SETTINGS.AEC_AGC_ROI", otherwise the method will have no impact.
     # \param roi[out] : Roi that will be filled.
-    # \param eye[in] : The requested side. Default: \ref SIDE "SIDE.BOTH"
     # \return \ref ERROR_CODE to indicate if the method was successful.
     #
     # \code
     # roi = sl.Rect()
-    # err = zed.get_camera_settings_roi(sl.VIDEO_SETTINGS.AEC_AGC_ROI, roi, sl.SIDE.BOTH)
+    # err = zed.get_camera_settings_roi(sl.VIDEO_SETTINGS.AEC_AGC_ROI, roi)
     # print("Current ROI for AEC_AGC: " + str(roi.x) + " " + str(roi.y)+ " " + str(roi.width) + " " + str(roi.height))
     # \endcode
     #
@@ -15995,21 +17935,23 @@ cdef class CameraOne:
     def get_frame_dropped_count(self) -> int:
         return self.camera.getFrameDroppedCount()
 
-    # #
+    ##
     # Not implemented. Returns the CameraInformation associated the camera being used.
-
+    #
     # To ensure accurate calibration, it is possible to specify a custom resolution as a parameter when obtaining scaled information, as calibration parameters are resolution-dependent.
     # \n When reading an SVO file, the parameters will correspond to the camera used for recording.
-
+    #
     # \param resizer : You can specify a size different from the default image size to get the scaled camera information.
     # Default = (0,0) meaning original image size (given by \ref CameraConfiguration.resolution "get_camera_information().camera_configuration.resolution").
     # \return \ref CameraInformation containing the calibration parameters of the ZED, as well as serial number and firmware version.
-
+    #
     # \warning The returned parameters might vary between two execution due to the \ref InitParametersOne.camera_disable_self_calib "self-calibration" being run in the \ref open() method.
     # \note The calibration file SNXXXX.conf can be found in:
     # - <b>Windows:</b> <i>C:/ProgramData/Stereolabs/settings/</i>
     # - <b>Linux:</b> <i>/usr/local/zed/settings/</i>.
-    def get_camera_information(self, resizer = Resolution(0, 0)) -> CameraOneInformation:
+    def get_camera_information(self, resizer = None) -> CameraOneInformation:
+        if resizer is None:
+            resizer = Resolution(0, 0)
         return CameraOneInformation(self, resizer)
 
     ##
@@ -16183,7 +18125,9 @@ cdef class CameraOne:
     # if __name__ == "__main__" :
     #     main()
     # \endcode
-    def enable_streaming(self, streaming_parameters = StreamingParameters()) -> ERROR_CODE:
+    def enable_streaming(self, streaming_parameters = None) -> ERROR_CODE:
+        if streaming_parameters is None:
+            streaming_parameters = StreamingParameters()
         return _error_code_cache.get(<int>self.camera.enableStreaming(deref((<StreamingParameters>streaming_parameters).streaming)), ERROR_CODE.FAILURE)
 
     ##
@@ -16310,6 +18254,27 @@ cdef class CameraOne:
         return vect_python
 
     ##
+    # Lists all the streaming devices with their associated information.
+    #
+    # \return The streaming properties for each connected camera.
+    # \warning This method takes around 2 seconds to make sure all network informations has been captured. Make sure to run this method in a thread.
+    @staticmethod
+    def get_streaming_device_list() -> list[StreamingProperties]:
+        cls = CameraOne()
+        vect_ = cls.camera.getStreamingDeviceList()
+        vect_python = []
+        for i in range(vect_.size()):
+            prop = StreamingProperties()
+            prop.ip = vect_[i].ip.get().decode()
+            prop.port = vect_[i].port
+            prop.serial_number = vect_[i].serial_number
+            prop.current_bitrate = vect_[i].current_bitrate
+            prop.codec = STREAMING_CODEC(<int>vect_[i].codec)
+            prop.camera_model = MODEL(<int>vect_[i].camera_model)
+            vect_python.append(prop)
+        return vect_python
+
+    ##
     # Performs a hardware reset of the ZED 2 and the ZED 2i.
     #
     # \param sn : Serial number of the camera to reset, or 0 to reset the first camera detected.
@@ -16342,3 +18307,2424 @@ cdef class CameraOne:
             raise TypeError("Argument is not of INPUT_TYPE type.")
         cls = Camera()
         return _error_code_cache.get(<int>cls.camera.reboot_from_type(<c_INPUT_TYPE>(<int>input_type.value)), ERROR_CODE.FAILURE)
+
+##
+# Structure containing information about a sensor device (camera or lidar) managed by the Sensors class.
+# \ingroup Sensors_group
+cdef class SensorDeviceIdentifier:
+    cdef c_SensorDeviceIdentifier identifier
+
+    ##
+    # Default constructor.
+    # \param name : Custom name of the camera.
+    # \param type : Type of the sensor.
+    def __init__(self, name="", type=SENSORS_TYPE.CAMERA):
+        if isinstance(name, str) and isinstance(type, SENSORS_TYPE):
+            self.identifier = c_SensorDeviceIdentifier(name.encode(), <c_SENSORS_TYPE><int>type.value)
+
+    ##
+    # Custom name of the camera.
+    @property
+    def sensor_name(self) -> str:
+        return self.identifier.sensor_name.decode()
+    @sensor_name.setter
+    def sensor_name(self, value):
+        self.identifier.sensor_name = value.encode()
+
+    ##
+    # Type of the sensor.
+    @property
+    def sensor_type(self) -> SENSORS_TYPE:
+        return SENSORS_TYPE(<int>self.identifier.type)
+    @sensor_type.setter
+    def sensor_type(self, value):
+        self.identifier.type = <c_SENSORS_TYPE><int>value.value
+
+    ##
+    # Returns the unique ID of the sensor.
+    def get_id(self):
+        return self.identifier.getID().decode()
+
+    ##
+    # Returns the serial number of the sensor.
+    def get_serial_number(self):
+        return self.identifier.getSerialNumber()
+
+##
+# Structure containing a set of parameters for the Sensors module initialization.
+# \ingroup Sensors_group
+cdef class InitSensorsParameters:
+    cdef c_InitSensorsParameters init
+
+    ##
+    # Default constructor.
+    # \param coordinate_units : Chosen \ref coordinate_units
+    # \param coordinate_system : Chosen \ref coordinate_system
+    # \param output_performance_metrics : Activates \ref output_performance_metrics
+    # \param verbose : Sets \ref verbose
+    # \param sdk_gpu_id : Chosen \ref sdk_gpu_id
+    # \param maximum_working_resolution : Sets \ref maximum_working_resolution
+    # \param execution_mode : Execution mode (EAGER or PIPELINED).
+    # \param sync_policy : Sync policy for temporal alignment across devices.
+    # \param sync_tolerance : Maximum timestamp difference for sync (in nanoseconds as a Timestamp).
+    def __init__(self, coordinate_units=UNIT.MILLIMETER, coordinate_system=COORDINATE_SYSTEM.IMAGE,
+                  output_performance_metrics=False, verbose=0, sdk_gpu_id=-1,
+                  maximum_working_resolution=Resolution(0,0),
+                  execution_mode=SENSORS_EXECUTION_MODE.EAGER, sync_policy=SENSORS_SYNC_POLICY.NONE,
+                  sync_tolerance=None):
+        self.init.coordinate_units = <c_UNIT><int>coordinate_units.value
+        self.init.coordinate_system = <c_COORDINATE_SYSTEM><int>coordinate_system.value
+        self.init.output_performance_metrics = output_performance_metrics
+        self.init.verbose = verbose
+        self.init.sdk_gpu_id = sdk_gpu_id
+        if maximum_working_resolution is not None:
+            self.init.maximum_working_resolution = (<Resolution>maximum_working_resolution).resolution
+        self.init.execution_mode = <c_SENSORS_EXECUTION_MODE><int>execution_mode.value
+        self.init.sync_policy = <c_SENSORS_SYNC_POLICY><int>sync_policy.value
+        if sync_tolerance is not None:
+            self.init.sync_tolerance = (<Timestamp>sync_tolerance).timestamp
+
+    ##
+    # Unit to be used for all metric values of the SDK.
+    @property
+    def coordinate_units(self) -> UNIT:
+        return UNIT(<int>self.init.coordinate_units)
+    @coordinate_units.setter
+    def coordinate_units(self, value):
+        self.init.coordinate_units = <c_UNIT><int>value.value
+
+    ##
+    # Coordinate system used by the Sensors to return its measures.
+    @property
+    def coordinate_system(self) -> COORDINATE_SYSTEM:
+        return COORDINATE_SYSTEM(<int>self.init.coordinate_system)
+    @coordinate_system.setter
+    def coordinate_system(self, value):
+        self.init.coordinate_system = <c_COORDINATE_SYSTEM><int>value.value
+
+    ##
+    # Extract some stats of the Fusion API like drop frame of each camera, latency, etc...
+    @property
+    def output_performance_metrics(self) -> bool:
+        return self.init.output_performance_metrics
+    @output_performance_metrics.setter
+    def output_performance_metrics(self, value):
+        self.init.output_performance_metrics = value
+
+    ##
+    # Enable the verbosity mode of the SDK.
+    @property
+    def verbose(self) -> int:
+        return self.init.verbose
+    @verbose.setter
+    def verbose(self, value):
+        self.init.verbose = value
+
+    ##
+    # NVIDIA graphics card to use.
+    @property
+    def sdk_gpu_id(self) -> int:
+        return self.init.sdk_gpu_id
+    @sdk_gpu_id.setter
+    def sdk_gpu_id(self, value):
+        self.init.sdk_gpu_id = value
+
+    ##
+    # Execution mode for the Sensors pipeline (EAGER or PIPELINED).
+    # In PIPELINED mode, after a one-frame setup phase, worker threads run autonomously.
+    @property
+    def execution_mode(self) -> SENSORS_EXECUTION_MODE:
+        return SENSORS_EXECUTION_MODE(<int>self.init.execution_mode)
+    @execution_mode.setter
+    def execution_mode(self, value):
+        self.init.execution_mode = <c_SENSORS_EXECUTION_MODE><int>value.value
+
+    ##
+    # Sync policy for temporal alignment across devices in pipelined mode.
+    @property
+    def sync_policy(self) -> SENSORS_SYNC_POLICY:
+        return SENSORS_SYNC_POLICY(<int>self.init.sync_policy)
+    @sync_policy.setter
+    def sync_policy(self, value):
+        self.init.sync_policy = <c_SENSORS_SYNC_POLICY><int>value.value
+
+    ##
+    # Maximum timestamp difference (nanoseconds) for temporal sync.
+    # Only effective when sync_policy is not NONE.
+    @property
+    def sync_tolerance(self) -> Timestamp:
+        ts = Timestamp()
+        ts.timestamp = self.init.sync_tolerance
+        return ts
+    @sync_tolerance.setter
+    def sync_tolerance(self, Timestamp value):
+        self.init.sync_tolerance = value.timestamp
+
+##
+# Structure containing a set of parameters for the recording module.
+# \ingroup Sensors_group
+cdef class RecordingSensorsParameters:
+    cdef c_RecordingSensorsParameters params
+
+    ##
+    # Default constructor.
+    # \param video_filenames : Filename of the file to save the recording into.
+    # \param compression_mode : Compression mode the recording.
+    # \param bitrate : Overrides the default bitrate of the SVO file, in kbits/s.
+    # \param target_framerate : Framerate for the recording file.
+    # \param transcode_streaming_input : Defines whether to decode and re-encode a streaming source.
+    def __init__(self, video_filenames=None, compression_mode=SVO_COMPRESSION_MODE.H265,
+                  bitrate=0, target_framerate=0, transcode_streaming_input=False):
+        self.params.compression_mode = <c_SVO_COMPRESSION_MODE><int>compression_mode.value
+        self.params.bitrate = bitrate
+        self.params.target_framerate = target_framerate
+        self.params.transcode_streaming_input = transcode_streaming_input
+        
+        if video_filenames is not None:
+             for key, value in video_filenames.items():
+                 self.params.video_filenames[(<SensorDeviceIdentifier>key).identifier] = String(value.encode())
+
+    ##
+    # Compression mode the recording.
+    @property
+    def compression_mode(self) -> SVO_COMPRESSION_MODE:
+        return SVO_COMPRESSION_MODE(<int>self.params.compression_mode)
+    @compression_mode.setter
+    def compression_mode(self, value):
+        self.params.compression_mode = <c_SVO_COMPRESSION_MODE><int>value.value
+
+    ##
+    # Overrides the default bitrate of the SVO file, in kbits/s.
+    @property
+    def bitrate(self) -> int:
+        return self.params.bitrate
+    @bitrate.setter
+    def bitrate(self, value):
+        self.params.bitrate = value
+
+    ##
+    # Framerate for the recording file.
+    @property
+    def target_framerate(self) -> int:
+        return self.params.target_framerate
+    @target_framerate.setter
+    def target_framerate(self, value):
+        self.params.target_framerate = value
+
+    ##
+    # Defines whether to decode and re-encode a streaming source.
+    @property
+    def transcode_streaming_input(self) -> bool:
+        return self.params.transcode_streaming_input
+    @transcode_streaming_input.setter
+    def transcode_streaming_input(self, value):
+        self.params.transcode_streaming_input = value
+
+##
+# Structure containing a set of parameters for the streaming module.
+# \ingroup Sensors_group
+cdef class StreamingSensorsParameters:
+    cdef c_StreamingSensorsParameters params
+
+    ##
+    # Default constructor.
+    # \param codec : Encoding used for streaming.
+    # \param port : Port used for streaming.
+    # \param bitrate : Streaming bitrate (in Kbits/s) used for streaming.
+    # \param gop_size : GOP size in number of frames.
+    # \param adaptative_bitrate : Defines whether the adaptive bitrate is enable.
+    # \param chunk_size : Size of a single chunk.
+    # \param target_framerate : Framerate for the streaming output.
+    def __init__(self, codec=STREAMING_CODEC.H265, port=30000, bitrate=0,
+                  gop_size=-1, adaptative_bitrate=False, chunk_size=16084,
+                  target_framerate=0):
+        self.params.codec = <c_STREAMING_CODEC><int>codec.value
+        self.params.port = port
+        self.params.bitrate = bitrate
+        self.params.gop_size = gop_size
+        self.params.adaptative_bitrate = adaptative_bitrate
+        self.params.chunk_size = chunk_size
+        self.params.target_framerate = target_framerate
+
+    ##
+    # Encoding used for streaming.
+    @property
+    def codec(self) -> STREAMING_CODEC:
+        return STREAMING_CODEC(<int>self.params.codec)
+    @codec.setter
+    def codec(self, value):
+        self.params.codec = <c_STREAMING_CODEC><int>value.value
+
+    ##
+    # Port used for streaming.
+    @property
+    def port(self) -> int:
+        return self.params.port
+    @port.setter
+    def port(self, value):
+        self.params.port = value
+
+    ##
+    # Streaming bitrate (in Kbits/s) used for streaming.
+    @property
+    def bitrate(self) -> int:
+        return self.params.bitrate
+    @bitrate.setter
+    def bitrate(self, value):
+        self.params.bitrate = value
+
+    ##
+    # GOP size in number of frames.
+    @property
+    def gop_size(self) -> int:
+        return self.params.gop_size
+    @gop_size.setter
+    def gop_size(self, value):
+        self.params.gop_size = value
+
+    ##
+    # Defines whether the adaptive bitrate is enable.
+    @property
+    def adaptative_bitrate(self) -> bool:
+        return self.params.adaptative_bitrate
+    @adaptative_bitrate.setter
+    def adaptative_bitrate(self, value):
+        self.params.adaptative_bitrate = value
+
+    ##
+    # Size of a single chunk.
+    @property
+    def chunk_size(self) -> int:
+        return self.params.chunk_size
+    @chunk_size.setter
+    def chunk_size(self, value):
+        self.params.chunk_size = value
+
+    ##
+    # Framerate for the streaming output.
+    @property
+    def target_framerate(self) -> int:
+        return self.params.target_framerate
+    @target_framerate.setter
+    def target_framerate(self, value):
+        self.params.target_framerate = value
+
+##
+# Structure containing a set of parameters for the object detection module in Sensors API.
+# \ingroup Sensors_group
+cdef class ObjectDetectionSensorsParameters:
+    cdef c_ObjectDetectionSensorsParameters params
+
+    ##
+    # Default constructor.
+    # \param instance_module_id : Id of the module instance.
+    # \param enable_tracking : Whether the object detection system includes object tracking.
+    # \param enable_segmentation : Whether the object masks will be computed.
+    # \param detection_model : sl::OBJECT_DETECTION_MODEL to use.
+    # \param max_range : Upper depth range for detections.
+    # \param filtering_mode : Filtering mode that should be applied to raw detections.
+    # \param prediction_timeout_s : Prediction duration of the ZED SDK when an object is not detected.
+    def __init__(self, instance_module_id=0, enable_tracking=True, enable_segmentation=False,
+                  detection_model=OBJECT_DETECTION_MODEL.MULTI_CLASS_BOX_FAST, max_range=-1.0,
+                  filtering_mode=OBJECT_FILTERING_MODE.NMS3D, prediction_timeout_s=0.2):
+        self.params.instance_module_id = instance_module_id
+        self.params.enable_tracking = enable_tracking
+        self.params.enable_segmentation = enable_segmentation
+        self.params.detection_model = <c_OBJECT_DETECTION_MODEL><int>detection_model.value
+        self.params.max_range = max_range
+        self.params.filtering_mode = <c_OBJECT_FILTERING_MODE><int>filtering_mode.value
+        self.params.prediction_timeout_s = prediction_timeout_s
+
+    ##
+    # Id of the module instance.
+    @property
+    def instance_module_id(self) -> int:
+        return self.params.instance_module_id
+    @instance_module_id.setter
+    def instance_module_id(self, value):
+        self.params.instance_module_id = value
+
+    ##
+    # List of sensor id that will be used for this instance.
+    @property
+    def sensors_ids(self) -> list[SensorDeviceIdentifier]:
+        cdef list py_ids = []
+        cdef c_SensorDeviceIdentifier c_id
+        for c_id in self.params.sensors_ids:
+            py_id = SensorDeviceIdentifier()
+            py_id.identifier = c_id
+            py_ids.append(py_id)
+        return py_ids
+    @sensors_ids.setter
+    def sensors_ids(self, list value):
+        self.params.sensors_ids.clear()
+        for py_id in value:
+            self.params.sensors_ids.insert((<SensorDeviceIdentifier>py_id).identifier)
+
+    ##
+    # Whether the object detection system includes object tracking.
+    @property
+    def enable_tracking(self) -> bool:
+        return self.params.enable_tracking
+    @enable_tracking.setter
+    def enable_tracking(self, value):
+        self.params.enable_tracking = value
+
+    ##
+    # Whether the object masks will be computed.
+    @property
+    def enable_segmentation(self) -> bool:
+        return self.params.enable_segmentation
+    @enable_segmentation.setter
+    def enable_segmentation(self, value):
+        self.params.enable_segmentation = value
+
+    ##
+    # sl::OBJECT_DETECTION_MODEL to use.
+    @property
+    def detection_model(self) -> OBJECT_DETECTION_MODEL:
+        return OBJECT_DETECTION_MODEL(<int>self.params.detection_model)
+    @detection_model.setter
+    def detection_model(self, value):
+        self.params.detection_model = <c_OBJECT_DETECTION_MODEL><int>value.value
+
+    ##
+    # Upper depth range for detections.
+    @property
+    def max_range(self) -> float:
+        return self.params.max_range
+    @max_range.setter
+    def max_range(self, value):
+        self.params.max_range = value
+
+    ##
+    # Filtering mode that should be applied to raw detections.
+    @property
+    def filtering_mode(self) -> OBJECT_FILTERING_MODE:
+        return OBJECT_FILTERING_MODE(<int>self.params.filtering_mode)
+    @filtering_mode.setter
+    def filtering_mode(self, value):
+        self.params.filtering_mode = <c_OBJECT_FILTERING_MODE><int>value.value
+
+    ##
+    # Prediction duration of the ZED SDK when an object is not detected.
+    @property
+    def prediction_timeout_s(self) -> float:
+        return self.params.prediction_timeout_s
+    @prediction_timeout_s.setter
+    def prediction_timeout_s(self, value):
+        self.params.prediction_timeout_s = value
+
+##
+# Structure containing a set of parameters for the body tracking module in Sensors API.
+# \ingroup Sensors_group
+cdef class BodyTrackingSensorsParameters:
+    cdef c_BodyTrackingSensorsParameters params
+
+    ##
+    # Default constructor.
+    def __init__(self, instance_module_id=0, enable_tracking=True, enable_segmentation=False,
+                  detection_model=BODY_TRACKING_MODEL.HUMAN_BODY_ACCURATE, enable_body_fitting=False,
+                  body_format=BODY_FORMAT.BODY_18, max_range=-1.0, prediction_timeout_s=0.2):
+        self.params.instance_module_id = instance_module_id
+        self.params.enable_tracking = enable_tracking
+        self.params.enable_segmentation = enable_segmentation
+        self.params.detection_model = <c_BODY_TRACKING_MODEL><int>detection_model.value
+        self.params.enable_body_fitting = enable_body_fitting
+        self.params.body_format = <c_BODY_FORMAT><int>body_format.value
+        self.params.max_range = max_range
+        self.params.prediction_timeout_s = prediction_timeout_s
+
+    ##
+    # Id of the module instance.
+    # This is used to identify which body tracking module instance is used.
+    @property
+    def instance_module_id(self) -> int:
+        return self.params.instance_module_id
+    @instance_module_id.setter
+    def instance_module_id(self, value):
+        self.params.instance_module_id = value
+
+    ##
+    # List of sensor id that will be used for this instance.
+    # By default empty which means all available sensors in Sensors when the body tracking instance is started.
+    @property
+    def sensors_ids(self) -> list[SensorDeviceIdentifier]:
+        cdef list py_ids = []
+        cdef c_SensorDeviceIdentifier c_id
+        for c_id in self.params.sensors_ids:
+            py_id = SensorDeviceIdentifier()
+            py_id.identifier = c_id
+            py_ids.append(py_id)
+        return py_ids
+    @sensors_ids.setter
+    def sensors_ids(self, list value):
+        self.params.sensors_ids.clear()
+        for py_id in value:
+            self.params.sensors_ids.insert((<SensorDeviceIdentifier>py_id).identifier)
+
+    ##
+    # Whether the body tracking system includes body/person tracking capabilities across a sequence of images.
+    @property
+    def enable_tracking(self) -> bool:
+        return self.params.enable_tracking
+    @enable_tracking.setter
+    def enable_tracking(self, value):
+        self.params.enable_tracking = value
+
+    ##
+    # Whether the body/person masks will be computed.
+    @property
+    def enable_segmentation(self) -> bool:
+        return self.params.enable_segmentation
+    @enable_segmentation.setter
+    def enable_segmentation(self, value):
+        self.params.enable_segmentation = value
+
+    ##
+    # \ref BODY_TRACKING_MODEL to use.
+    @property
+    def detection_model(self) -> BODY_TRACKING_MODEL:
+        return BODY_TRACKING_MODEL(<int>self.params.detection_model)
+    @detection_model.setter
+    def detection_model(self, value):
+        self.params.detection_model = <c_BODY_TRACKING_MODEL><int>value.value
+
+    ##
+    # Whether to apply the body fitting.
+    @property
+    def enable_body_fitting(self) -> bool:
+        return self.params.enable_body_fitting
+    @enable_body_fitting.setter
+    def enable_body_fitting(self, value):
+        self.params.enable_body_fitting = value
+
+    ##
+    # Body format to be outputted by the ZED SDK with \ref Camera.retrieve_bodies().
+    @property
+    def body_format(self) -> BODY_FORMAT:
+        return BODY_FORMAT(<int>self.params.body_format)
+    @body_format.setter
+    def body_format(self, value):
+        self.params.body_format = <c_BODY_FORMAT><int>value.value
+
+    ##
+    # Upper depth range for detections.
+    # Default: -1.0 (value set in \ref InitParameters.depth_maximum_distance)
+    @property
+    def max_range(self) -> float:
+        return self.params.max_range
+    @max_range.setter
+    def max_range(self, value):
+        self.params.max_range = value
+
+    ##
+    # Prediction duration of the ZED SDK when an object is not detected anymore before switching its state to SEARCHING.
+    # It prevents the jittering of the object state when there is a short misdetection.
+    # The duration is expressed in seconds.
+    @property
+    def prediction_timeout_s(self) -> float:
+        return self.params.prediction_timeout_s
+    @prediction_timeout_s.setter
+    def prediction_timeout_s(self, value):
+        self.params.prediction_timeout_s = value
+
+    ##
+    # Whether to allow inference to run at a lower precision to improve runtime and memory usage.
+    # It might increase the initial optimization time and could include downloading calibration data or calibration cache and slightly reduce the accuracy.
+    @property
+    def allow_reduced_precision_inference(self) -> bool:
+        return self.params.allow_reduced_precision_inference
+    @allow_reduced_precision_inference.setter
+    def allow_reduced_precision_inference(self, value):
+        self.params.allow_reduced_precision_inference = value
+
+##
+# Structure containing a set of runtime parameters for the body tracking module in Sensors API.
+# \ingroup Sensors_group
+cdef class BodyTrackingSensorsRuntimeParameters:
+    cdef c_BodyTrackingSensorsRuntimeParameters params
+
+    ##
+    # Default constructor.
+    def __init__(self, detection_confidence_threshold=20.0, minimum_keypoints_threshold=0, skeleton_smoothing=0.0):
+        self.params.detection_confidence_threshold = detection_confidence_threshold
+        self.params.minimum_keypoints_threshold = minimum_keypoints_threshold
+        self.params.skeleton_smoothing = skeleton_smoothing
+
+    ##
+    # Confidence threshold.
+    # From 1 to 100, with 1 meaning a low threshold, more uncertain objects and 99 very few but very precise objects.
+    # Default: 20.0
+    @property
+    def detection_confidence_threshold(self) -> float:
+        return self.params.detection_confidence_threshold
+    @detection_confidence_threshold.setter
+    def detection_confidence_threshold(self, value):
+        self.params.detection_confidence_threshold = value
+
+    ##
+    # Minimum threshold for the keypoints.
+    # The ZED SDK will only output the keypoints of the skeletons with threshold greater than this value.
+    # Default: 0
+    @property
+    def minimum_keypoints_threshold(self) -> int:
+        return self.params.minimum_keypoints_threshold
+    @minimum_keypoints_threshold.setter
+    def minimum_keypoints_threshold(self, value):
+        self.params.minimum_keypoints_threshold = value
+
+    ##
+    # Control of the smoothing of the fitted fused skeleton.
+    # It is ranged from 0 (low smoothing) and 1 (high smoothing).
+    @property
+    def skeleton_smoothing(self) -> float:
+        return self.params.skeleton_smoothing
+    @skeleton_smoothing.setter
+    def skeleton_smoothing(self, value):
+        self.params.skeleton_smoothing = value
+
+##
+# Structure containing a set of parameters for positional tracking in Sensors API.
+# \ingroup Sensors_group
+cdef class PositionalTrackingSensorsParameters:
+    cdef c_PositionalTrackingSensorsParameters params
+
+    ##
+    # Default constructor.
+    def __init__(self, enable_area_memory=True, enable_pose_smoothing=False,
+                 set_floor_as_origin=False, enable_imu_fusion=True,
+                 set_as_static=False, depth_min_range=-1.0,
+                 set_gravity_as_origin=True, mode=POSITIONAL_TRACKING_MODE.GEN_1):
+        self.params.enable_area_memory = enable_area_memory
+        self.params.enable_pose_smoothing = enable_pose_smoothing
+        self.params.set_floor_as_origin = set_floor_as_origin
+        self.params.enable_imu_fusion = enable_imu_fusion
+        self.params.set_as_static = set_as_static
+        self.params.depth_min_range = depth_min_range
+        self.params.set_gravity_as_origin = set_gravity_as_origin
+        self.params.mode = <c_POSITIONAL_TRACKING_MODE><int>mode.value
+
+    ##
+    # Whether the camera can remember its surroundings.
+    # This helps correct positional tracking drift and can be helpful for positioning different cameras relative to one other in space.
+    # Default: True
+    @property
+    def enable_area_memory(self) -> bool:
+        return self.params.enable_area_memory
+    @enable_area_memory.setter
+    def enable_area_memory(self, value):
+        self.params.enable_area_memory = value
+
+    ##
+    # Whether to enable smooth pose correction for small drift correction.
+    # Default: False
+    @property
+    def enable_pose_smoothing(self) -> bool:
+        return self.params.enable_pose_smoothing
+    @enable_pose_smoothing.setter
+    def enable_pose_smoothing(self, value):
+        self.params.enable_pose_smoothing = value
+
+    ##
+    # Initializes the tracking to be aligned with the floor plane to better position the camera in space.
+    # Default: False
+    @property
+    def set_floor_as_origin(self) -> bool:
+        return self.params.set_floor_as_origin
+    @set_floor_as_origin.setter
+    def set_floor_as_origin(self, value):
+        self.params.set_floor_as_origin = value
+
+    ##
+    # Path of an area localization file that describes the surroundings (saved from a previous tracking session).
+    # Default: empty
+    @property
+    def area_file_path(self) -> str:
+        if not self.params.area_file_path.empty():
+            return self.params.area_file_path.get().decode()
+        return ""
+    @area_file_path.setter
+    def area_file_path(self, str value):
+        self.params.area_file_path = String(value.encode())
+
+    ##
+    # Whether to enable the IMU fusion.
+    # When set to False, only the optical odometry will be used.
+    # Default: True
+    @property
+    def enable_imu_fusion(self) -> bool:
+        return self.params.enable_imu_fusion
+    @enable_imu_fusion.setter
+    def enable_imu_fusion(self, value):
+        self.params.enable_imu_fusion = value
+
+    ##
+    # Whether to define the camera as static.
+    # If True, it will not move in the environment. This allows you to set its position using initial_world_transforms.
+    # Default: False
+    @property
+    def set_as_static(self) -> bool:
+        return self.params.set_as_static
+    @set_as_static.setter
+    def set_as_static(self, value):
+        self.params.set_as_static = value
+
+    ##
+    # Minimum depth used by the ZED SDK for positional tracking.
+    # It may be useful for example if any steady objects are in front of the camera and may perturb the positional tracking algorithm.
+    # Default: -1 (no minimum depth)
+    @property
+    def depth_min_range(self) -> float:
+        return self.params.depth_min_range
+    @depth_min_range.setter
+    def depth_min_range(self, value):
+        self.params.depth_min_range = value
+
+    ##
+    # Whether to override 2 of the 3 rotations from initial_world_transforms using the IMU gravity.
+    # Default: True
+    @property
+    def set_gravity_as_origin(self) -> bool:
+        return self.params.set_gravity_as_origin
+    @set_gravity_as_origin.setter
+    def set_gravity_as_origin(self, value):
+        self.params.set_gravity_as_origin = value
+
+    ##
+    # Positional tracking mode used.
+    # Can be used to improve accuracy in some types of scene at the cost of longer runtime.
+    # Default: \ref POSITIONAL_TRACKING_MODE.GEN_1
+    @property
+    def mode(self) -> POSITIONAL_TRACKING_MODE:
+        return POSITIONAL_TRACKING_MODE(<int>self.params.mode)
+    @mode.setter
+    def mode(self, value):
+        self.params.mode = <c_POSITIONAL_TRACKING_MODE><int>value.value
+
+##
+# Structure containing the runtime parameters used by Sensors.
+# \ingroup Sensors_group
+cdef class RuntimeSensorsParameters:
+    cdef c_RuntimeSensorsParameters params
+
+    ##
+    # Default constructor.
+    def __cinit__(self):
+        pass
+
+    ##
+    # Depth confidence threshold per sensor.
+    # Dictionary mapping SensorDeviceIdentifier to int threshold values.
+    @property
+    def depth_confidence_threshold(self) -> dict:
+        cdef c_BatchedDataInt c_data = self.params.depth_confidence_threshold
+        cdef c_BatchedDataInt.iterator it = c_data.begin()
+        result = {}
+        while it != c_data.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            result[sensor_id] = <int>deref(it).second
+            postincrement(it)
+        return result
+
+    @depth_confidence_threshold.setter
+    def depth_confidence_threshold(self, dict value):
+        cdef c_BatchedDataInt c_data
+        for py_id, threshold in value.items():
+            c_data[(<SensorDeviceIdentifier>py_id).identifier] = <int>threshold
+        self.params.depth_confidence_threshold = c_data
+
+    ##
+    # Reference frame for point cloud measures.
+    # Defines the coordinate frame in which point clouds will be returned.
+    # - SENSORS_REFERENCE_FRAME.SENSOR : Points are in each sensor's local frame (identity transform).
+    # - SENSORS_REFERENCE_FRAME.BASELINK : Points are transformed by the sensor pose (extrinsic calibration).
+    # - SENSORS_REFERENCE_FRAME.WORLD : Points are transformed to world frame using sensor pose + positional tracking.
+    # Default: SENSOR (no transformation applied).
+    @property
+    def reference_frame(self) -> SENSORS_REFERENCE_FRAME:
+        return SENSORS_REFERENCE_FRAME(<int>self.params.reference_frame)
+
+    @reference_frame.setter
+    def reference_frame(self, value: SENSORS_REFERENCE_FRAME):
+        self.params.reference_frame = <c_SENSORS_REFERENCE_FRAME>(<int>value.value)
+
+##
+# Structure containing beam geometry calibration data for raw data processing.
+# \ingroup Lidar_group
+cdef class LidarCalibration:
+    cdef c_LidarCalibration calibration
+
+    ##
+    # Vertical angle of each beam in degrees.
+    @property
+    def beam_altitude_angles(self) -> list:
+        return list(self.calibration.beam_altitude_angles)
+
+    ##
+    # Horizontal angle offset of each beam in degrees.
+    @property
+    def beam_azimuth_angles(self) -> list:
+        return list(self.calibration.beam_azimuth_angles)
+
+    ##
+    # Per-row pixel shift for destaggering raw data.
+    @property
+    def pixel_shift_by_row(self) -> list:
+        return list(self.calibration.pixel_shift_by_row)
+
+    ##
+    # Distance from lidar origin to beam origin in millimeters.
+    @property
+    def lidar_origin_to_beam_origin_mm(self) -> float:
+        return self.calibration.lidar_origin_to_beam_origin_mm
+
+    ##
+    # 4x4 transform from beam frame to lidar frame.
+    @property
+    def beam_to_lidar_transform(self) -> Matrix4f:
+        mat = Matrix4f()
+        for i in range(16):
+            mat.matrix.m[i] = self.calibration.beam_to_lidar_transform.m[i]
+        return mat
+
+##
+# Structure containing runtime configuration of the Lidar sensor.
+# \ingroup Lidar_group
+cdef class LidarSensorConfiguration:
+    cdef c_LidarSensorConfiguration config
+
+    ##
+    # Vertical resolution (number of channels/beams).
+    @property
+    def vertical_resolution(self) -> int:
+        return self.config.vertical_resolution
+
+    ##
+    # Horizontal resolution (number of columns per frame).
+    @property
+    def horizontal_resolution(self) -> int:
+        return self.config.horizontal_resolution
+
+    ##
+    # Frame rate in Hz.
+    @property
+    def fps(self) -> float:
+        return self.config.fps
+
+    ##
+    # Vertical field of view in degrees.
+    @property
+    def vertical_fov(self) -> float:
+        return self.config.vertical_fov
+
+    ##
+    # Horizontal field of view in degrees.
+    @property
+    def horizontal_fov(self) -> float:
+        return self.config.horizontal_fov
+
+    ##
+    # Beam geometry calibration for raw data processing.
+    @property
+    def calibration(self) -> LidarCalibration:
+        cal = LidarCalibration()
+        cal.calibration = self.config.calibration
+        return cal
+
+    ##
+    # Transform from IMU frame to Lidar frame.
+    @property
+    def imu_to_lidar_transform(self) -> Transform:
+        transform = Transform()
+        for i in range(16):
+            transform.transform.m[i] = self.config.imu_to_lidar_transform.m[i]
+        return transform
+
+##
+# Structure containing information about the Lidar device.
+# \ingroup Lidar_group
+cdef class LidarInformation:
+    cdef c_LidarInformation info
+
+    ##
+    # Default constructor.
+    def __cinit__(self):
+        pass
+
+    ##
+    # Serial number of the Lidar sensor.
+    @property
+    def serial_number(self) -> str:
+        return to_str(self.info.serial_number).decode()
+
+    ##
+    # Firmware version of the Lidar sensor.
+    @property
+    def firmware_version(self) -> str:
+        return to_str(self.info.firmware_version).decode()
+
+    ##
+    # Product line of the Lidar sensor.
+    @property
+    def product_line(self) -> str:
+        return to_str(self.info.product_line).decode()
+
+    ##
+    # Product part number of the Lidar sensor.
+    @property
+    def product_part_number(self) -> str:
+        return to_str(self.info.product_part_number).decode()
+
+    ##
+    # Build date of the Lidar sensor.
+    @property
+    def build_date(self) -> str:
+        return to_str(self.info.build_date).decode()
+
+    ##
+    # Image revision of the Lidar sensor.
+    @property
+    def image_rev(self) -> str:
+        return to_str(self.info.image_rev).decode()
+
+    ##
+    # Status of the Lidar sensor.
+    @property
+    def status(self) -> str:
+        return to_str(self.info.status).decode()
+
+    ##
+    # Sensor configuration (resolution, fps, calibration, etc.).
+    @property
+    def sensor_configuration(self) -> LidarSensorConfiguration:
+        config = LidarSensorConfiguration()
+        config.config = self.info.sensor_configuration
+        return config
+
+##
+# Structure containing information about a connected LiDAR device.
+# \ingroup Lidar_group
+cdef class LidarDeviceProperties:
+    cdef c_LidarDeviceProperties lidar_prop
+
+    ##
+    # Device name (e.g. "OS1-128").
+    @property
+    def name(self) -> str:
+        return to_str(self.lidar_prop.name).decode()
+
+    ##
+    # Device IP address (specific to Ouster).
+    @property
+    def ip_address(self) -> str:
+        return to_str(self.lidar_prop.ip_address).decode()
+
+    ##
+    # Device port number.
+    @property
+    def port(self) -> int:
+        return self.lidar_prop.port
+
+    ##
+    # Device IMU port number.
+    @property
+    def imu_port(self) -> int:
+        return self.lidar_prop.imu_port
+
+    ##
+    # Sensor state (AVAILABLE, etc.).
+    @property
+    def sensor_state(self) -> SENSOR_STATE:
+        return SENSOR_STATE(<int>self.lidar_prop.sensor_state)
+
+    ##
+    # Device information (serial number, firmware, configuration, etc.).
+    @property
+    def lidar_information(self) -> LidarInformation:
+        info = LidarInformation()
+        info.info = self.lidar_prop.lidar_information
+        return info
+
+##
+# Class for managing a LiDAR device.
+# \ingroup Lidar_group
+cdef class Lidar:
+    cdef c_Lidar* lidar
+
+    ##
+    # Default constructor.
+    def __cinit__(self):
+        self.lidar = new c_Lidar()
+
+    ##
+    # Destructor.
+    def __dealloc__(self):
+        del self.lidar
+
+    ##
+    # Returns a list of available LiDAR devices.
+    @staticmethod
+    def get_device_list() -> list[LidarDeviceProperties]:
+        lidar_list = []
+        vect_ = c_Lidar.getDeviceList()
+        for i in range(vect_.size()):
+            prop = LidarDeviceProperties()
+            prop.lidar_prop = vect_[i]
+            lidar_list.append(prop)
+        return lidar_list
+
+    ##
+    # Returns a list of streaming LiDAR devices.
+    @staticmethod
+    def get_streaming_device_list() -> list[LidarDeviceProperties]:
+        lidar_list = []
+        vect_ = c_Lidar.getStreamingDeviceList()
+        for i in range(vect_.size()):
+            prop = LidarDeviceProperties()
+            prop.lidar_prop = vect_[i]
+            lidar_list.append(prop)
+        return lidar_list
+
+    ##
+    # Opens the LiDAR.
+    def open(self, InitLidarParameters params) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.lidar.open(params.params))
+
+    ##
+    # Checks if the LiDAR is opened.
+    def is_opened(self) -> bool:
+        return self.lidar.isOpened()
+
+    ##
+    # Returns the initialization parameters used to open the LiDAR.
+    def get_init_parameters(self) -> InitLidarParameters:
+        params = InitLidarParameters()
+        params.params = self.lidar.getInitParameters()
+        return params
+
+    ##
+    # Returns information about the Lidar sensor.
+    def get_lidar_information(self) -> LidarInformation:
+        info = LidarInformation()
+        info.info = self.lidar.getLidarInformation()
+        return info
+
+    ##
+    # Reads the latest data from the LiDAR sensor.
+    def read(self) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.lidar.read())
+
+    ##
+    # Grabs and processes a new frame of data.
+    def grab(self) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.lidar.grab())
+
+    ##
+    # Retrieves a measure from the LiDAR.
+    # \param py_mat: The Mat to store the measure.
+    # \param measure: The type of measure to retrieve.
+    # \param resolution: The desired resolution.
+    # \param mem_type: The memory type (CPU/GPU).
+    # \param color_map: The colormap for visualization.
+    def retrieve_measure(self, Mat py_mat, measure=LIDAR_MEASURE.XYZ, resolution=None,
+                        mem_type=MEM.CPU, color_map=VIEW_COLOR_MAP.AUTO) -> ERROR_CODE:
+        if resolution is None:
+            resolution = Resolution(0, 0)
+        cdef c_Resolution c_res = (<Resolution>resolution).resolution
+        return ERROR_CODE(<int>self.lidar.retrieveMeasure(
+            py_mat.mat,
+            <c_LIDAR_MEASURE><int>measure.value,
+            c_res,
+            <c_MEM><int>mem_type.value,
+            <c_VIEW_COLOR_MAP><int>color_map.value,
+            <cudaStream_t>0
+        ))
+
+    ##
+    # Retrieves a view image from the LiDAR.
+    # \param py_mat: The Mat to store the view.
+    # \param view: The type of view to retrieve.
+    # \param resolution: The desired resolution.
+    # \param color_map: The colormap for visualization.
+    def retrieve_view(self, Mat py_mat, view=LIDAR_VIEW.DEPTH, resolution=None,
+                     color_map=VIEW_COLOR_MAP.AUTO) -> ERROR_CODE:
+        if resolution is None:
+            resolution = Resolution(0, 0)
+        cdef c_Resolution c_res = (<Resolution>resolution).resolution
+        return ERROR_CODE(<int>self.lidar.retrieveView(
+            py_mat.mat,
+            <c_LIDAR_VIEW><int>view.value,
+            c_res,
+            <c_VIEW_COLOR_MAP><int>color_map.value,
+            <cudaStream_t>0
+        ))
+
+    ##
+    # Returns the current timestamp.
+    def get_timestamp(self, reference_time=TIME_REFERENCE.IMAGE) -> Timestamp:
+        ts = Timestamp()
+        ts.timestamp = self.lidar.getTimestamp(<c_TIME_REFERENCE><int>reference_time.value)
+        return ts
+
+    ##
+    # Returns the current framerate.
+    def get_current_fps(self) -> float:
+        return self.lidar.getCurrentFPS()
+
+    ##
+    # Returns the sensors data (IMU, etc.) from the LiDAR.
+    def get_sensors_data(self, SensorsData data, reference_time=TIME_REFERENCE.IMAGE) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.lidar.getSensorsData(data.sensorsData, <c_TIME_REFERENCE><int>reference_time.value))
+
+    ##
+    # Enables positional tracking for the LiDAR.
+    def enable_positional_tracking(self, PositionalTrackingLidarParameters params=None) -> ERROR_CODE:
+        if params is None:
+            params = PositionalTrackingLidarParameters()
+        return ERROR_CODE(<int>self.lidar.enablePositionalTracking(params.params))
+
+    ##
+    # Disables positional tracking.
+    def disable_positional_tracking(self):
+        self.lidar.disablePositionalTracking()
+
+    ##
+    # Returns the current position of the LiDAR.
+    def get_position(self, Pose py_pose, reference_frame=REFERENCE_FRAME.WORLD) -> POSITIONAL_TRACKING_STATE:
+        return POSITIONAL_TRACKING_STATE(<int>self.lidar.getPosition(
+            py_pose.pose,
+            <c_REFERENCE_FRAME><int>reference_frame.value
+        ))
+
+    ##
+    # Enables recording of LiDAR data.
+    def enable_recording(self, RecordingLidarParameters params) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.lidar.enableRecording(params.params))
+
+    ##
+    # Disables recording.
+    def disable_recording(self):
+        self.lidar.disableRecording()
+
+    ##
+    # Returns the current SVO playback position.
+    def get_svo_position(self) -> int:
+        return self.lidar.getSVOPosition()
+
+    ##
+    # Sets the SVO playback position.
+    def set_svo_position(self, position: int) -> ERROR_CODE:
+        return ERROR_CODE(<int>self.lidar.setSVOPosition(position))
+
+    ##
+    # Returns the total number of frames in the SVO.
+    def get_svo_number_of_frames(self) -> int:
+        return self.lidar.getSVONumberOfFrames()
+
+    ##
+    # Returns the SVO position at a specific timestamp.
+    def get_svo_position_at_timestamp(self, Timestamp timestamp) -> int:
+        return self.lidar.getSVOPositionAtTimestamp(timestamp.timestamp)
+
+    ##
+    # Sets the timestamp base offset.
+    def set_timestamp_base_offset(self, offset_ns: int):
+        self.lidar.setTimestampBaseOffset(offset_ns)
+
+    ##
+    # Returns the timestamp base offset.
+    def get_timestamp_base_offset(self) -> int:
+        return self.lidar.getTimestampBaseOffset()
+
+    ##
+    # Pauses or resumes SVO reading.
+    def pause_svo_reading(self, pause: bool):
+        self.lidar.pauseSVOReading(pause)
+
+    ##
+    # Closes the LiDAR and releases resources.
+    def close(self):
+        self.lidar.close()
+
+##
+# Structure containing the options used to initialize the Lidar object.
+# \ingroup Lidar_group
+cdef class InitLidarParameters:
+    cdef c_InitLidarParameters params
+
+    ##
+    # Default constructor.
+    def __init__(self, mode=LIDAR_MODE.AUTO, depth_minimum_distance=0.0, depth_maximum_distance=0.0,
+                 coordinate_units=UNIT.METER, coordinate_system=COORDINATE_SYSTEM.IMAGE, svo_real_time_mode=False,
+                 auto_recovery_on_config_change=True, multicast_mode=LIDAR_MULTICAST_MODE.AUTO, multicast_group="",
+                 sdk_verbose=1, sdk_verbose_log_file=""):
+        self.params.mode = <c_LIDAR_MODE><int>mode.value
+        self.params.depth_minimum_distance = depth_minimum_distance
+        self.params.depth_maximum_distance = depth_maximum_distance
+        self.params.coordinate_units = <c_UNIT><int>coordinate_units.value
+        self.params.coordinate_system = <c_COORDINATE_SYSTEM><int>coordinate_system.value
+        self.params.svo_real_time_mode = svo_real_time_mode
+        self.params.auto_recovery_on_config_change = auto_recovery_on_config_change
+        self.params.multicast_mode = <c_LIDAR_MULTICAST_MODE><int>multicast_mode.value
+        self.params.multicast_group = multicast_group.encode()
+        self.params.sdk_verbose = sdk_verbose
+        cdef bytes filelog = sdk_verbose_log_file.encode()
+        self.params.sdk_verbose_log_file.set(<char*>filelog)
+
+    ##
+    # Lidar mode (resolution and frequency).
+    @property
+    def mode(self) -> LIDAR_MODE:
+        return LIDAR_MODE(<int>self.params.mode)
+    @mode.setter
+    def mode(self, value):
+        self.params.mode = <c_LIDAR_MODE><int>value.value
+
+    ##
+    # Minimum distance for data.
+    @property
+    def depth_minimum_distance(self) -> float:
+        return self.params.depth_minimum_distance
+    @depth_minimum_distance.setter
+    def depth_minimum_distance(self, value):
+        self.params.depth_minimum_distance = value
+
+    ##
+    # Maximum distance for data.
+    @property
+    def depth_maximum_distance(self) -> float:
+        return self.params.depth_maximum_distance
+    @depth_maximum_distance.setter
+    def depth_maximum_distance(self, value):
+        self.params.depth_maximum_distance = value
+
+    ##
+    # Unit of spatial data.
+    @property
+    def coordinate_units(self) -> UNIT:
+        return UNIT(<int>self.params.coordinate_units)
+    @coordinate_units.setter
+    def coordinate_units(self, value):
+        self.params.coordinate_units = <c_UNIT><int>value.value
+
+    ##
+    # Coordinate system for spatial data.
+    @property
+    def coordinate_system(self) -> COORDINATE_SYSTEM:
+        return COORDINATE_SYSTEM(<int>self.params.coordinate_system)
+    @coordinate_system.setter
+    def coordinate_system(self, value):
+        self.params.coordinate_system = <c_COORDINATE_SYSTEM><int>value.value
+
+    ##
+    # Defines if the Lidar returns frames in real-time mode during OSF playback.
+    @property
+    def svo_real_time_mode(self) -> bool:
+        return self.params.svo_real_time_mode
+    @svo_real_time_mode.setter
+    def svo_real_time_mode(self, value):
+        self.params.svo_real_time_mode = value
+
+    ##
+    # Enable automatic recovery when sensor configuration changes externally.
+    # When enabled, SDK detects config changes and automatically reconnects.
+    # Default: True
+    @property
+    def auto_recovery_on_config_change(self) -> bool:
+        return self.params.auto_recovery_on_config_change
+    @auto_recovery_on_config_change.setter
+    def auto_recovery_on_config_change(self, value):
+        self.params.auto_recovery_on_config_change = value
+
+    ##
+    # Multicast mode for multi-client data sharing.
+    # OFF: force unicast, AUTO: smart detection, ON: force multicast.
+    # Default: AUTO
+    @property
+    def multicast_mode(self) -> LIDAR_MULTICAST_MODE:
+        return LIDAR_MULTICAST_MODE(<int>self.params.multicast_mode)
+    @multicast_mode.setter
+    def multicast_mode(self, value):
+        self.params.multicast_mode = <c_LIDAR_MULTICAST_MODE><int>value.value
+
+    ##
+    # Multicast group IP address (range 239.0.0.0 - 239.255.255.255).
+    # If empty and multicast_mode is ON, auto-selects 239.201.201.201.
+    # Default: "" (empty)
+    @property
+    def multicast_group(self) -> str:
+        return self.params.multicast_group.decode()
+    @multicast_group.setter
+    def multicast_group(self, value):
+        self.params.multicast_group = value.encode()
+
+    ##
+    # Enable the Lidar SDK verbose mode.
+    #
+    # This parameter allows you to enable the verbosity of the Lidar SDK to get a variety of runtime information in the console.
+    # \n When developing an application, enabling verbose (<code>\ref sdk_verbose >= 1</code>) mode can help you understand the current Lidar SDK behavior.
+    # \n However, this might not be desirable in a shipped version.
+    # \n Default: 1 (verbose messages enabled)
+    # \note The verbose messages can also be exported into a log file.
+    # \note See \ref sdk_verbose_log_file for more.
+    @property
+    def sdk_verbose(self) -> int:
+        return self.params.sdk_verbose
+    @sdk_verbose.setter
+    def sdk_verbose(self, int value):
+        self.params.sdk_verbose = value
+
+    ##
+    # File path to store the Lidar SDK logs (if \ref sdk_verbose is enabled).
+    #
+    # The file will be created if it does not exist.
+    # \n Default: "" (logs are printed to console only)
+    @property
+    def sdk_verbose_log_file(self) -> str:
+        if not self.params.sdk_verbose_log_file.empty():
+            return self.params.sdk_verbose_log_file.get().decode()
+        else:
+            return ""
+    @sdk_verbose_log_file.setter
+    def sdk_verbose_log_file(self, str value):
+        value_filename = value.encode()
+        self.params.sdk_verbose_log_file.set(<char*>value_filename)
+
+    ##
+    # Input type (stream, SVO file, etc.).
+    @property
+    def input(self) -> InputType:
+        return InputType.from_cpp_ref(&self.params.input)
+    @input.setter
+    def input(self, InputType value):
+        self.params.input = deref(value.input_ptr)
+
+    ##
+    # Set input from stream IP address.
+    def set_from_stream(self, str ip, int port=0):
+        cdef bytes ip_bytes = ip.encode()
+        self.params.input.setFromStream(String(<char*>ip_bytes), port)
+
+##
+# Structure containing the options used to enable positional tracking with Lidar.
+# \ingroup Lidar_group
+cdef class PositionalTrackingLidarParameters:
+    cdef c_PositionalTrackingLidarParameters params
+
+    ##
+    # Default constructor.
+    def __cinit__(self):
+        pass
+
+    @property
+    def initial_world_transform(self) -> Transform:
+        transform = Transform()
+        for i in range(16):
+            transform.transform.m[i] = self.params.initial_world_transform.m[i]
+        return transform
+    @initial_world_transform.setter
+    def initial_world_transform(self, Transform value):
+        for i in range(16):
+            self.params.initial_world_transform.m[i] = value.transform.m[i]
+
+    ##
+    # Whether to compute the motion in real-time or not.
+    # Default: True
+    @property
+    def enable_real_time_computation(self) -> bool:
+        return self.params.enable_real_time_computation
+    @enable_real_time_computation.setter
+    def enable_real_time_computation(self, value: bool):
+        self.params.enable_real_time_computation = value
+
+    ##
+    # Voxel size for the ICP.
+    # 0.0 means auto.
+    # Default: 0.0
+    @property
+    def voxel_size(self) -> float:
+        return self.params.voxel_size
+    @voxel_size.setter
+    def voxel_size(self, value: float):
+        self.params.voxel_size = value
+
+##
+# Structure containing the options used to record Lidar data.
+# \ingroup Lidar_group
+cdef class RecordingLidarParameters:
+    cdef c_RecordingLidarParameters params
+
+    ##
+    # Default constructor.
+    def __cinit__(self):
+        pass
+
+    @property
+    def output_filename(self) -> str:
+        return self.params.output_filename.decode()
+    @output_filename.setter
+    def output_filename(self, str value):
+        self.params.output_filename = value.encode()
+
+    ##
+    # Format of the recording.
+    # Default: \ref RECORDING_FORMAT.AUTO
+    @property
+    def format(self) -> RECORDING_FORMAT:
+        return RECORDING_FORMAT(<int>self.params.format)
+    @format.setter
+    def format(self, value):
+        self.params.format = <c_RECORDING_FORMAT><int>value.value
+
+##
+# Structure containing lists of all available sensor devices.
+# \ingroup Sensors_group
+#
+# This structure aggregates device information from all sensor types:
+# - ZED stereo cameras (ZED, ZED 2, ZED 2i, ZED X, ZED X Mini)
+# - ZED One cameras
+# - Lidar devices
+cdef class SensorList:
+    cdef c_SensorList c_data
+
+    ##
+    # List of connected ZED stereo cameras (ZED, ZED 2, ZED 2i, ZED X, ZED X Mini).
+    @property
+    def cameras(self) -> list[DeviceProperties]:
+        py_cameras = []
+        cdef vector[c_DeviceProperties].iterator it = self.c_data.cameras.begin()
+        while(it != self.c_data.cameras.end()):
+            dev = DeviceProperties()
+            dev.c_device_properties = deref(it)
+            py_cameras.append(dev)
+            postincrement(it)
+        return py_cameras
+
+    ##
+    # List of connected ZED One cameras.
+    @property
+    def cameras_one(self) -> list[DeviceProperties]:
+        py_cameras = []
+        cdef vector[c_DeviceProperties].iterator it = self.c_data.cameras_one.begin()
+        while(it != self.c_data.cameras_one.end()):
+            dev = DeviceProperties()
+            dev.c_device_properties = deref(it)
+            py_cameras.append(dev)
+            postincrement(it)
+        return py_cameras
+
+    ##
+    # List of connected Lidar devices.
+    @property
+    def lidars(self) -> list[LidarDeviceProperties]:
+        py_lidars = []
+        cdef vector[c_LidarDeviceProperties].iterator it = self.c_data.lidars.begin()
+        while(it != self.c_data.lidars.end()):
+            lid = LidarDeviceProperties()
+            lid.lidar_prop = deref(it)
+            py_lidars.append(lid)
+            postincrement(it)
+        return py_lidars
+
+##
+# Structure containing lists of all available streaming sensor devices.
+# \ingroup Sensors_group
+#
+# This structure aggregates streaming device information from all sensor types:
+# - ZED stereo cameras (ZED, ZED 2, ZED 2i, ZED X, ZED X Mini)
+# - ZED One cameras
+# - Lidar devices
+cdef class StreamingSensorList:
+    cdef c_StreamingSensorList c_data
+
+    ##
+    # List of streaming ZED stereo cameras (ZED, ZED 2, ZED 2i, ZED X, ZED X Mini).
+    @property
+    def cameras(self) -> list[StreamingProperties]:
+        py_cameras = []
+        cdef vector[c_StreamingProperties].iterator it = self.c_data.cameras.begin()
+        while(it != self.c_data.cameras.end()):
+            prop = StreamingProperties()
+            prop.c_streaming_properties = deref(it)
+            py_cameras.append(prop)
+            postincrement(it)
+        return py_cameras
+
+    ##
+    # List of streaming ZED One cameras.
+    @property
+    def cameras_one(self) -> list[StreamingProperties]:
+        py_cameras = []
+        cdef vector[c_StreamingProperties].iterator it = self.c_data.cameras_one.begin()
+        while(it != self.c_data.cameras_one.end()):
+            prop = StreamingProperties()
+            prop.c_streaming_properties = deref(it)
+            py_cameras.append(prop)
+            postincrement(it)
+        return py_cameras
+
+    ##
+    # List of streaming Lidar devices.
+    @property
+    def lidars(self) -> list[LidarDeviceProperties]:
+        py_lidars = []
+        cdef vector[c_LidarDeviceProperties].iterator it = self.c_data.lidars.begin()
+        while(it != self.c_data.lidars.end()):
+            lid = LidarDeviceProperties()
+            lid.lidar_prop = deref(it)
+            py_lidars.append(lid)
+            postincrement(it)
+        return py_lidars
+
+##
+# Class for managing multiple sensors (Cameras, Lidars) and fusing their data.
+# \ingroup Sensors_group
+cdef class Sensors:
+    cdef c_Sensors* sensors
+    
+    ##
+    # Default constructor.
+    def __cinit__(self):
+        self.sensors = new c_Sensors()
+
+    ##
+    # Destructor.
+    def __dealloc__(self):
+        del self.sensors
+
+    ##
+    # Returns the list of available sensors.
+    @staticmethod
+    def get_sensor_list() -> SensorList:
+        cdef c_SensorList c_list = c_Sensors.getSensorList()
+        py_list = SensorList()
+        py_list.c_data = c_list
+        return py_list
+
+    ##
+    # Returns the list of available streaming sensors.
+    @staticmethod
+    def get_streaming_sensor_list() -> StreamingSensorList:
+        cdef c_StreamingSensorList c_list = c_Sensors.getStreamingSensorList()
+        py_list = StreamingSensorList()
+        py_list.c_data = c_list
+        return py_list
+
+    ##
+    # Initializes the Sensors instance.
+    def init(self, InitSensorsParameters init_parameters=None) -> SENSORS_ERROR_CODE:
+        if init_parameters is None:
+            init_parameters = InitSensorsParameters()
+        return SENSORS_ERROR_CODE(<int>self.sensors.init(init_parameters.init))
+
+    ##
+    # Adds a camera or LIDAR to the Sensors instance.
+    def add(self, py_init, SensorDeviceIdentifier camera_identifier_out=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_out
+        cdef c_SENSORS_ERROR_CODE err
+        if isinstance(py_init, InitParameters):
+            err = self.sensors.addCamera(deref((<InitParameters>py_init).init), c_out)
+        elif isinstance(py_init, InitParametersOne):
+            err = self.sensors.addCameraOne((<InitParametersOne>py_init).init, c_out)
+        elif isinstance(py_init, InitLidarParameters):
+            err = self.sensors.addLidar((<InitLidarParameters>py_init).params, c_out)
+        else:
+            return SENSORS_ERROR_CODE.FAILURE
+
+        if camera_identifier_out is not None:
+            camera_identifier_out.identifier = c_out
+
+        return SENSORS_ERROR_CODE(<int>err)
+
+    ##
+    # Stops a sensor and removes it from the instance.
+    def remove(self, SensorDeviceIdentifier unique_identifier) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.remove((<SensorDeviceIdentifier>unique_identifier).identifier))
+
+    ##
+    # Reads the latest images and IMU from all sensors and rectifies the images.
+    def read(self) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.read())
+
+    ##
+    # Processes data from all sensors.
+    def process(self) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.process())
+
+    ##
+    # Gets the list of individual ERROR_CODE returned by each sensor in the last function call.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, ERROR_CODE]).
+    def get_error_codes(self) -> tuple:
+        cdef c_BatchedDataErrorCode c_errs
+        cdef c_SENSORS_ERROR_CODE c_ret = self.sensors.getErrorCodes(c_errs)
+        cdef c_BatchedDataErrorCode.iterator it = c_errs.begin()
+        result = {}
+        while it != c_errs.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            err = ERROR_CODE(<int>deref(it).second)
+            result[sensor_id] = err
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Gets the list of individual ERROR_CODE returned by each sensor in the last read/process function call.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, ERROR_CODE]).
+    def get_process_error_codes(self) -> tuple:
+        cdef c_BatchedDataErrorCode c_errs
+        cdef c_SENSORS_ERROR_CODE c_ret = self.sensors.getProcessErrorCodes(c_errs)
+        cdef c_BatchedDataErrorCode.iterator it = c_errs.begin()
+        result = {}
+        while it != c_errs.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            err = ERROR_CODE(<int>deref(it).second)
+            result[sensor_id] = err
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Sets the runtime parameters for Sensors.
+    # \param params : The runtime parameters.
+    # \return SENSORS_ERROR_CODE indicating success or failure.
+    def set_runtime_sensors_parameters(self, RuntimeSensorsParameters params) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.setRuntimeSensorsParameters(params.params))
+
+    ##
+    # Returns the VIEW of all the specified sensors.
+    # \param view : The view to retrieve.
+    # \param mem_type : The memory type (CPU/GPU).
+    # \param image_size : The resolution of the output images.
+    # \param sensors_ids : List of sensor identifiers to retrieve. Empty list means all sensors.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, Mat]).
+    def retrieve_image_batched(self, view=VIEW.LEFT, mem_type=MEM.CPU, Resolution image_size=None, list sensors_ids=None) -> tuple:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_ids
+        if sensors_ids is not None:
+            for sid in sensors_ids:
+                c_ids.insert((<SensorDeviceIdentifier>sid).identifier)
+        cdef c_Resolution c_res
+        if image_size is not None:
+            c_res = image_size.resolution
+        else:
+            c_res.width = 0
+            c_res.height = 0
+
+        cdef c_BatchedDataMat c_mats
+        cdef c_SENSORS_ERROR_CODE c_ret
+        cdef c_VIEW c_view = <c_VIEW>(<int>view.value)
+        cdef c_MEM c_mem = <c_MEM>(<int>mem_type.value)
+        with nogil:
+            c_ret = self.sensors.retrieveBatchedImages(c_mats, c_view, c_mem, c_res, c_ids)
+
+        cdef c_BatchedDataMat.iterator it = c_mats.begin()
+        result = {}
+        while it != c_mats.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            mat = Mat()
+            mat.mat = deref(it).second
+            result[sensor_id] = mat
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Returns the MEASURE of all the specified sensors.
+    # \param measure : The measure to retrieve.
+    # \param mem_type : The memory type (CPU/GPU).
+    # \param image_size : The resolution of the output measures.
+    # \param sensors_ids : List of sensor identifiers to retrieve. Empty list means all sensors.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, Mat]).
+    def retrieve_measure_batched(self, measure=MEASURE.DEPTH, mem_type=MEM.CPU, Resolution image_size=None, list sensors_ids=None) -> tuple:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_ids
+        if sensors_ids is not None:
+            for sid in sensors_ids:
+                c_ids.insert((<SensorDeviceIdentifier>sid).identifier)
+        cdef c_Resolution c_res
+        if image_size is not None:
+            c_res = image_size.resolution
+        else:
+            c_res.width = 0
+            c_res.height = 0
+
+        cdef c_BatchedDataMat c_mats
+        cdef c_SENSORS_ERROR_CODE c_ret
+        cdef c_MEASURE c_measure = <c_MEASURE>(<int>measure.value)
+        cdef c_MEM c_mem = <c_MEM>(<int>mem_type.value)
+        with nogil:
+            c_ret = self.sensors.retrieveBatchedMeasures(c_mats, c_measure, c_mem, c_res, c_ids)
+
+        cdef c_BatchedDataMat.iterator it = c_mats.begin()
+        result = {}
+        while it != c_mats.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            mat = Mat()
+            mat.mat = deref(it).second
+            result[sensor_id] = mat
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Returns the LIDAR_MEASURE of all the specified sensors (Lidar).
+    # \param measure : The lidar measure to retrieve.
+    # \param mem_type : The memory type (CPU/GPU).
+    # \param image_size : The resolution of the output measures.
+    # \param sensors_ids : List of sensor identifiers to retrieve. Empty list means all sensors.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, Mat]).
+    def retrieve_lidar_measure_batched(self, measure=LIDAR_MEASURE.XYZ, mem_type=MEM.CPU, Resolution image_size=None, list sensors_ids=None) -> tuple:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_ids
+        if sensors_ids is not None:
+            for sid in sensors_ids:
+                c_ids.insert((<SensorDeviceIdentifier>sid).identifier)
+        cdef c_Resolution c_res
+        if image_size is not None:
+            c_res = image_size.resolution
+        else:
+            c_res.width = 0
+            c_res.height = 0
+
+        cdef c_BatchedDataMat c_mats
+        cdef c_SENSORS_ERROR_CODE c_ret
+        cdef c_LIDAR_MEASURE c_measure = <c_LIDAR_MEASURE>(<int>measure.value)
+        cdef c_MEM c_mem = <c_MEM>(<int>mem_type.value)
+        with nogil:
+            c_ret = self.sensors.retrieveBatchedLidarMeasures(c_mats, c_measure, c_mem, c_res, c_ids)
+
+        cdef c_BatchedDataMat.iterator it = c_mats.begin()
+        result = {}
+        while it != c_mats.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            mat = Mat()
+            mat.mat = deref(it).second
+            result[sensor_id] = mat
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Returns the SensorsData (IMU, magnetometer, barometer) of all the specified sensors.
+    # \param reference_time : The time reference.
+    # \param sensors_ids : List of sensor identifiers to retrieve. Empty list means all sensors.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, SensorsData]).
+    def get_motion_sensors_data_batched(self, reference_time=TIME_REFERENCE.IMAGE, list sensors_ids=None) -> tuple:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_ids
+        if sensors_ids is not None:
+            for sid in sensors_ids:
+                c_ids.insert((<SensorDeviceIdentifier>sid).identifier)
+
+        cdef c_BatchedDataSensorsData c_data
+        cdef c_SENSORS_ERROR_CODE c_ret = self.sensors.getBatchedMotionSensorsData(c_data, <c_TIME_REFERENCE><int>reference_time.value, c_ids)
+
+        cdef c_BatchedDataSensorsData.iterator it = c_data.begin()
+        result = {}
+        while it != c_data.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            data = SensorsData()
+            data.sensorsData = deref(it).second
+            result[sensor_id] = data
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Returns the current compute FPS of all the specified sensors.
+    # \param sensors_ids : List of sensor identifiers to query. Empty list means all sensors.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, float]).
+    def get_current_fps_batched(self, list sensors_ids=None) -> tuple:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_ids
+        if sensors_ids is not None:
+            for sid in sensors_ids:
+                c_ids.insert((<SensorDeviceIdentifier>sid).identifier)
+
+        cdef c_BatchedDataFloat c_data
+        cdef c_SENSORS_ERROR_CODE c_ret = self.sensors.getBatchedCurrentFPS(c_data, c_ids)
+
+        cdef c_BatchedDataFloat.iterator it = c_data.begin()
+        result = {}
+        while it != c_data.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            result[sensor_id] = <float>deref(it).second
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Returns the frame dropped count of all the specified sensors.
+    # \param sensors_ids : List of sensor identifiers to query. Empty list means all sensors.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, int]).
+    def get_frame_dropped_count_batched(self, list sensors_ids=None) -> tuple:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_ids
+        if sensors_ids is not None:
+            for sid in sensors_ids:
+                c_ids.insert((<SensorDeviceIdentifier>sid).identifier)
+
+        cdef c_BatchedDataUInt c_data
+        cdef c_SENSORS_ERROR_CODE c_ret = self.sensors.getBatchedFrameDroppedCount(c_data, c_ids)
+
+        cdef c_BatchedDataUInt.iterator it = c_data.begin()
+        result = {}
+        while it != c_data.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            result[sensor_id] = <unsigned int>deref(it).second
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Returns the timestamp of all the specified sensors.
+    # \param reference_time : The time reference (IMAGE or CURRENT).
+    # \param sensors_ids : List of sensor identifiers to query. Empty list means all sensors.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, Timestamp]).
+    def get_timestamp_batched(self, reference_time=TIME_REFERENCE.IMAGE, list sensors_ids=None) -> tuple:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_ids
+        if sensors_ids is not None:
+            for sid in sensors_ids:
+                c_ids.insert((<SensorDeviceIdentifier>sid).identifier)
+
+        cdef c_BatchedDataTimestamp c_data
+        cdef c_SENSORS_ERROR_CODE c_ret = self.sensors.getTimestamp(c_data, <c_TIME_REFERENCE><int>reference_time.value, c_ids)
+
+        cdef c_BatchedDataTimestamp.iterator it = c_data.begin()
+        result = {}
+        while it != c_data.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            ts = Timestamp()
+            ts.timestamp = deref(it).second
+            result[sensor_id] = ts
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Returns the health status of all the specified sensors.
+    # \param sensors_ids : List of sensor identifiers to query. Empty list means all sensors.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, HealthStatus]).
+    def get_health_status_batched(self, list sensors_ids=None) -> tuple:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_ids
+        if sensors_ids is not None:
+            for sid in sensors_ids:
+                c_ids.insert((<SensorDeviceIdentifier>sid).identifier)
+
+        cdef c_BatchedDataHealthStatus c_data
+        cdef c_SENSORS_ERROR_CODE c_ret = self.sensors.getHealthStatus(c_data, c_ids)
+
+        cdef c_BatchedDataHealthStatus.iterator it = c_data.begin()
+        result = {}
+        while it != c_data.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            hs = HealthStatus()
+            hs.healthStatus = deref(it).second
+            result[sensor_id] = hs
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Returns the position and tracking state of all the specified sensors.
+    # \param reference_frame : The reference frame (WORLD or CAMERA).
+    # \param sensors_ids : List of sensor identifiers to query. Empty list means all sensors.
+    # \return A tuple of (SENSORS_ERROR_CODE, dict[SensorDeviceIdentifier, tuple[Pose, POSITIONAL_TRACKING_STATE]]).
+    def get_position_batched(self, reference_frame=SENSORS_REFERENCE_FRAME.WORLD, list sensors_ids=None) -> tuple:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_ids
+        if sensors_ids is not None:
+            for sid in sensors_ids:
+                c_ids.insert((<SensorDeviceIdentifier>sid).identifier)
+
+        cdef c_BatchedDataPose c_data
+        cdef c_SENSORS_ERROR_CODE c_ret = self.sensors.getBatchedPosition(c_data, <c_SENSORS_REFERENCE_FRAME><int>reference_frame.value, c_ids)
+
+        cdef c_BatchedDataPose.iterator it = c_data.begin()
+        result = {}
+        while it != c_data.end():
+            sensor_id = SensorDeviceIdentifier()
+            sensor_id.identifier = deref(it).first
+            pose = Pose()
+            pose.pose = deref(it).second.first
+            state = POSITIONAL_TRACKING_STATE(<int>deref(it).second.second)
+            result[sensor_id] = (pose, state)
+            postincrement(it)
+        return SENSORS_ERROR_CODE(<int>c_ret), result
+
+    ##
+    # Returns the current VIEW of the specified camera.
+    def retrieve_image(self, Mat mat, view=VIEW.LEFT, mem_type=MEM.CPU, Resolution image_size=None, SensorDeviceIdentifier unique_identifier=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+
+        cdef c_Resolution c_res
+        if image_size is not None:
+            c_res = image_size.resolution
+        else:
+            c_res.width = 0
+            c_res.height = 0
+
+        cdef c_SENSORS_ERROR_CODE c_err
+        cdef c_VIEW c_view = <c_VIEW>(<int>view.value)
+        cdef c_MEM c_mem_type = <c_MEM>(<int>mem_type.value)
+        with nogil:
+            c_err = self.sensors.retrieveSingleImage(mat.mat, c_view, c_mem_type, c_res, c_id)
+
+        return SENSORS_ERROR_CODE(<int>c_err)
+
+    ##
+    # Returns the current MEASURE of the specified camera.
+    def retrieve_measure(self, Mat mat, measure=MEASURE.DEPTH, mem_type=MEM.CPU, Resolution image_size=None, SensorDeviceIdentifier unique_identifier=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+
+        cdef c_Resolution c_res
+        if image_size is not None:
+            c_res = image_size.resolution
+        else:
+            c_res.width = 0
+            c_res.height = 0
+
+        cdef c_SENSORS_ERROR_CODE c_err
+        cdef c_MEASURE c_measure = <c_MEASURE>(<int>measure.value)
+        cdef c_MEM c_mem_type = <c_MEM>(<int>mem_type.value)
+        with nogil:
+            c_err = self.sensors.retrieveSingleMeasure(mat.mat, c_measure, c_mem_type, c_res, c_id)
+
+        return SENSORS_ERROR_CODE(<int>c_err)
+
+    ##
+    # Updates the sensor pose relative to the system frame.
+    def set_sensor_pose(self, Transform pose, SensorDeviceIdentifier unique_identifier=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return SENSORS_ERROR_CODE(<int>self.sensors.setSensorPose(deref(pose.transform), c_id))
+
+    ##
+    # Gets the sensor pose relative to the system frame.
+    def get_sensor_pose(self, Transform pose, SensorDeviceIdentifier unique_identifier=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return SENSORS_ERROR_CODE(<int>self.sensors.getSensorPose(deref(pose.transform), c_id))
+
+    ##
+    # Gets the list of all current active sensors IDs.
+    def get_sensors_id(self):
+        cdef cpp_set[c_SensorDeviceIdentifier] c_ids
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getSensorsID(c_ids)
+        
+        py_ids = []
+        cdef c_SensorDeviceIdentifier c_id
+        for c_id in c_ids:
+            py_id = SensorDeviceIdentifier()
+            py_id.identifier = c_id
+            py_ids.append(py_id)
+        
+        return SENSORS_ERROR_CODE(<int>c_err), py_ids
+
+    ##
+    # Returns the current compute FPS of the specified camera.
+    def get_current_fps(self, SensorDeviceIdentifier unique_identifier=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef float fps = 0.0
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getCurrentFPS(fps, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err), fps
+
+    ##
+    # Returns the frame dropped count of the specified camera.
+    def get_frame_dropped_count(self, SensorDeviceIdentifier unique_identifier=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef unsigned int count = 0
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getFrameDroppedCount(count, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err), count
+
+    ##
+    # Returns the CameraInformation associated with the camera being used.
+    def get_camera_information(self, Resolution image_size=None, SensorDeviceIdentifier unique_identifier=None) -> dict:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+
+        cdef c_Resolution c_res
+        if image_size is not None:
+            c_res = image_size.resolution
+        else:
+            c_res.width = 0
+            c_res.height = 0
+
+        cdef c_CameraInformation c_info = self.sensors.getCameraInformation(c_res, c_id)
+        
+        result = {
+            'serial_number': c_info.serial_number,
+            'camera_model': MODEL(<int>c_info.camera_model),
+            'input_type': INPUT_TYPE(<int>c_info.input_type),
+            'resolution': Resolution(c_info.camera_configuration.resolution.width, c_info.camera_configuration.resolution.height),
+            'fps': c_info.camera_configuration.fps,
+        }
+        return result
+
+    ##
+    # Returns the current playback position in the SVO file.
+    def get_svo_position(self, SensorDeviceIdentifier unique_identifier=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef int pos = 0
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getSVOPosition(pos, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err), pos
+
+    ##
+    # Sets the playback cursor to the desired frame number in the SVO file.
+    def set_svo_position(self, int position, SensorDeviceIdentifier unique_identifier=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef int c_pos = position
+        return SENSORS_ERROR_CODE(<int>self.sensors.setSVOPosition(c_pos, c_id))
+
+    ##
+    # Returns the number of frames in the SVO file.
+    def get_svo_number_of_frames(self, SensorDeviceIdentifier unique_identifier=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef int num = 0
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getSVONumberOfFrames(num, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err), num
+
+    ##
+    # Synchronizes all sensors when the input used is SVO/OSF files.
+    def sync_svo(self, Timestamp timestamp=None) -> SENSORS_ERROR_CODE:
+        cdef c_Timestamp c_ts
+        if timestamp is not None:
+            c_ts = timestamp.timestamp
+        else:
+            c_ts = c_Timestamp()
+        return SENSORS_ERROR_CODE(<int>self.sensors.syncSVO(c_ts))
+
+    ##
+    # Enables the recording module.
+    def enable_recording(self, RecordingSensorsParameters recording_parameters) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.enableRecording(recording_parameters.params))
+
+    ##
+    # Returns the recording status for a specific sensor.
+    def get_recording_status(self, SensorDeviceIdentifier sensors_id=None) -> RecordingStatus:
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        status = RecordingStatus()
+        status.recordingState = self.sensors.getRecordingStatus(c_id)
+        return status
+
+    ##
+    # Pauses or resumes the recording.
+    def pause_recording(self, bool status=True, SensorDeviceIdentifier sensors_id=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        self.sensors.pauseRecording(status, c_id)
+
+    ##
+    # Disables recording for the specified sensors.
+    def disable_recording(self, list sensors_ids=None):
+        cdef cpp_set[c_SensorDeviceIdentifier] c_cam_ids
+        if sensors_ids is not None:
+            for py_id in sensors_ids:
+                c_cam_ids.insert((<SensorDeviceIdentifier>py_id).identifier)
+        self.sensors.disableRecording(c_cam_ids)
+
+    ##
+    # Enables the streaming module.
+    def enable_streaming(self, StreamingSensorsParameters streaming_parameters=None) -> SENSORS_ERROR_CODE:
+        if streaming_parameters is None:
+            streaming_parameters = StreamingSensorsParameters()
+        return SENSORS_ERROR_CODE(<int>self.sensors.enableStreaming(streaming_parameters.params))
+
+    ##
+    # Disables streaming for the specified sensors.
+    def disable_streaming(self, list cameras_ids=None):
+        cdef cpp_set[c_SensorDeviceIdentifier] c_cam_ids
+        if cameras_ids is not None:
+            for py_id in cameras_ids:
+                c_cam_ids.insert((<SensorDeviceIdentifier>py_id).identifier)
+        self.sensors.disableStreaming(c_cam_ids)
+
+    ##
+    # Enables the object detection module.
+    def enable_object_detection(self, ObjectDetectionSensorsParameters object_detection_parameters) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.enableObjectDetection(object_detection_parameters.params))
+
+    ##
+    # Sets the runtime parameters of the object detection module.
+    def set_object_detection_runtime_parameters(self, ObjectDetectionRuntimeParameters params, unsigned int instance_id=0, list cam_identifiers=None) -> SENSORS_ERROR_CODE:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_cam_ids
+        if cam_identifiers is not None:
+            for py_id in cam_identifiers:
+                c_cam_ids.insert((<SensorDeviceIdentifier>py_id).identifier)
+        return SENSORS_ERROR_CODE(<int>self.sensors.setObjectDetectionRuntimeParameters(deref(params.object_detection_rt), instance_id, c_cam_ids))
+
+    ##
+    # Retrieves the objects data of the specified object detection instance and sensor.
+    def retrieve_objects(self, Objects objects, SensorDeviceIdentifier sensors_id=None, unsigned int instance_module_id=0) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return SENSORS_ERROR_CODE(<int>self.sensors.retrieveObjects(objects.objects, c_id, instance_module_id))
+
+    ##
+    # Disables the object detection module instance.
+    def disable_object_detection(self, unsigned int instance_module_id=0) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.disableObjectDetection(instance_module_id))
+
+    ##
+    # Enables the body tracking module.
+    def enable_body_tracking(self, BodyTrackingSensorsParameters body_tracking_parameters) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.enableBodyTracking(body_tracking_parameters.params))
+
+    ##
+    # Sets the runtime parameters of the body tracking module.
+    def set_body_tracking_runtime_parameters(self, BodyTrackingSensorsRuntimeParameters params, unsigned int instance_id=0, list cam_identifiers=None) -> SENSORS_ERROR_CODE:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_cam_ids
+        if cam_identifiers is not None:
+            for py_id in cam_identifiers:
+                c_cam_ids.insert((<SensorDeviceIdentifier>py_id).identifier)
+        return SENSORS_ERROR_CODE(<int>self.sensors.setBodyTrackingRuntimeParameters(params.params, instance_id, c_cam_ids))
+
+    ##
+    # Retrieves the bodies data of the specified body tracking instance and sensor.
+    def retrieve_bodies(self, Bodies bodies, SensorDeviceIdentifier sensors_id=None, unsigned int instance_module_id=0) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return SENSORS_ERROR_CODE(<int>self.sensors.retrieveBodies(bodies.bodies, c_id, instance_module_id))
+
+    ##
+    # Disables the body tracking module instance.
+    def disable_body_tracking(self, unsigned int instance_module_id=0) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.disableBodyTracking(instance_module_id))
+
+    ##
+    # Enables positional tracking for the sensors in the Sensors instance.
+    def enable_positional_tracking(self, PositionalTrackingSensorsParameters tracking_parameters=PositionalTrackingSensorsParameters(), list sensors_id=None) -> SENSORS_ERROR_CODE:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_cam_ids
+        if sensors_id is not None:
+            for py_id in sensors_id:
+                c_cam_ids.insert((<SensorDeviceIdentifier>py_id).identifier)
+        return SENSORS_ERROR_CODE(<int>self.sensors.enablePositionalTracking(tracking_parameters.params, c_cam_ids))
+
+    ##
+    # Gets the position of the specified camera.
+    def get_position(self, Pose camera_pose, reference_frame=SENSORS_REFERENCE_FRAME.WORLD, SensorDeviceIdentifier unique_identifier=None) -> POSITIONAL_TRACKING_STATE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return POSITIONAL_TRACKING_STATE(<int>self.sensors.getPosition(camera_pose.pose, <c_SENSORS_REFERENCE_FRAME><int>reference_frame.value, c_id))
+
+    ##
+    # Resets positional tracking for the specified sensors.
+    def reset_positional_tracking(self, Transform path, list sensors_ids=None) -> SENSORS_ERROR_CODE:
+        cdef cpp_set[c_SensorDeviceIdentifier] c_cam_ids
+        if sensors_ids is not None:
+            for py_id in sensors_ids:
+                c_cam_ids.insert((<SensorDeviceIdentifier>py_id).identifier)
+        return SENSORS_ERROR_CODE(<int>self.sensors.resetPositionalTracking(deref(path.transform), c_cam_ids))
+
+    ##
+    # Returns the positional tracking status for a specific sensor.
+    def get_positional_tracking_status(self, SensorDeviceIdentifier sensors_id=None) -> PositionalTrackingStatus:
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        status = PositionalTrackingStatus()
+        status.positional_status = self.sensors.getPositionalTrackingStatus(c_id)
+        return status
+
+    ##
+    # Saves the current area learning file.
+    def save_area_map(self, str area_file_path, SensorDeviceIdentifier sensors_id=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef String c_path = String(area_file_path.encode())
+        return SENSORS_ERROR_CODE(<int>self.sensors.saveAreaMap(c_path, c_id))
+
+    ##
+    # Returns the state of the spatial memory export process.
+    def get_area_export_state(self, SensorDeviceIdentifier sensors_id=None) -> AREA_EXPORTING_STATE:
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return AREA_EXPORTING_STATE(<int>self.sensors.getAreaExportState(c_id))
+
+    ##
+    # Returns the SensorsData (IMU, magnetometer, barometer) of the specified sensor.
+    def get_motion_sensors_data(self, SensorsData data, reference_time=TIME_REFERENCE.IMAGE, SensorDeviceIdentifier unique_identifier=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return SENSORS_ERROR_CODE(<int>self.sensors.getMotionSensorsData(data.sensorsData, <c_TIME_REFERENCE><int>reference_time.value, c_id))
+
+    ##
+    # Performs a new self-calibration process for the specified camera.
+    def update_self_calibration(self, SensorDeviceIdentifier unique_identifier=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        self.sensors.updateSelfCalibration(c_id)
+
+    ##
+    # Returns the current value of the requested camera setting.
+    def get_camera_settings(self, settings, SensorDeviceIdentifier sensors_id=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef int setting = 0
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getCameraSettings(<c_VIDEO_SETTINGS><int>settings.value, setting, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err), setting
+
+    ##
+    # Returns the range for the specified camera setting.
+    def get_camera_settings_range(self, settings, SensorDeviceIdentifier sensors_id=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef int min_val = 0
+        cdef int max_val = 0
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getCameraSettingsRange(<c_VIDEO_SETTINGS><int>settings.value, min_val, max_val, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err), min_val, max_val
+
+    ##
+    # Checks if the video setting is supported by the camera.
+    def is_camera_setting_supported(self, setting, SensorDeviceIdentifier sensors_id=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef bool is_supported = False
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.isCameraSettingSupported(<c_VIDEO_SETTINGS><int>setting.value, is_supported, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err), is_supported
+
+    ##
+    # Sets the value of the requested camera setting.
+    def set_camera_settings(self, settings, int value=-1, SensorDeviceIdentifier sensors_id=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return SENSORS_ERROR_CODE(<int>self.sensors.setCameraSettings(<c_VIDEO_SETTINGS><int>settings.value, value, c_id))
+
+    ##
+    # Returns the current min/max values of the requested camera setting.
+    # \n Works with AUTO_EXPOSURE_TIME_RANGE, AUTO_ANALOG_GAIN_RANGE, AUTO_DIGITAL_GAIN_RANGE.
+    # \param settings : The setting to retrieve.
+    # \param sensors_id : The sensor identifier.
+    # \return A tuple of (SENSORS_ERROR_CODE, min_val, max_val).
+    def get_camera_settings_min_max(self, settings, SensorDeviceIdentifier sensors_id=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef int min_val = 0
+        cdef int max_val = 0
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getCameraSettingsMinMax(<c_VIDEO_SETTINGS><int>settings.value, min_val, max_val, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err), min_val, max_val
+
+    ##
+    # Sets the min/max values for the requested camera setting.
+    # \n Works with AUTO_EXPOSURE_TIME_RANGE, AUTO_ANALOG_GAIN_RANGE, AUTO_DIGITAL_GAIN_RANGE.
+    # \param settings : The setting to set.
+    # \param min_val : The minimum value.
+    # \param max_val : The maximum value.
+    # \param sensors_id : The sensor identifier.
+    # \return SENSORS_ERROR_CODE indicating success or failure.
+    def set_camera_settings_min_max(self, settings, int min_val, int max_val, SensorDeviceIdentifier sensors_id=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return SENSORS_ERROR_CODE(<int>self.sensors.setCameraSettingsMinMax(<c_VIDEO_SETTINGS><int>settings.value, min_val, max_val, c_id))
+
+    ##
+    # Returns the AEC_AGC_ROI for the specified camera setting.
+    # \param settings : The setting to retrieve (should be AEC_AGC_ROI).
+    # \param roi : The Rect object to store the ROI.
+    # \param side : The side (LEFT, RIGHT, or BOTH).
+    # \param sensors_id : The sensor identifier.
+    # \return SENSORS_ERROR_CODE indicating success or failure.
+    def get_camera_settings_roi(self, settings, Rect roi, side=SIDE.BOTH, SensorDeviceIdentifier sensors_id=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getCameraSettingsRect(<c_VIDEO_SETTINGS><int>settings.value, roi.rect, <c_SIDE><int>side.value, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err)
+
+    ##
+    # Sets the AEC_AGC_ROI for the specified camera setting.
+    # \param settings : The setting to set (should be AEC_AGC_ROI).
+    # \param roi : The ROI to set.
+    # \param side : The side (LEFT, RIGHT, or BOTH).
+    # \param reset : Whether to reset the ROI to default.
+    # \param sensors_id : The sensor identifier.
+    # \return SENSORS_ERROR_CODE indicating success or failure.
+    def set_camera_settings_roi(self, settings, Rect roi, side=SIDE.BOTH, bool reset=False, SensorDeviceIdentifier sensors_id=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if sensors_id is not None:
+            c_id = (<SensorDeviceIdentifier>sensors_id).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return SENSORS_ERROR_CODE(<int>self.sensors.setCameraSettingsRect(<c_VIDEO_SETTINGS><int>settings.value, roi.rect, <c_SIDE><int>side.value, reset, c_id))
+
+    ##
+    # Defines a region of interest to focus on for all the SDK.
+    def set_region_of_interest(self, Mat roi_mask, list modules=None, SensorDeviceIdentifier unique_identifier=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef unordered_set[c_MODULE] c_modules
+        if modules is not None:
+            for m in modules:
+                c_modules.insert(<c_MODULE><int>m.value)
+        else:
+            c_modules.insert(c_MODULE.MODULE_ALL)
+        return SENSORS_ERROR_CODE(<int>self.sensors.setRegionOfInterest(roi_mask.mat, c_modules, c_id))
+
+    ##
+    # Gets the previously set or computed region of interest.
+    def get_region_of_interest(self, Mat roi_mask, Resolution image_size=None, module=MODULE.ALL, SensorDeviceIdentifier unique_identifier=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef c_Resolution c_res
+        if image_size is not None:
+            c_res = image_size.resolution
+        else:
+            c_res.width = 0
+            c_res.height = 0
+        return SENSORS_ERROR_CODE(<int>self.sensors.getRegionOfInterest(roi_mask.mat, c_res, <c_MODULE><int>module.value, c_id))
+
+    ##
+    # Starts the auto detection of a region of interest.
+    def start_region_of_interest_auto_detection(self, RegionOfInterestParameters roi_param=None, SensorDeviceIdentifier unique_identifier=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef c_RegionOfInterestParameters c_roi_param
+        if roi_param is not None:
+            c_roi_param = deref(roi_param.roi_params)
+        return SENSORS_ERROR_CODE(<int>self.sensors.startRegionOfInterestAutoDetection(c_roi_param, c_id))
+
+    ##
+    # Returns the status of the automatic Region of Interest Detection.
+    def get_region_of_interest_auto_detection_status(self, SensorDeviceIdentifier unique_identifier=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef c_REGION_OF_INTEREST_AUTO_DETECTION_STATE status = c_REGION_OF_INTEREST_AUTO_DETECTION_STATE.REGION_OF_INTEREST_AUTO_DETECTION_STATE_NOT_ENABLED
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getRegionOfInterestAutoDetectionStatus(status, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err), REGION_OF_INTEREST_AUTO_DETECTION_STATE(<int>status)
+
+    ##
+    # Retrieves the frame index within the SVO file corresponding to the provided timestamp.
+    def get_svo_position_at_timestamp(self, Timestamp timestamp, SensorDeviceIdentifier unique_identifier=None):
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        cdef int svo_position = 0
+        cdef c_SENSORS_ERROR_CODE c_err = self.sensors.getSVOPositionAtTimestamp(svo_position, timestamp.timestamp, c_id)
+        return SENSORS_ERROR_CODE(<int>c_err), svo_position
+
+    ##
+    # Seeks all sensors to a specific timestamp.
+    def set_svo_position_at_timestamp(self, Timestamp timestamp) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.setSVOPositionAtTimestamp(timestamp.timestamp))
+
+    ##
+    # Ingest custom user SVOData in a SVO file.
+    def ingest_data_into_svo(self, SVOData data, SensorDeviceIdentifier unique_identifier=None) -> SENSORS_ERROR_CODE:
+        cdef c_SensorDeviceIdentifier c_id
+        if unique_identifier is not None:
+            c_id = (<SensorDeviceIdentifier>unique_identifier).identifier
+        else:
+            c_id = c_defaultSensorDeviceIdentifier()
+        return SENSORS_ERROR_CODE(<int>self.sensors.ingestDataIntoSVO(data.svo_data, c_id))
+
+    ##
+    # Disables positional tracking.
+    def disable_positional_tracking(self, str area_file_path=""):
+        cdef String c_area_file_path = String(area_file_path.encode())
+        self.sensors.disablePositionalTracking(c_area_file_path)
+
+    ##
+    # Checks if positional tracking is enabled.
+    def is_positional_tracking_enabled(self) -> bool:
+        return self.sensors.isPositionalTrackingEnabled()
+
+    ##
+    # Closes the Sensors instance, releasing all resources and cameras.
+    def close(self) -> SENSORS_ERROR_CODE:
+        return SENSORS_ERROR_CODE(<int>self.sensors.close())

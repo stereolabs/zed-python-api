@@ -26,7 +26,25 @@ import os
 import sys
 import shutil
 import re
+
+# FORCE CYTHON TO IGNORE PYTHRAN
+# On some Linux systems (e.g. Jetson/Debian), Cython detects the system-installed 'pythran'
+# package. Pythran then attempts to import the system 'scipy', which is linked against an older,
+# system-provided NumPy (1.x). This triggers a binary incompatibility when running in a
+# build environment that provides a newer NumPy (2.x).
+sys.modules['pythran'] = None
+
+# PRIORITIZE BUILD ENVIRONMENT OVER SYSTEM PACKAGES
+# Standard system paths (like /usr/lib/python3/dist-packages) can sometimes take precedence
+# over virtual environments or isolated build environments. If the system has an old NumPy (1.x)
+# installed, setup.py might link against it instead of the NumPy 2.x we just installed in the
+# build environment, leading to "numpy.dtype size changed" errors at runtime.
+# We move system paths to the end of sys.path to ensure build dependencies are found first.
+sys.path = [p for p in sys.path if "/usr/lib/python3/dist-packages" not in p] + \
+           [p for p in sys.path if "/usr/lib/python3/dist-packages" in p]
+
 import numpy as np
+import subprocess
 
 from setuptools import setup, Extension
 
@@ -249,7 +267,6 @@ print("Install requires:", install_requires)
 setup_requires = [
     'setuptools>=42', # Good to have a recent setuptools for pyproject.toml compatibility (even if not used here)
     'cython>=3.0.0',
-    'oldest-supported-numpy' # Ensures compilation against an ABI-stable NumPy
 ]
 
 # For Python versions that will use numpy < 2.0 at runtime,
@@ -260,6 +277,19 @@ if (sys.version_info.major, sys.version_info.minor) <= (3, 8):
 
 
 print("Setup requires:", setup_requires)
+
+# Generate stubs if we are not cleaning
+if "clean" not in "".join(sys.argv[1:]):
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    stub_generator_path = os.path.join(current_dir, "generate_pyzed_stubs.py")
+    if os.path.isfile(stub_generator_path):
+        try:
+            print(f"Generating .pyi stubs using {stub_generator_path}...")
+            subprocess.check_call([sys.executable, stub_generator_path, 
+                                   os.path.join(current_dir, "pyzed/sl.pyx"), 
+                                   os.path.join(current_dir, "pyzed/sl.pyi")])
+        except Exception as e:
+            print(f"Warning: Failed to generate stubs: {e}")
 
 setup(name="pyzed",
       version= ZED_SDK_MAJOR + "." + ZED_SDK_MINOR,
