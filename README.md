@@ -31,12 +31,12 @@ This package lets you use the ZED stereo camera in Python 3. The Python API is a
 To start using the ZED SDK in Python, you will need to install the following dependencies on your system:
 
 - To use pyzed
-    - [ZED SDK 5.1](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
-        - For the ZED SDK 5.0 compatible version, use the [zedsdk_5.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_5.X) or the [5.0.7 release tag](https://github.com/stereolabs/zed-python-api/releases/tag/v5.0.7)
+    - [ZED SDK 5.2](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+        - For the ZED SDK 5.1 compatible version, use the [5.1.2 release tag](https://github.com/stereolabs/zed-python-api/releases/tag/v5.1.2)
+        - For the ZED SDK 5.0 compatible version, use the [5.0.7 release tag](https://github.com/stereolabs/zed-python-api/releases/tag/v5.0.7)
         - For the ZED SDK 4.2 compatible version, use the [zedsdk_4.X branch](https://github.com/stereolabs/zed-python-api/tree/zedsdk_4.X) or the [4.2 release tag](https://github.com/stereolabs/zed-python-api/releases/tag/v4.2)
     - Python 3.8 to Python 3.14
-    - [Cython >= 3.0.0](http://cython.org/#download)
-    - [Numpy >= 2.0](https://numpy.org/install/)
+    - Build dependencies (Cython and NumPy) are handled automatically by `pyproject.toml`
 - To use most of our samples (optional)
     - OpenCV Python
     - PyOpenGL
@@ -49,10 +49,7 @@ Please check your python version with the following command. The result should b
 python --version
 ```
 
-Cython and Numpy can be installed via pip.
-```
-python -m pip install cython numpy
-```
+**Note:** Cython and NumPy are now handled automatically by the build system.
 
 The sample dependencies can also be installed via pip
 ```
@@ -214,12 +211,10 @@ Traceback (most recent call last):
 ValueError: numpy.ufunc size changed, may indicate binary incompatibility. Expected 216 from C header, got 192 from PyObject
 ```
 
-This error usually means numpy isn't installed. To install it, simply run these commands : 
+This error usually means the Python wrapper was compiled with a different version of NumPy than the one currently installed. To fix this, rebuild the wrapper against the current NumPy version by running:
 
 ```bash
-# On Jetson (aarch64) cython needs to be installed first since numpy needs to be compiled.
-python3 -m pip install cython
-python3 -m pip install numpy
+python3 -m pip install --force-reinstall .
 ```
 
 ### "PyTorch on Jetson requiring NumPy 1.x while pyzed requires NumPy 2.x"
@@ -247,9 +242,19 @@ If an __error__ like `CuPy failed to load libnvrtc.so.12` happens when using GPU
 
 ## Compiling the Python API from source (only for developers of the python wrapper)
 
-To compile the ZED SDK Python wrapper go to [src folder](./src) to get the cython sources and instructions.
+Clone the repository and run the following command to install the package:
 
-Note : This step is not useful for *users* of the wrapper, it is only meant to be used to extend the wrapper for advanced uses.
+```bash
+python -m pip install .
+```
+
+Or for developers who want to edit the source code:
+
+```bash
+python -m pip install -e .
+```
+
+The `pyproject.toml` file automatically manages all build dependencies (including Cython and NumPy).
 
 ## Support
 
