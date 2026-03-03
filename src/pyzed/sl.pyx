@@ -193,6 +193,7 @@ from math import sqrt
 ## \defgroup PositionalTracking_group Positional Tracking Module
 ## \defgroup Object_group Object Detection Module
 ## \defgroup Body_group Body Tracking Module
+## \defgroup Lidar_group Lidar Module
 ## \defgroup Sensors_group Sensors Module
 ## \defgroup Fusion_group Fusion Module
 
@@ -204,6 +205,12 @@ cdef class Timestamp():
 
     def __cinit__(self):
         self.timestamp = c_Timestamp()
+
+    def __reduce__(self):
+        return (type(self), (), self.data_ns)
+
+    def __setstate__(self, state):
+        self.data_ns = state
 
     ##
     # Timestamp in nanoseconds.
@@ -1525,6 +1532,10 @@ cdef class Matrix3f:
     def __dealloc__(self):
         if type(self) is Matrix3f and self.mat is not NULL:
             del self.mat
+
+    def __reduce__(self):
+        return (type(self), (list(self.r.flatten()),))
+
     ##
     # Copy the values from another sl.Matrix3f.
     # \param matrix : sl.Matrix3f to copy.
@@ -1702,6 +1713,9 @@ cdef class Matrix4f:
     def __dealloc__(self):
         if type(self) is Matrix4f:
             del self.mat
+
+    def __reduce__(self):
+        return (type(self), (list(self.m.flatten()),))
 
     ##
     # Copy the values from another sl.Matrix4f.
@@ -2488,7 +2502,7 @@ class POSITIONAL_TRACKING_FUSION_STATUS(enum.Enum):
 
 ##
 # Lists that represents the status of the of GNSS signal.
-# \ingroup Sensors_group
+# \ingroup PositionalTracking_group
 #
 # | Enumerator |                         |
 # |------------|-------------------------|
@@ -2535,7 +2549,7 @@ class GNSS_STATUS(enum.Enum):
 
 ##
 # Lists that represents the mode of GNSS signal.
-# \ingroup Sensors_group
+# \ingroup PositionalTracking_group
 #
 # | Enumerator |                         |
 # |------------|-------------------------|
@@ -2578,7 +2592,7 @@ class GNSS_MODE(enum.Enum):
 
 ##
 # Lists that represents the current GNSS fusion status
-# \ingroup Sensors_group
+# \ingroup PositionalTracking_group
 #
 # | Enumerator |                         |
 # |------------|-------------------------|
@@ -2844,7 +2858,7 @@ class POSITIONAL_TRACKING_MODE(enum.Enum):
     ##
     # Converts a string to the corresponding POSITIONAL_TRACKING_MODE enum value.
     # \param name : The string representation of the POSITIONAL_TRACKING_MODE enum value.
-    # \return The corresponding POSITIONAL_TRACKING_MODE enum value. If the string does not match any POSITIONAL_TRACKING_MODE, POSITIONAL_TRACKING_MODE.GEN_1 is returned.
+    # \return The corresponding POSITIONAL_TRACKING_MODE enum value. If the string does not match any POSITIONAL_TRACKING_MODE, POSITIONAL_TRACKING_MODE.GEN_3 is returned.
     @staticmethod
     def from_string(str name):
         cdef c_POSITIONAL_TRACKING_MODE val = c_POSITIONAL_TRACKING_MODE.POSITIONAL_TRACKING_MODE_LAST
@@ -3215,7 +3229,7 @@ class TENSOR_PIXEL_TYPE(enum.Enum):
 
 ##
 # Lists available sensor types.
-# \ingroup Sensors_group
+# \ingroup Core_group
 # \note Sensors are not available on \ref MODEL "sl.MODEL.ZED".
 #
 # | Enumerator |                         |
@@ -3232,7 +3246,7 @@ class SENSOR_TYPE(enum.Enum):
 
 ##
 # Lists available measurement units of onboard sensors.
-# \ingroup Sensors_group
+# \ingroup Core_group
 # \note Sensors are not available on \ref MODEL "sl.MODEL.ZED".
 #
 # | Enumerator |                         |
@@ -5555,6 +5569,9 @@ cdef class BatchParameters:
     def __dealloc__(self):
         del self.batch_params
 
+    def __reduce__(self):
+        return (type(self), (self.enable, self.id_retention_time, self.latency))
+
     ##
     # Whether to enable the batch option in the object detection module.
     # Batch queueing system provides:
@@ -5644,6 +5661,29 @@ cdef class ObjectDetectionParameters:
 
     def __dealloc__(self):
         del self.object_detection
+
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'enable_tracking': self.enable_tracking,
+            'enable_segmentation': self.enable_segmentation,
+            'detection_model': self.detection_model,
+            'max_range': self.max_range,
+            'batch_parameters': self.batch_parameters,
+            'filtering_mode': self.filtering_mode,
+            'prediction_timeout_s': self.prediction_timeout_s,
+            'allow_reduced_precision_inference': self.allow_reduced_precision_inference,
+            'instance_module_id': self.instance_module_id,
+            'fused_objects_group_name': self.fused_objects_group_name,
+            'custom_onnx_file': self.custom_onnx_file,
+            'custom_onnx_dynamic_input_shape': self.custom_onnx_dynamic_input_shape,
+        }
+
+    def __setstate__(self, state):
+        for key, value in state.items():
+            setattr(self, key, value)
 
     ##
     # Whether the object detection system includes object tracking capabilities across a sequence of images.
@@ -5926,6 +5966,25 @@ cdef class ObjectTrackingParameters:
     def min_confirmation_time_s(self, float value):
         self.object_tracking_params.min_confirmation_time_s = value
 
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'object_acceleration_preset': self.object_acceleration_preset,
+            'velocity_smoothing_factor': self.velocity_smoothing_factor,
+            'min_velocity_threshold': self.min_velocity_threshold,
+            'prediction_timeout_s': self.prediction_timeout_s,
+            'min_confirmation_time_s': self.min_confirmation_time_s,
+        }
+
+    def __setstate__(self, state):
+        self.object_acceleration_preset = state['object_acceleration_preset']
+        self.velocity_smoothing_factor = state['velocity_smoothing_factor']
+        self.min_velocity_threshold = state['min_velocity_threshold']
+        self.prediction_timeout_s = state['prediction_timeout_s']
+        self.min_confirmation_time_s = state['min_confirmation_time_s']
+
 ##
 # Class containing a set of runtime parameters for the object detection module.
 # \ingroup Object_group
@@ -6055,6 +6114,25 @@ cdef class ObjectDetectionRuntimeParameters:
             if not isinstance(v, ObjectTrackingParameters):
                 raise TypeError("Values must be ObjectTrackingParameters objects")
             self.object_detection_rt.object_class_tracking_parameters[<c_OBJECT_CLASS>(<int>k.value)] = (<ObjectTrackingParameters>v).object_tracking_params
+
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'detection_confidence_threshold': self.detection_confidence_threshold,
+            'object_class_filter': self.object_class_filter,
+            'object_class_detection_confidence_threshold': self.object_class_detection_confidence_threshold,
+            'object_tracking_parameters': self.object_tracking_parameters,
+            'object_class_tracking_parameters': self.object_class_tracking_parameters,
+        }
+
+    def __setstate__(self, state):
+        self.detection_confidence_threshold = state['detection_confidence_threshold']
+        self.object_class_filter = state['object_class_filter']
+        self.object_class_detection_confidence_threshold = state['object_class_detection_confidence_threshold']
+        self.object_tracking_parameters = state['object_tracking_parameters']
+        self.object_class_tracking_parameters = state['object_class_tracking_parameters']
 
 
 ##
@@ -6669,6 +6747,27 @@ cdef class BodyTrackingParameters:
         if self.bodyTrackingParameters is not NULL:
             del self.bodyTrackingParameters
 
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'enable_tracking': self.enable_tracking,
+            'enable_segmentation': self.enable_segmentation,
+            'detection_model': self.detection_model,
+            'body_format': self.body_format,
+            'body_selection': self.body_selection,
+            'enable_body_fitting': self.enable_body_fitting,
+            'max_range': self.max_range,
+            'prediction_timeout_s': self.prediction_timeout_s,
+            'allow_reduced_precision_inference': self.allow_reduced_precision_inference,
+            'instance_module_id': self.instance_module_id,
+        }
+
+    def __setstate__(self, state):
+        for key, value in state.items():
+            setattr(self, key, value)
+
     ##
     # Whether the body tracking system includes body/person tracking capabilities across a sequence of images.
     # Default: True
@@ -6856,6 +6955,9 @@ cdef class BodyTrackingRuntimeParameters:
     def skeleton_smoothing(self, float skeleton_smoothing_):
         self.body_tracking_rt.skeleton_smoothing = skeleton_smoothing_
 
+    def __reduce__(self):
+        return (type(self), (self.detection_confidence_threshold, self.minimum_keypoints_threshold, self.skeleton_smoothing))
+
 ##
 # Class containing a set of parameters for the plane detection functionality.
 # \ingroup SpatialMapping_group
@@ -6897,6 +6999,19 @@ cdef class PlaneDetectionParameters:
     @normal_similarity_threshold.setter
     def normal_similarity_threshold(self, float normal_similarity_threshold_):
         self.plane_detection_params.normal_similarity_threshold = normal_similarity_threshold_
+
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'max_distance_threshold': self.max_distance_threshold,
+            'normal_similarity_threshold': self.normal_similarity_threshold,
+        }
+
+    def __setstate__(self, state):
+        self.max_distance_threshold = state['max_distance_threshold']
+        self.normal_similarity_threshold = state['normal_similarity_threshold']
 
 
 cdef class RegionOfInterestParameters:
@@ -6948,6 +7063,21 @@ cdef class RegionOfInterestParameters:
         for v in auto_apply_module:
             self.roi_params.auto_apply_module.insert(<c_MODULE>(<int>v.value))
 
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'depth_far_threshold_meters': self.depth_far_threshold_meters,
+            'image_height_ratio_cutoff': self.image_height_ratio_cutoff,
+            'auto_apply_module': self.auto_apply_module,
+        }
+
+    def __setstate__(self, state):
+        self.depth_far_threshold_meters = state['depth_far_threshold_meters']
+        self.image_height_ratio_cutoff = state['image_height_ratio_cutoff']
+        self.auto_apply_module = state['auto_apply_module']
+
 # Returns the current timestamp at the time the function is called.
 # \ingroup Core_group
 def get_current_timestamp() -> Timestamp:
@@ -6964,6 +7094,9 @@ cdef class Resolution:
     def __cinit__(self, width=0, height=0):
         self.resolution.width = width
         self.resolution.height = height
+
+    def __reduce__(self):
+        return (type(self), (self.width, self.height))
 
     ##
     # Area (width * height) of the image.
@@ -7008,6 +7141,9 @@ cdef class Rect:
         self.rect.y = y
         self.rect.width = width
         self.rect.height = height
+
+    def __reduce__(self):
+        return (type(self), (self.x, self.y, self.width, self.height))
 
     ##
     # Width of the rectangle in pixels.
@@ -7302,7 +7438,7 @@ cdef class CalibrationParameters:
 
 ##
 # Class containing information about a single sensor available in the current device.
-# \ingroup Sensors_group
+# \ingroup Core_group
 #
 # Information about the camera sensors is available in the sl.CameraInformation struct returned by sl.Camera.get_camera_information().
 # \note This class is meant to be used as a read-only container.
@@ -7410,7 +7546,7 @@ cdef class SensorParameters:
 
 ##
 # Class containing information about all the sensors available in the current device.
-# \ingroup Sensors_group
+# \ingroup Core_group
 #
 # Information about the camera sensors is available in the sl.CameraInformation struct returned by sl.Camera.get_camera_information().
 # \note This class is meant to be used as a read-only container.
@@ -7671,6 +7807,27 @@ cdef class CameraInformation:
         return self.serial_number
 
 
+def _reconstruct_mat(np_data, mat_type_value, name="", timestamp_ns=0, verbose=False):
+    """Helper for unpickling sl.Mat objects."""
+    if np_data is None:
+        m = Mat()
+    else:
+        mat_type = MAT_TYPE(mat_type_value)
+        h = np_data.shape[0]
+        w = np_data.shape[1]
+        m = Mat(w, h, mat_type, MEM.CPU)
+        target = m.get_data(MEM.CPU, deep_copy=False)
+        target[:] = np_data
+    if name:
+        m.name = name
+    if timestamp_ns:
+        ts = Timestamp()
+        ts.data_ns = timestamp_ns
+        m.timestamp = ts
+    m.verbose = verbose
+    return m
+
+
 ##
 # Class representing 1 to 4-channel matrix of float or uchar, stored on CPU and/or GPU side.
 # \ingroup Core_group
@@ -7691,6 +7848,21 @@ cdef class Mat:
     # \endcode
     def __cinit__(self, width=0, height=0, mat_type=MAT_TYPE.F32_C1, memory_type=MEM.CPU) -> Mat:
         c_Mat(width, height, <c_MAT_TYPE>(<int>mat_type.value), <c_MEM>(<int>memory_type.value)).move(self.mat)
+
+    def __reduce__(self):
+        cdef size_t w = self.mat.getWidth()
+        cdef size_t h = self.mat.getHeight()
+        mat_name = self.name
+        ts_ns = self.timestamp.data_ns if self.timestamp is not None else 0
+        mat_verbose = self.verbose
+        if w == 0 or h == 0:
+            return (_reconstruct_mat, (None, 0, mat_name, ts_ns, mat_verbose))
+        mem_type = self.get_memory_type()
+        if mem_type not in (MEM.CPU, MEM.BOTH):
+            raise TypeError("Cannot pickle Mat with GPU-only memory. "
+                           "Copy to CPU first using update_cpu_from_gpu().")
+        np_data = self.get_data(MEM.CPU, deep_copy=True)
+        return (_reconstruct_mat, (np_data, self.get_data_type().value, mat_name, ts_ns, mat_verbose))
 
     ##
     # Initilizes a new sl.Mat and allocates the requested memory by calling \ref alloc_size().
@@ -8565,6 +8737,10 @@ cdef class Rotation(Matrix3f):
         if type(self) is Rotation and self.rotation is not NULL:
             del self.rotation
             # We don't delete self.mat - it's the same memory as self.rotation
+
+    def __reduce__(self):
+        return (type(self), (list(self.r.flatten()),))
+
     ##
     # Deep copy from another sl.Rotation.
     # \param rot : sl.Rotation to copy.
@@ -8678,6 +8854,9 @@ cdef class Translation:
             # Default constructor
             self.translation = c_Translation()
 
+    def __reduce__(self):
+        return (type(self), (list(self.get()),))
+
     ##
     # Deep copy from another sl.Translation.
     # \param tr : sl.Translation to copy.
@@ -8765,6 +8944,9 @@ cdef class Orientation:
         else:
             # Default constructor
             self.orientation = c_Orientation()
+
+    def __reduce__(self):
+        return (type(self), (list(self.get()),))
 
     ##
     # Deep copy from another sl.Orientation.
@@ -8890,7 +9072,6 @@ cdef class Transform(Matrix4f):
 
     def __cinit__(self, input_transform=None):
         if type(self) is Transform:
-            self.transform = self.mat = new c_Transform()
             # Create c_Transform and cast to c_Matrix4f for parent
             self.transform = new c_Transform()
             self.mat = <c_Matrix4f*>self.transform
@@ -8912,6 +9093,9 @@ cdef class Transform(Matrix4f):
         if self._owns_memory and self.transform is not NULL:
             del self.transform
             # We don't delete self.mat - it's the same memory as self.transform
+
+    def __reduce__(self):
+        return (type(self), (list(self.m.flatten()),))
 
     @staticmethod
     cdef Transform from_cpp_ref(c_Transform* cpp_obj):
@@ -9842,6 +10026,41 @@ class TYPE_OF_INPUT_TYPE(enum.Enum):
     def __repr__(self):
         return to_str(toString(<c_TYPE_OF_INPUT_TYPE>(<int>self.value))).decode()
 
+
+def _reconstruct_input_type(input_type_enum, configuration):
+    """Helper for unpickling sl.InputType objects."""
+    it = InputType()
+    if not configuration:
+        return it
+    if input_type_enum == TYPE_OF_INPUT_TYPE.SVO_FILE:
+        it.set_from_svo_file(configuration)
+    elif input_type_enum == TYPE_OF_INPUT_TYPE.STREAM:
+        parts = configuration.rsplit(':', 1)
+        if len(parts) == 2:
+            try:
+                it.set_from_stream(parts[0], int(parts[1]))
+            except (ValueError, TypeError):
+                it.set_from_stream(configuration)
+        else:
+            it.set_from_stream(configuration)
+    elif input_type_enum in (TYPE_OF_INPUT_TYPE.USB_ID, TYPE_OF_INPUT_TYPE.GMSL_ID):
+        try:
+            it.set_from_camera_id(int(configuration))
+        except (ValueError, TypeError):
+            pass
+    elif input_type_enum in (TYPE_OF_INPUT_TYPE.USB_SERIAL, TYPE_OF_INPUT_TYPE.GMSL_SERIAL):
+        try:
+            it.set_from_serial_number(int(configuration))
+        except (ValueError, TypeError):
+            it.set_from_serial_number(configuration)
+    elif input_type_enum == TYPE_OF_INPUT_TYPE.GMSL_PORT:
+        try:
+            it.set_from_serial_port(int(configuration))
+        except (ValueError, TypeError):
+            pass
+    return it
+
+
 ##
 # Class defining the input type used in the ZED SDK.
 # \ingroup Video_group
@@ -9864,6 +10083,9 @@ cdef class InputType:
     def __dealloc__(self):
         if self._owns_data and self.input_ptr is not NULL:
             del self.input_ptr
+
+    def __reduce__(self):
+        return (_reconstruct_input_type, (self.get_type(), self.get_configuration()))
 
     @staticmethod
     cdef InputType from_cpp_ref(c_InputType* cpp_obj):
@@ -10004,8 +10226,9 @@ cdef class InputType:
 #
 # \endcode
 #
-# With its default values, it opens the camera in live mode at \ref RESOLUTION "sl.RESOLUTION.HD720"
-# (or \ref RESOLUTION "sl.RESOLUTION.HD1200" for the ZED X/X Mini) and sets the depth mode to \ref DEPTH_MODE "sl.DEPTH_MODE.NEURAL"
+# With its default values, it opens the camera in live mode at \ref RESOLUTION "sl.RESOLUTION.AUTO"
+# (which resolves to \ref RESOLUTION "sl.RESOLUTION.HD1200" for the ZED X/X Mini, \ref RESOLUTION "sl.RESOLUTION.HD720" for other cameras)
+# and sets the depth mode to \ref DEPTH_MODE "sl.DEPTH_MODE.NEURAL"
 # \n You can customize it to fit your application.
 # \note The parameters can also be saved and reloaded using its \ref save() and \ref load() methods.
 cdef class InitParameters:
@@ -10055,7 +10278,7 @@ cdef class InitParameters:
                   optional_settings_path="",sensors_required=False,
                   enable_image_enhancement=True, optional_opencv_calibration_file="",
                   open_timeout_sec=5.0, async_grab_camera_recovery=False, grab_compute_capping_fps=0,
-                  enable_image_validity_check=False, async_image_retrieval=False, maximum_working_resolution=Resolution(0,0)) -> InitParameters:
+                  enable_image_validity_check=True, async_image_retrieval=False, maximum_working_resolution=Resolution(0,0)) -> InitParameters:
         if (isinstance(camera_resolution, RESOLUTION) and isinstance(camera_fps, int) and
             isinstance(svo_real_time_mode, bool) and isinstance(depth_mode, DEPTH_MODE) and
             isinstance(coordinate_units, UNIT) and
@@ -10093,6 +10316,79 @@ cdef class InitParameters:
     def __dealloc__(self):
         del self.init
 
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        input_t = InputType()
+        input_t.input_ptr[0] = self.init.input
+        input_type = input_t.get_type()
+        input_config = input_t.get_configuration()
+        return {
+            'camera_resolution': self.camera_resolution,
+            'camera_fps': self.camera_fps,
+            'svo_real_time_mode': self.svo_real_time_mode,
+            'depth_mode': self.depth_mode,
+            'coordinate_units': self.coordinate_units,
+            'coordinate_system': self.coordinate_system,
+            'sdk_verbose': self.sdk_verbose,
+            'sdk_gpu_id': self.sdk_gpu_id,
+            'depth_minimum_distance': self.depth_minimum_distance,
+            'depth_maximum_distance': self.depth_maximum_distance,
+            'camera_disable_self_calib': self.camera_disable_self_calib,
+            'camera_image_flip': self.camera_image_flip,
+            'enable_right_side_measure': self.enable_right_side_measure,
+            'sdk_verbose_log_file': self.sdk_verbose_log_file,
+            'depth_stabilization': self.depth_stabilization,
+            'optional_settings_path': self.optional_settings_path,
+            'sensors_required': self.sensors_required,
+            'enable_image_enhancement': self.enable_image_enhancement,
+            'optional_opencv_calibration_file': self.optional_opencv_calibration_file,
+            'open_timeout_sec': self.open_timeout_sec,
+            'async_grab_camera_recovery': self.async_grab_camera_recovery,
+            'grab_compute_capping_fps': self.grab_compute_capping_fps,
+            'enable_image_validity_check': self.enable_image_validity_check,
+            'async_image_retrieval': self.async_image_retrieval,
+            '_maximum_working_resolution': (self.maximum_working_resolution.width, self.maximum_working_resolution.height),
+            '_input_type': input_type,
+            '_input_configuration': input_config,
+        }
+
+    def __setstate__(self, state):
+        input_type = state.pop('_input_type', TYPE_OF_INPUT_TYPE.AUTO)
+        input_config = state.pop('_input_configuration', '')
+        max_res = state.pop('_maximum_working_resolution', (0, 0))
+        for key, value in state.items():
+            setattr(self, key, value)
+        self.maximum_working_resolution = Resolution(max_res[0], max_res[1])
+        if input_config:
+            if input_type == TYPE_OF_INPUT_TYPE.SVO_FILE:
+                self.set_from_svo_file(input_config)
+            elif input_type == TYPE_OF_INPUT_TYPE.STREAM:
+                parts = input_config.rsplit(':', 1)
+                if len(parts) == 2:
+                    try:
+                        self.set_from_stream(parts[0], int(parts[1]))
+                    except (ValueError, TypeError):
+                        self.set_from_stream(input_config)
+                else:
+                    self.set_from_stream(input_config)
+            elif input_type in (TYPE_OF_INPUT_TYPE.USB_ID, TYPE_OF_INPUT_TYPE.GMSL_ID):
+                try:
+                    self.set_from_camera_id(int(input_config))
+                except (ValueError, TypeError):
+                    pass
+            elif input_type in (TYPE_OF_INPUT_TYPE.USB_SERIAL, TYPE_OF_INPUT_TYPE.GMSL_SERIAL):
+                try:
+                    self.set_from_serial_number(int(input_config))
+                except (ValueError, TypeError):
+                    self.set_from_serial_number(input_config)
+            elif input_type == TYPE_OF_INPUT_TYPE.GMSL_PORT:
+                try:
+                    self.set_from_serial_port(int(input_config))
+                except (ValueError, TypeError):
+                    pass
+
     ##
     # Saves the current set of parameters into a file to be reloaded with the \ref load() method.
     # \param filename : Name of the file which will be created to store the parameters (extension '.yml' will be added if not set).
@@ -10128,9 +10424,9 @@ cdef class InitParameters:
     # \note Small resolutions offer higher framerate and lower computation time.
     # \note In most situations, \ref RESOLUTION "sl.RESOLUTION.HD720" at 60 FPS is the best balance between image quality and framerate.
     #
-    # Default: <ul>
-    # <li>ZED X/X Mini: \ref RESOLUTION "sl.RESOLUTION.HD1200"</li>
-    # <li>other cameras: \ref RESOLUTION "sl.RESOLUTION.HD720"</li></ul>
+    # Default: \ref RESOLUTION "sl.RESOLUTION.AUTO" <ul>
+    # <li>Resolves to \ref RESOLUTION "sl.RESOLUTION.HD1200" for ZED X/X Mini</li>
+    # <li>Resolves to \ref RESOLUTION "sl.RESOLUTION.HD720" for other cameras</li></ul>
     # \note Available resolutions are listed here: sl.RESOLUTION.
     @property
     def camera_resolution(self) -> RESOLUTION:
@@ -10605,7 +10901,7 @@ cdef class InitParameters:
     # This will perform additional verification on the image to identify corrupted data. This verification is done in the sl.Camera.grab() method and requires some computations.
     # \n If an issue is found, the sl.Camera.grab() method will output a warning as [sl.ERROR_CODE.CORRUPTED_FRAME](\ref ERROR_CODE).
     # \n This version doesn't detect frame tearing currently.
-    # \n Default: False (disabled)
+    # \n Default: True (enabled)
     @property
     def enable_image_validity_check(self) -> int:
         return self.init.enable_image_validity_check
@@ -10702,6 +10998,23 @@ cdef class RuntimeParameters:
 
     def __dealloc__(self):
         del self.runtime
+
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'enable_depth': self.enable_depth,
+            'enable_fill_mode': self.enable_fill_mode,
+            'confidence_threshold': self.confidence_threshold,
+            'texture_confidence_threshold': self.texture_confidence_threshold,
+            'measure3D_reference_frame': self.measure3D_reference_frame,
+            'remove_saturated_areas': self.remove_saturated_areas,
+        }
+
+    def __setstate__(self, state):
+        for key, value in state.items():
+            setattr(self, key, value)
 
     ##
     # Saves the current set of parameters into a file to be reloaded with the \ref load() method.
@@ -10832,7 +11145,7 @@ cdef class PositionalTrackingParameters:
     # \endcode
     def __cinit__(self, _init_pos=None, _enable_memory=True, _enable_pose_smoothing=False, _area_path=None,
                   _set_floor_as_origin=False, _enable_imu_fusion=True, _set_as_static=False, _depth_min_range=-1,
-                  _set_gravity_as_origin=True, _mode=POSITIONAL_TRACKING_MODE.GEN_1, _enable_localization_only = False, enable_2d_ground_mode_ = False) -> PositionalTrackingParameters:
+                  _set_gravity_as_origin=True, _mode=POSITIONAL_TRACKING_MODE.GEN_3, _enable_localization_only = False, enable_2d_ground_mode_ = False) -> PositionalTrackingParameters:
         if _init_pos is None:
             _init_pos = Transform()
         if _area_path is None:
@@ -10843,6 +11156,34 @@ cdef class PositionalTrackingParameters:
     
     def __dealloc__(self):
         del self.tracking
+
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        t = self.initial_world_transform()
+        return {
+            '_initial_world_transform': list(t.m.flatten()),
+            'enable_area_memory': self.enable_area_memory,
+            'enable_pose_smoothing': self.enable_pose_smoothing,
+            'area_file_path': self.area_file_path,
+            'set_floor_as_origin': self.set_floor_as_origin,
+            'enable_imu_fusion': self.enable_imu_fusion,
+            'set_as_static': self.set_as_static,
+            'depth_min_range': self.depth_min_range,
+            'set_gravity_as_origin': self.set_gravity_as_origin,
+            'mode': self.mode,
+            'enable_localization_only': self.enable_localization_only,
+            'enable_2d_ground_mode': self.enable_2d_ground_mode,
+        }
+
+    def __setstate__(self, state):
+        iwt = state.pop('_initial_world_transform', None)
+        if iwt is not None:
+            t = Transform(iwt)
+            self.set_initial_world_transform(t)
+        for key, value in state.items():
+            setattr(self, key, value)
 
     ##
     # Saves the current set of parameters into a file to be reloaded with the \ref load() method.
@@ -10996,7 +11337,7 @@ cdef class PositionalTrackingParameters:
     ##
     # Positional tracking mode used.
     # Can be used to improve accuracy in some types of scene at the cost of longer runtime.
-    # \n Default: [sl.POSITIONAL_TRACKING_MODE.GEN_1](\ref POSITIONAL_TRACKING_MODE)
+    # \n Default: [sl.POSITIONAL_TRACKING_MODE.GEN_3](\ref POSITIONAL_TRACKING_MODE)
     @property
     def mode(self) -> POSITIONAL_TRACKING_MODE:
         return POSITIONAL_TRACKING_MODE(<int>self.tracking.mode)
@@ -11159,6 +11500,24 @@ cdef class StreamingParameters:
     def __dealloc__(self):
         del self.streaming
 
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'codec': self.codec,
+            'port': self.port,
+            'bitrate': self.bitrate,
+            'gop_size': self.gop_size,
+            'adaptative_bitrate': self.adaptative_bitrate,
+            'chunk_size': self.chunk_size,
+            'target_framerate': self.target_framerate,
+        }
+
+    def __setstate__(self, state):
+        for key, value in state.items():
+            setattr(self, key, value)
+
     ##
     # Size of a single chunk.
     #
@@ -11300,6 +11659,22 @@ cdef class RecordingParameters:
     def __dealloc__(self):
         del self.record
 
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'video_filename': self.video_filename,
+            'compression_mode': self.compression_mode,
+            'target_framerate': self.target_framerate,
+            'bitrate': self.bitrate,
+            'transcode_streaming_input': self.transcode_streaming_input,
+        }
+
+    def __setstate__(self, state):
+        for key, value in state.items():
+            setattr(self, key, value)
+
     ##
     # Filename of the file to save the recording into.
     @property
@@ -11408,6 +11783,31 @@ cdef class SpatialMappingParameters:
 
     def __dealloc__(self):
         del self.spatial
+
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'map_type': self.map_type,
+            'max_memory_usage': self.max_memory_usage,
+            'save_texture': self.save_texture,
+            'use_chunk_only': self.use_chunk_only,
+            'reverse_vertex_order': self.reverse_vertex_order,
+            'range_meter': self.range_meter,
+            'resolution_meter': self.resolution_meter,
+            'stability_counter': self.stability_counter,
+        }
+
+    def __setstate__(self, state):
+        self.map_type = state['map_type']
+        self.max_memory_usage = int(state['max_memory_usage'])
+        self.save_texture = state['save_texture']
+        self.use_chunk_only = state['use_chunk_only']
+        self.reverse_vertex_order = state['reverse_vertex_order']
+        self.range_meter = state['range_meter']
+        self.resolution_meter = state['resolution_meter']
+        self.stability_counter = int(state['stability_counter'])
 
     ##
     # Sets the resolution to a sl.MAPPING_RESOLUTION preset.
@@ -11616,6 +12016,44 @@ cdef class Pose:
     def __cinit__(self):
         self.pose = c_Pose()
 
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        pd = self.pose_data()
+        return {
+            '_pose_data': list(pd.m.flatten()),
+            'valid': self.valid,
+            '_timestamp_ns': self.timestamp.data_ns,
+            'pose_confidence': self.pose_confidence,
+            'pose_covariance': list(self.pose_covariance),
+            'twist': list(self.twist),
+            'twist_covariance': list(self.twist_covariance),
+        }
+
+    def __setstate__(self, state):
+        pd = state.pop('_pose_data', None)
+        if pd is not None:
+            t = Transform(pd)
+            for i in range(16):
+                self.pose.pose_data.m[i] = t.transform.m[i]
+        ts_ns = state.pop('_timestamp_ns', 0)
+        self.pose.timestamp.data_ns = ts_ns
+        cov = state.pop('pose_covariance', None)
+        if cov is not None:
+            for i in range(36):
+                self.pose.pose_covariance[i] = cov[i]
+        tw = state.pop('twist', None)
+        if tw is not None:
+            for i in range(6):
+                self.pose.twist[i] = tw[i]
+        tw_cov = state.pop('twist_covariance', None)
+        if tw_cov is not None:
+            for i in range(36):
+                self.pose.twist_covariance[i] = tw_cov[i]
+        for key, value in state.items():
+            setattr(self, key, value)
+
     ##
     # Deep copy from another sl.Pose.
     # \param pose : sl.Pose to copy.
@@ -11780,7 +12218,7 @@ cdef class Pose:
 
 ##
 # Lists different states of the camera motion.
-# \ingroup Sensors_group
+# \ingroup Core_group
 #
 # | Enumerator |                  |
 # |------------|------------------|
@@ -11795,7 +12233,7 @@ class CAMERA_MOTION_STATE(enum.Enum):
 
 ##
 # Lists possible locations of temperature sensors.
-# \ingroup Sensors_group
+# \ingroup Core_group
 #
 # | Enumerator |                  |
 # |------------|------------------|
@@ -11812,7 +12250,7 @@ class SENSOR_LOCATION(enum.Enum):
 
 ##
 # Class containing data from the barometer sensor.
-# \ingroup Sensors_group
+# \ingroup Core_group
 cdef class BarometerData:
     cdef c_BarometerData barometerData
 
@@ -11873,7 +12311,7 @@ cdef class BarometerData:
 
 ##
 # Class containing data from the temperature sensors.
-# \ingroup Sensors_group
+# \ingroup Core_group
 cdef class TemperatureData:
     cdef c_TemperatureData temperatureData
 
@@ -11899,7 +12337,7 @@ cdef class TemperatureData:
 
 ##
 # Lists the different states of the magnetic heading.
-# \ingroup Sensors_group
+# \ingroup Core_group
 #
 # | Enumerator |                  |
 # |------------|------------------|
@@ -11918,7 +12356,7 @@ class HEADING_STATE(enum.Enum):
 
 ##
 # Class containing data from the magnetometer sensor.
-# \ingroup Sensors_group
+# \ingroup Core_group
 cdef class MagnetometerData:
     cdef c_MagnetometerData magnetometerData
 
@@ -12016,7 +12454,7 @@ cdef class MagnetometerData:
 
 ##
 # Class containing all sensors data (except image sensors) to be used for positional tracking or environment study.
-# \ingroup Sensors_group
+# \ingroup Core_group
 #
 # \note Some data are not available in SVO and streaming input mode.
 # \note They are specified by a note "Not available in SVO or STREAM mode." in the documentation of a specific data.
@@ -12094,7 +12532,7 @@ cdef class SensorsData:
 
 ##
 # Class containing data from the IMU sensor.
-# \ingroup Sensors_group
+# \ingroup Core_group
 cdef class IMUData:
     cdef c_IMUData imuData
 
@@ -12475,6 +12913,13 @@ cdef class Camera:
         if self.camera != NULL:
             del self.camera
 
+    def __reduce__(self):
+        raise TypeError(
+            "cannot pickle 'sl.Camera' object. "
+            "Camera manages hardware resources and must be created in each process separately. "
+            "Pass sl.InitParameters to the subprocess and call Camera.open() there."
+        )
+
     ##
     # Close an opened camera.
     #
@@ -12607,7 +13052,10 @@ cdef class Camera:
     # \param py_mat[out] : The \ref sl.Mat to store the image.
     # \param view[in] : Defines the image you want (see \ref VIEW). Default: \ref VIEW "VIEW.LEFT".
     # \param mem_type[in] : Defines on which memory the image should be allocated. Default: \ref MEM "MEM.CPU".
-    # \param resolution[in] : If specified, defines the \ref Resolution of the output sl.Mat. If set to \ref Resolution "Resolution(0,0)", the camera resolution will be taken. Default: (0,0).
+    # \param resolution[in] : If specified, defines the \ref Resolution of the output sl.Mat. If set to \ref Resolution "Resolution(0,0)", the camera resolution or InitParameters.maximum_working_resolution will be taken, whichever is the smallest. Default: (0,0).
+    # \n To override the default and choose a different size, the environment variable "ZED_SDK_DISABLE_AUTO_RETRIEVE_RESOLUTION" can be set to 1.
+    # \n For instance on Linux, in a terminal before running your program, call "export ZED_SDK_DISABLE_AUTO_RETRIEVE_RESOLUTION=1",
+    # or call sl.set_environment_variable("ZED_SDK_DISABLE_AUTO_RETRIEVE_RESOLUTION", "1") at the beginning of the code.
     # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if the method succeeded.
     # \return \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_PARAMETERS" if the view mode requires a module not enabled (\ref VIEW "VIEW.DEPTH" with \ref DEPTH_MODE "DEPTH_MODE.NONE" for example).
     # \return \ref ERROR_CODE "ERROR_CODE.INVALID_RESOLUTION" if the resolution is higher than one provided by \ref Resolution "get_camera_information().camera_configuration.resolution".
@@ -12688,7 +13136,10 @@ cdef class Camera:
     # \param py_mat[out] : The sl.Mat to store the measures.
     # \param measure[in] : Defines the measure you want (see \ref MEASURE). Default: \ref MEASURE "MEASURE.DEPTH".
     # \param mem_type[in] : Defines on which memory the image should be allocated. Default: \ref MEM "MEM.CPU" (you cannot change this default value).
-    # \param resolution[in] : If specified, defines the \ref Resolution of the output sl.Mat. If set to \ref Resolution "Resolution(0,0)", the camera resolution will be taken. Default: (0,0).
+    # \param resolution[in] : If specified, defines the \ref Resolution of the output sl.Mat. If set to \ref Resolution "Resolution(0,0)", the camera resolution or InitParameters.maximum_working_resolution will be taken, whichever is the smallest. Default: (0,0).
+    # \n To override the default and choose a different size, the environment variable "ZED_SDK_DISABLE_AUTO_RETRIEVE_RESOLUTION" can be set to 1.
+    # \n For instance on Linux, in a terminal before running your program, call "export ZED_SDK_DISABLE_AUTO_RETRIEVE_RESOLUTION=1",
+    # or call sl.set_environment_variable("ZED_SDK_DISABLE_AUTO_RETRIEVE_RESOLUTION", "1") at the beginning of the code.
     # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if the method succeeded.
     # \return \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_PARAMETERS" if the view mode requires a module not enabled (\ref VIEW "VIEW.DEPTH" with \ref DEPTH_MODE "DEPTH_MODE.NONE" for example).
     # \return \ref ERROR_CODE "ERROR_CODE.INVALID_RESOLUTION" if the resolution is higher than one provided by \ref Resolution "get_camera_information().camera_configuration.resolution".
@@ -15801,7 +16252,7 @@ cdef class GeoPose:
 
 ##
 # Class containing GNSS data to be used for positional tracking as prior.
-# \ingroup Sensors_group
+# \ingroup PositionalTracking_group
 cdef class GNSSData:
 
     cdef c_GNSSData gnss_data
@@ -15982,6 +16433,9 @@ cdef class SynchronizationParameter:
     def maximum_lateness(self, double value):
         self.synchronization_parameters.maximum_lateness = value
 
+    def __reduce__(self):
+        return (type(self), (self.windows_size, self.data_source_timeout, self.keep_last_data, self.maximum_lateness))
+
 
 ##
 # Holds the options used to initialize the \ref Fusion object.
@@ -16079,11 +16533,11 @@ cdef class InitFusionParameters:
     # \note A non-positive value will search for all CUDA capable devices and select the most powerful.
     @property
     def sdk_gpu_id(self) -> int:
-        return self.init.sdk_gpu_id
+        return self.initFusionParameters.sdk_gpu_id
 
     @sdk_gpu_id.setter
     def sdk_gpu_id(self, value: int):
-        self.init.sdk_gpu_id = value
+        self.initFusionParameters.sdk_gpu_id = value
 
     ##
     # Specifies the parameters used for data synchronization during fusion.
@@ -16118,6 +16572,32 @@ cdef class InitFusionParameters:
     def maximum_working_resolution(self, Resolution value):
         self.initFusionParameters.maximum_working_resolution = c_Resolution(value.width, value.height)
 
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'coordinate_units': self.coordinate_units,
+            'coordinate_system': self.coordinate_system,
+            'output_performance_metrics': self.output_performance_metrics,
+            'verbose': self.verbose,
+            'timeout_period_number': self.timeout_period_number,
+            'sdk_gpu_id': self.initFusionParameters.sdk_gpu_id,
+            'synchronization_parameters': self.synchronization_parameters,
+            '_maximum_working_resolution': (self.maximum_working_resolution.width, self.maximum_working_resolution.height),
+        }
+
+    def __setstate__(self, state):
+        self.coordinate_units = state['coordinate_units']
+        self.coordinate_system = state['coordinate_system']
+        self.output_performance_metrics = state['output_performance_metrics']
+        self.verbose = state['verbose']
+        self.timeout_period_number = state['timeout_period_number']
+        self.initFusionParameters.sdk_gpu_id = state['sdk_gpu_id']
+        self.synchronization_parameters = state['synchronization_parameters']
+        w, h = state.get('_maximum_working_resolution', (-1, -1))
+        self.maximum_working_resolution = Resolution(w, h)
+
 ##
 # Holds Fusion process data and functions
 # \ingroup Fusion_group
@@ -16130,6 +16610,13 @@ cdef class Fusion:
     def __dealloc__(self):
         if self.fusion != NULL:
             del self.fusion
+
+    def __reduce__(self):
+        raise TypeError(
+            "cannot pickle 'sl.Fusion' object. "
+            "Fusion manages hardware resources and must be created in each process separately. "
+            "Pass sl.InitFusionParameters to the subprocess and call Fusion.init() there."
+        )
 
     ##
     # Initialize the fusion module with the requested parameters.
@@ -16792,9 +17279,9 @@ cdef class InitParametersOne:
     # \note Small resolutions offer higher framerate and lower computation time.
     # \note In most situations, \ref RESOLUTION "sl.RESOLUTION.HD720" at 60 FPS is the best balance between image quality and framerate.
     #
-    # Default: <ul>
-    # <li>ZED X/X Mini: \ref RESOLUTION "sl.RESOLUTION.HD1200"</li>
-    # <li>other cameras: \ref RESOLUTION "sl.RESOLUTION.HD720"</li></ul>
+    # Default: \ref RESOLUTION "sl.RESOLUTION.AUTO" <ul>
+    # <li>Resolves to \ref RESOLUTION "sl.RESOLUTION.HD1200" for ZED X/X Mini</li>
+    # <li>Resolves to \ref RESOLUTION "sl.RESOLUTION.HD720" for other cameras</li></ul>
     # \note Available resolutions are listed here: sl.RESOLUTION.
     @property
     def camera_resolution(self) -> RESOLUTION:
@@ -16892,7 +17379,7 @@ cdef class InitParametersOne:
     # This parameter allows you to enable the verbosity of the ZED SDK to get a variety of runtime information in the console.
     # \n When developing an application, enabling verbose (<code>\ref sdk_verbose >= 1</code>) mode can help you understand the current ZED SDK behavior.
     # \n However, this might not be desirable in a shipped version.
-    # \n Default: 0 (no verbose message)
+    # \n Default: 1 (verbose messages enabled)
     # \note The verbose messages can also be exported into a log file.
     # \note See \ref sdk_verbose_log_file for more.
     @property
@@ -17045,6 +17532,63 @@ cdef class InitParametersOne:
     @enable_hdr.setter
     def enable_hdr(self, bool value):
         self.init.enable_hdr = value
+
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        input_t = InputType()
+        input_t.input_ptr[0] = self.init.input
+        input_type = input_t.get_type()
+        input_config = input_t.get_configuration()
+        return {
+            'camera_resolution': self.camera_resolution,
+            'camera_fps': self.camera_fps,
+            'svo_real_time_mode': self.svo_real_time_mode,
+            'coordinate_units': self.coordinate_units,
+            'coordinate_system': self.coordinate_system,
+            'sdk_gpu_id': self.sdk_gpu_id,
+            'sdk_verbose': self.sdk_verbose,
+            'sdk_verbose_log_file': self.sdk_verbose_log_file,
+            'optional_settings_path': self.optional_settings_path,
+            'async_grab_camera_recovery': self.async_grab_camera_recovery,
+            'enable_hdr': self.enable_hdr,
+            '_input_type': input_type,
+            '_input_configuration': input_config,
+        }
+
+    def __setstate__(self, state):
+        self.camera_resolution = state['camera_resolution']
+        self.camera_fps = state['camera_fps']
+        self.svo_real_time_mode = state['svo_real_time_mode']
+        self.coordinate_units = state['coordinate_units']
+        self.coordinate_system = state['coordinate_system']
+        self.sdk_gpu_id = state['sdk_gpu_id']
+        self.sdk_verbose = state['sdk_verbose']
+        self.sdk_verbose_log_file = state['sdk_verbose_log_file']
+        self.optional_settings_path = state['optional_settings_path']
+        self.async_grab_camera_recovery = state['async_grab_camera_recovery']
+        self.enable_hdr = state['enable_hdr']
+        input_type = state.get('_input_type')
+        input_config = state.get('_input_configuration', '')
+        if input_type is not None and input_config:
+            if input_type == TYPE_OF_INPUT_TYPE.SVO_FILE:
+                self.set_from_svo_file(str(input_config))
+            elif input_type == TYPE_OF_INPUT_TYPE.STREAM:
+                parts = str(input_config).rsplit(':', 1)
+                ip = parts[0]
+                port = int(parts[1]) if len(parts) > 1 else 30000
+                self.set_from_stream(ip, port)
+            elif input_type in (TYPE_OF_INPUT_TYPE.USB_ID, TYPE_OF_INPUT_TYPE.GMSL_ID):
+                try:
+                    self.set_from_camera_id(int(input_config))
+                except (ValueError, TypeError):
+                    pass
+            elif input_type in (TYPE_OF_INPUT_TYPE.USB_SERIAL, TYPE_OF_INPUT_TYPE.GMSL_SERIAL):
+                try:
+                    self.set_from_serial_number(int(input_config))
+                except (ValueError, TypeError):
+                    self.set_from_serial_number(str(input_config))
 
     ##
     # Defines the input source with a camera id to initialize and open an sl.CameraOne object from.
@@ -17381,6 +17925,13 @@ def read_fusion_configuration(str json_config_filename, coord_sys: COORDINATE_SY
 # \endcode
 cdef class CameraOne:
     cdef c_CameraOne camera
+
+    def __reduce__(self):
+        raise TypeError(
+            "cannot pickle 'sl.CameraOne' object. "
+            "CameraOne manages hardware resources and must be created in each process separately. "
+            "Pass sl.InitParametersOne to the subprocess and call CameraOne.open() there."
+        )
 
     ##
     # Close an opened camera.
@@ -18460,6 +19011,33 @@ cdef class InitSensorsParameters:
     def sync_tolerance(self, Timestamp value):
         self.init.sync_tolerance = value.timestamp
 
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        return {
+            'coordinate_units': self.coordinate_units,
+            'coordinate_system': self.coordinate_system,
+            'output_performance_metrics': self.output_performance_metrics,
+            'verbose': self.verbose,
+            'sdk_gpu_id': self.sdk_gpu_id,
+            'execution_mode': self.execution_mode,
+            'sync_policy': self.sync_policy,
+            'sync_tolerance_ns': self.sync_tolerance.data_ns,
+        }
+
+    def __setstate__(self, state):
+        self.coordinate_units = state['coordinate_units']
+        self.coordinate_system = state['coordinate_system']
+        self.output_performance_metrics = state['output_performance_metrics']
+        self.verbose = state['verbose']
+        self.sdk_gpu_id = state['sdk_gpu_id']
+        self.execution_mode = state['execution_mode']
+        self.sync_policy = state['sync_policy']
+        ts = Timestamp()
+        ts.data_ns = state.get('sync_tolerance_ns', 0)
+        self.sync_tolerance = ts
+
 ##
 # Structure containing a set of parameters for the recording module.
 # \ingroup Sensors_group
@@ -18895,7 +19473,7 @@ cdef class PositionalTrackingSensorsParameters:
     def __init__(self, enable_area_memory=True, enable_pose_smoothing=False,
                  set_floor_as_origin=False, enable_imu_fusion=True,
                  set_as_static=False, depth_min_range=-1.0,
-                 set_gravity_as_origin=True, mode=POSITIONAL_TRACKING_MODE.GEN_1):
+                 set_gravity_as_origin=True, mode=POSITIONAL_TRACKING_MODE.GEN_3):
         self.params.enable_area_memory = enable_area_memory
         self.params.enable_pose_smoothing = enable_pose_smoothing
         self.params.set_floor_as_origin = set_floor_as_origin
@@ -18994,7 +19572,7 @@ cdef class PositionalTrackingSensorsParameters:
     ##
     # Positional tracking mode used.
     # Can be used to improve accuracy in some types of scene at the cost of longer runtime.
-    # Default: \ref POSITIONAL_TRACKING_MODE.GEN_1
+    # Default: \ref POSITIONAL_TRACKING_MODE.GEN_3
     @property
     def mode(self) -> POSITIONAL_TRACKING_MODE:
         return POSITIONAL_TRACKING_MODE(<int>self.params.mode)
@@ -19262,6 +19840,13 @@ cdef class Lidar:
     # Destructor.
     def __dealloc__(self):
         del self.lidar
+
+    def __reduce__(self):
+        raise TypeError(
+            "cannot pickle 'sl.Lidar' object. "
+            "Lidar manages hardware resources and must be created in each process separately. "
+            "Pass sl.InitLidarParameters to the subprocess and call Lidar.open() there."
+        )
 
     ##
     # Returns a list of available LiDAR devices.
@@ -19607,6 +20192,48 @@ cdef class InitLidarParameters:
         cdef bytes ip_bytes = ip.encode()
         self.params.input.setFromStream(String(<char*>ip_bytes), port)
 
+    def __reduce__(self):
+        return (type(self), (), self.__getstate__())
+
+    def __getstate__(self):
+        input_t = self.input
+        return {
+            'mode': self.mode,
+            'depth_minimum_distance': self.depth_minimum_distance,
+            'depth_maximum_distance': self.depth_maximum_distance,
+            'coordinate_units': self.coordinate_units,
+            'coordinate_system': self.coordinate_system,
+            'svo_real_time_mode': self.svo_real_time_mode,
+            'auto_recovery_on_config_change': self.auto_recovery_on_config_change,
+            'multicast_mode': self.multicast_mode,
+            'multicast_group': self.multicast_group,
+            'sdk_verbose': self.sdk_verbose,
+            'sdk_verbose_log_file': self.sdk_verbose_log_file,
+            '_input_type': input_t.get_type(),
+            '_input_configuration': input_t.get_configuration(),
+        }
+
+    def __setstate__(self, state):
+        self.mode = state['mode']
+        self.depth_minimum_distance = state['depth_minimum_distance']
+        self.depth_maximum_distance = state['depth_maximum_distance']
+        self.coordinate_units = state['coordinate_units']
+        self.coordinate_system = state['coordinate_system']
+        self.svo_real_time_mode = state['svo_real_time_mode']
+        self.auto_recovery_on_config_change = state['auto_recovery_on_config_change']
+        self.multicast_mode = state['multicast_mode']
+        self.multicast_group = state['multicast_group']
+        self.sdk_verbose = state['sdk_verbose']
+        self.sdk_verbose_log_file = state['sdk_verbose_log_file']
+        input_type = state.get('_input_type')
+        input_config = state.get('_input_configuration', '')
+        if input_type is not None and input_config:
+            if input_type == TYPE_OF_INPUT_TYPE.STREAM:
+                parts = str(input_config).rsplit(':', 1)
+                ip = parts[0]
+                port = int(parts[1]) if len(parts) > 1 else 0
+                self.set_from_stream(ip, port)
+
 ##
 # Structure containing the options used to enable positional tracking with Lidar.
 # \ingroup Lidar_group
@@ -19793,6 +20420,12 @@ cdef class Sensors:
     # Destructor.
     def __dealloc__(self):
         del self.sensors
+
+    def __reduce__(self):
+        raise TypeError(
+            "cannot pickle 'sl.Sensors' object. "
+            "Sensors manages hardware resources and must be created in each process separately."
+        )
 
     ##
     # Returns the list of available sensors.
