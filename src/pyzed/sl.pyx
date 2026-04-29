@@ -41,7 +41,12 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , blobFromImage as c_blobFromImage, blobFromImages as c_blobFromImages
                     , isCameraOne as c_isCameraOne, isResolutionAvailable as c_isResolutionAvailable, isFPSAvailable as c_isFPSAvailable, supportHDR as c_supportHDR
                     , MAT_TYPE as c_MAT_TYPE, MEM as c_MEM, VIEW as c_VIEW, MEASURE as c_MEASURE
+                    , VOXELIZATION_MODE as c_VOXELIZATION_MODE, VoxelMeasureParameters as c_VoxelMeasureParameters
                     , Timestamp as c_Timestamp, TIME_REFERENCE as c_TIME_REFERENCE
+                    , TIMESTAMP_CLOCK as c_TIMESTAMP_CLOCK
+                    , setTimestampClock as c_setTimestampClock, getTimestampClock as c_getTimestampClock
+                    , setMaxSystemClockStepMs as c_setMaxSystemClockStepMs
+                    , getMaxSystemClockStepMs as c_getMaxSystemClockStepMs
                     , MODEL as c_MODEL, PositionalTrackingParameters as c_PositionalTrackingParameters
                     , Transform as c_Transform, Matrix4f as c_Matrix4f, Matrix3f as c_Matrix3f, Pose as c_Pose
                     , POSITIONAL_TRACKING_STATE as c_POSITIONAL_TRACKING_STATE
@@ -52,7 +57,7 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , SPATIAL_MAP_TYPE as c_SPATIAL_MAP_TYPE, SPATIAL_MAPPING_STATE as c_SPATIAL_MAPPING_STATE
                     , REGION_OF_INTEREST_AUTO_DETECTION_STATE as c_REGION_OF_INTEREST_AUTO_DETECTION_STATE
                     , VIDEO_SETTINGS as c_VIDEO_SETTINGS, Rect as c_Rect, SIDE as c_SIDE
-                    , RecordingParameters as c_RecordingParameters, SVO_COMPRESSION_MODE as c_SVO_COMPRESSION_MODE
+                    , RecordingParameters as c_RecordingParameters, SVO_COMPRESSION_MODE as c_SVO_COMPRESSION_MODE, SVO_ENCODING_PRESET as c_SVO_ENCODING_PRESET
                     , StreamingParameters as c_StreamingParameters, STREAMING_CODEC as c_STREAMING_CODEC
                     , RecordingStatus as c_RecordingStatus, ObjectDetectionParameters as c_ObjectDetectionParameters
                     , BodyTrackingParameters as c_BodyTrackingParameters, BodyTrackingRuntimeParameters as c_BodyTrackingRuntimeParameters
@@ -340,6 +345,8 @@ cdef class Timestamp():
 # | MODULE_NOT_COMPATIBLE_WITH_CAMERA                  | The module you try to use is not compatible with your camera sl.MODEL. \note \ref MODEL "sl.MODEL.ZED" does not has an IMU and does not support the AI modules. |
 # | MOTION_SENSORS_REQUIRED                            | The module needs the sensors to be enabled (see \ref InitParameters.sensors_required). |
 # | MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION            | The module needs a newer version of CUDA. |
+# | DRIVER_FAILURE            | The drivers initialization has failed. When using gmsl cameras, try restarting with sudo systemctl restart zed_x_daemon.service. |
+# | CAMERA_EXCEEDS_BANDWIDTH                           | The camera configuration exceeds available PHY CSI bandwidth (GMSL). Reduce resolution or FPS, or adjust hardware configuration.                                |
 class ERROR_CODE(enum.Enum):
     SENSOR_CONFIGURATION_CHANGED = <int>c_ERROR_CODE.ERROR_CODE_SENSOR_CONFIGURATION_CHANGED
     POTENTIAL_CALIBRATION_ISSUE = <int>c_ERROR_CODE.ERROR_CODE_POTENTIAL_CALIBRATION_ISSUE
@@ -382,6 +389,7 @@ class ERROR_CODE(enum.Enum):
     MOTION_SENSORS_REQUIRED = <int>c_ERROR_CODE.ERROR_CODE_MOTION_SENSORS_REQUIRED
     MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION = <int>c_ERROR_CODE.ERROR_CODE_MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION
     DRIVER_FAILURE = <int>c_ERROR_CODE.ERROR_CODE_DRIVER_FAILURE
+    CAMERA_EXCEEDS_BANDWIDTH = <int>c_ERROR_CODE.ERROR_CODE_CAMERA_EXCEEDS_BANDWIDTH
     LAST = <int>c_ERROR_CODE.ERROR_CODE_LAST
 
     def __str__(self):
@@ -441,6 +449,7 @@ _initialize_error_codes()
 # | ZED2i      | ZED 2i camera model |
 # | ZED_X      | ZED X camera model |
 # | ZED_XM     | ZED X Mini (ZED XM) camera model |
+# | ZED_X_NANO | ZED X Nano camera model |
 # | ZED_X_HDR  | ZED X HDR camera model |
 # | ZED_X_HDR_MINI | ZED X HDR Mini camera model |
 # | ZED_X_HDR_MAX | ZED X HDR Wide camera model |
@@ -455,6 +464,7 @@ class MODEL(enum.Enum):
     ZED2i = <int>c_MODEL.MODEL_ZED2i
     ZED_X = <int>c_MODEL.MODEL_ZED_X
     ZED_XM = <int>c_MODEL.MODEL_ZED_XM
+    ZED_X_NANO = <int>c_MODEL.MODEL_ZED_X_NANO
     ZED_X_HDR = <int>c_MODEL.MODEL_ZED_X_HDR
     ZED_X_HDR_MINI = <int>c_MODEL.MODEL_ZED_X_HDR_MINI
     ZED_X_HDR_MAX = <int>c_MODEL.MODEL_ZED_X_HDR_MAX
@@ -1139,6 +1149,8 @@ class SENSORS_ERROR_CODE(enum.Enum):
     MODULE_NOT_COMPATIBLE_WITH_SENSOR = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_MODULE_NOT_COMPATIBLE_WITH_SENSOR
     MOTION_SENSORS_REQUIRED = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_MOTION_SENSORS_REQUIRED
     MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION
+    DRIVER_FAILURE = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_DRIVER_FAILURE
+    CAMERA_EXCEEDS_BANDWIDTH = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_CAMERA_EXCEEDS_BANDWIDTH
     LAST = <int>c_SENSORS_ERROR_CODE.SENSORS_ERROR_CODE_LAST
 
     def __str__(self):
@@ -1219,6 +1231,8 @@ class SIDE(enum.Enum):
 # | HD720   | 1280*720 (x2) \n Available FPS: 15, 30, 60 |
 # | SVGA    | 960*600 (x2) \n Available FPS: 15, 30, 60, 120 |
 # | VGA     | 672*376 (x2) \n Available FPS: 15, 30, 60, 100 |
+# | XVGA    | 960x768 (x2) \n Available FPS: 30 \n Only supported with ZED-X HDR lineup (One/Stereo) |
+# | TXGA    | 640x512 (x2) \n Available FPS: 30 \n Only supported with ZED-X HDR lineup (One/Stereo) |
 # | AUTO    | Select the resolution compatible with the camera: <ul><li>ZED X/X Mini: HD1200</li><li>other cameras: HD720</li></ul> |
 class RESOLUTION(enum.Enum):
     HD4K = <int>c_RESOLUTION.RESOLUTION_HD4K
@@ -1230,6 +1244,8 @@ class RESOLUTION(enum.Enum):
     HD720 = <int>c_RESOLUTION.RESOLUTION_HD720
     SVGA  = <int>c_RESOLUTION.RESOLUTION_SVGA
     VGA  = <int>c_RESOLUTION.RESOLUTION_VGA
+    XVGA = <int>c_RESOLUTION.RESOLUTION_XVGA
+    TXGA = <int>c_RESOLUTION.RESOLUTION_TXGA
     AUTO = <int>c_RESOLUTION.RESOLUTION_AUTO
     LAST = <int>c_RESOLUTION.RESOLUTION_LAST
 
@@ -1928,6 +1944,8 @@ cdef class Matrix4f:
 # | AUTO_DIGITAL_GAIN_RANGE | Range of digital ISP gain in automatic control.\n Used with \ref Camera.set_camera_settings_range "set_camera_settings_range()".\n Min/max range between max range defined in DTS.\n By default: [1 - 256]. \note Only available for ZED X/X Mini cameras. |
 # | EXPOSURE_COMPENSATION | Exposure-target compensation made after auto exposure.\n Reduces the overall illumination target by factor of F-stops.\n Affected value should be between 0 and 100 (mapped between [-2.0,2.0]).\n Default value is 50, i.e. no compensation applied. \note Only available for ZED X/X Mini cameras. |
 # | DENOISING  | Level of denoising applied on both left and right images.\n Affected value should be between 0 and 100.\n Default value is 50. \note Only available for ZED X/X Mini cameras. |
+# | SCENE_ILLUMINANCE  | Level of illuminance of the scene. \n Can be used to determine the level of light in the scene and adjust\n settings accordingly. \note Read-only control. \n Available for ZED-X/Xmini cameras. \n Value provided in\n [0.1x]Lux for ZED-X / ZED-X Mini / ZED-XOne GS and ZED-XOne UHD cameras. |
+# | AE_ANTIBANDING | AE anti-banding mode.\n Affected value should be between 0 and 3.\n 0: OFF, 1: AUTO, 2: 50Hz, 3: 60Hz.\n Default value is 0 (OFF). \note Only available for non-HDR GMSL cameras (e.g. ZED X, ZED X Mini, ZED X One GS, etc.). |
 class VIDEO_SETTINGS(enum.Enum):
     BRIGHTNESS = <int>c_VIDEO_SETTINGS.VIDEO_SETTINGS_BRIGHTNESS
     CONTRAST = <int>c_VIDEO_SETTINGS.VIDEO_SETTINGS_CONTRAST
@@ -1950,6 +1968,8 @@ class VIDEO_SETTINGS(enum.Enum):
     AUTO_DIGITAL_GAIN_RANGE = <int>c_VIDEO_SETTINGS.VIDEO_SETTINGS_AUTO_DIGITAL_GAIN_RANGE
     EXPOSURE_COMPENSATION = <int>c_VIDEO_SETTINGS.VIDEO_SETTINGS_EXPOSURE_COMPENSATION
     DENOISING = <int>c_VIDEO_SETTINGS.VIDEO_SETTINGS_DENOISING
+    SCENE_ILLUMINANCE = <int>c_VIDEO_SETTINGS.VIDEO_SETTINGS_SCENE_ILLUMINANCE
+    AE_ANTIBANDING = <int>c_VIDEO_SETTINGS.VIDEO_SETTINGS_AE_ANTIBANDING
     LAST = <int>c_VIDEO_SETTINGS.VIDEO_SETTINGS_LAST
 
     def __lt__(self, other):
@@ -2215,6 +2235,103 @@ class MEASURE(enum.Enum):
         return NotImplemented
 
 ##
+# Controls how voxel size adapts with depth.
+# \ingroup Depth_group
+#
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | FIXED      | No adaptation. Voxel size is used uniformly everywhere. |
+# | STEREO_UNCERTAINTY | Quadratic growth matching stereo depth noise. |
+# | LINEAR     | Linear growth with depth. Suits lidar/ToF sensors. |
+class VOXELIZATION_MODE(enum.Enum):
+    FIXED = <int>c_VOXELIZATION_MODE.VOXELIZATION_MODE_FIXED
+    STEREO_UNCERTAINTY = <int>c_VOXELIZATION_MODE.VOXELIZATION_MODE_STEREO_UNCERTAINTY
+    LINEAR = <int>c_VOXELIZATION_MODE.VOXELIZATION_MODE_LINEAR
+    LAST = <int>c_VOXELIZATION_MODE.VOXELIZATION_MODE_LAST
+
+    def __str__(self):
+        return to_str(toString(<c_VOXELIZATION_MODE>(<int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_VOXELIZATION_MODE>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, VOXELIZATION_MODE):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, VOXELIZATION_MODE):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, VOXELIZATION_MODE):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, VOXELIZATION_MODE):
+            return self.value >= other.value
+        return NotImplemented
+
+##
+# Parameters controlling voxel decimation in \ref Camera.retrieve_voxel_measure.
+# \ingroup Depth_group
+cdef class VoxelMeasureParameters:
+    cdef c_VoxelMeasureParameters c_params
+
+    def __cinit__(self):
+        self.c_params = c_VoxelMeasureParameters()
+
+    ##
+    # Voxel grid cell size in \ref InitParameters.coordinate_units.
+    # If <= 0, a 100 mm equivalent default is used.
+    # Clamped internally to [5 mm equivalent, max_depth_range].
+    @property
+    def voxel_size(self) -> float:
+        return self.c_params.voxel_size
+    @voxel_size.setter
+    def voxel_size(self, float val):
+        self.c_params.voxel_size = val
+
+    ##
+    # Controls output point positions within each voxel.
+    # If True, output positions are the centroid of all points in each voxel.
+    # If False, output positions are snapped to the voxel grid center.
+    @property
+    def centroid(self) -> bool:
+        return self.c_params.centroid
+    @centroid.setter
+    def centroid(self, bool val):
+        self.c_params.centroid = val
+
+    ##
+    # How voxel size adapts with depth.
+    # See \ref VOXELIZATION_MODE for available modes.
+    @property
+    def resolution_mode(self) -> VOXELIZATION_MODE:
+        return VOXELIZATION_MODE(<int>self.c_params.resolution_mode)
+    @resolution_mode.setter
+    def resolution_mode(self, mode):
+        if isinstance(mode, VOXELIZATION_MODE):
+            self.c_params.resolution_mode = <c_VOXELIZATION_MODE>(<int>mode.value)
+        else:
+            raise TypeError("Expected VOXELIZATION_MODE enum")
+
+    ##
+    # Scale factor for depth-adaptive voxel growth.
+    # Larger values produce coarser voxels at distance (fewer points, better performance).
+    # Typical range: [0.01, 1.0]. Clamped internally to [0.01, 3.0].
+    # \note Only used when \ref resolution_mode is not \ref VOXELIZATION_MODE "VOXELIZATION_MODE.FIXED".
+    @property
+    def resolution_scale(self) -> float:
+        return self.c_params.resolution_scale
+    @resolution_scale.setter
+    def resolution_scale(self, float val):
+        self.c_params.resolution_scale = val
+
+##
 # Lists available views.
 # \ingroup Video_group
 #
@@ -2421,6 +2538,7 @@ class SPATIAL_MEMORY_STATUS(enum.Enum):
     KNOWN_MAP = <int>c_SPATIAL_MEMORY_STATUS.SPATIAL_MEMORY_STATUS_KNOWN_MAP
     LOST = <int>c_SPATIAL_MEMORY_STATUS.SPATIAL_MEMORY_STATUS_LOST
     OFF = <int>c_SPATIAL_MEMORY_STATUS.SPATIAL_MEMORY_STATUS_OFF
+    NOT_ENOUGH_MEMORY_FOR_TRACKING = <int> c_SPATIAL_MEMORY_STATUS.SPATIAL_MEMORY_STATUS_NOT_ENOUGH_MEMORY_FOR_TRACKING
     LAST = <int>c_SPATIAL_MEMORY_STATUS.SPATIAL_MEMORY_STATUS_LAST
 
     def __str__(self):
@@ -3034,6 +3152,105 @@ class TIME_REFERENCE(enum.Enum):
         return NotImplemented
 
 ##
+# Lists available clock sources for SDK timestamps.
+# \ingroup Video_group
+#
+# Selects the clock used internally by the SDK to timestamp images and sensor data.
+# Both image and IMU timestamps always use the same selected clock, ensuring coherent results.
+#
+# \note This is a process-wide setting. Use \ref set_timestamp_clock() before opening any camera.
+#
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | SYSTEM_CLOCK | Timestamps use system (wall-clock) time. Affected by NTP/PTP adjustments. |
+# | MONOTONIC_CLOCK | Timestamps use monotonic clock (CLOCK_MONOTONIC). Immune to system clock step adjustments. |
+#
+# \note On ZED X cameras, full end-to-end immunity also requires ZED X driver version 1.4.2 or later.
+# With older drivers the IMU itself can pause briefly when the system time is set backward;
+# the SDK emits a warning at camera open and resumes IMU delivery automatically. Other cameras are unaffected.
+class TIMESTAMP_CLOCK(enum.Enum):
+    SYSTEM_CLOCK = <int>c_TIMESTAMP_CLOCK.TIMESTAMP_CLOCK_SYSTEM_CLOCK
+    MONOTONIC_CLOCK = <int>c_TIMESTAMP_CLOCK.TIMESTAMP_CLOCK_MONOTONIC_CLOCK
+    LAST = <int>c_TIMESTAMP_CLOCK.TIMESTAMP_CLOCK_LAST
+
+    def __str__(self):
+        return to_str(toString(<c_TIMESTAMP_CLOCK>(<int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_TIMESTAMP_CLOCK>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, TIMESTAMP_CLOCK):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, TIMESTAMP_CLOCK):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, TIMESTAMP_CLOCK):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, TIMESTAMP_CLOCK):
+            return self.value >= other.value
+        return NotImplemented
+
+##
+# Sets the clock source used for all SDK timestamps (images and sensors).
+#
+# This is a process-wide setting shared by all Camera and CameraOne instances.
+# \param clock : The desired \ref TIMESTAMP_CLOCK.
+# \note Call this before opening any camera.
+def set_timestamp_clock(clock):
+    if isinstance(clock, TIMESTAMP_CLOCK):
+        c_setTimestampClock(<c_TIMESTAMP_CLOCK>(<int>clock.value))
+    else:
+        raise TypeError("Expected TIMESTAMP_CLOCK enum, got {0}".format(type(clock)))
+
+##
+# Returns the clock source currently used for SDK timestamps.
+# \return The active \ref TIMESTAMP_CLOCK.
+def get_timestamp_clock():
+    return TIMESTAMP_CLOCK(<int>c_getTimestampClock())
+
+##
+# Sets the maximum system-clock step (milliseconds) the SDK will follow per sample
+# when the host clock is adjusted backward (NTP/PTP step, manual date change).
+#
+# Only meaningful in SYSTEM_CLOCK mode (no effect in MONOTONIC_CLOCK). Forward clock
+# movement always passes through instantly.
+#
+# \param limit_ms : Clamp threshold in milliseconds.
+#   - default (setter not called): 4 ms/sample. Safe for slew-only NTP/PTP.
+#   - any positive value: custom threshold.
+#   - 0.0: freeze the captured offset; ignore subsequent movement.
+#   - any negative value (e.g. -1.0): disable clamping. Step corrections propagate instantly.
+#     Recommended for PTP setups with step corrections.
+#
+# **Cheat sheet:**
+# | Setup | Recommended value |
+# |-------|-------------------|
+# | Desktop / systemd-timesyncd (slew-only) | default |
+# | PTP with `ptp4l --step_threshold=0` | default |
+# | PTP with step corrections expected | -1.0 |
+# | Deterministic timestamps, ignore host clock entirely | use MONOTONIC_CLOCK instead |
+#
+# \note Process-wide. Environment variable ZED_SDK_MAX_SYSTEM_CLOCK_STEP_MS, when set,
+# always wins over this setter (ops-side override). Call before opening any camera.
+def set_max_system_clock_step_ms(limit_ms: float):
+    c_setMaxSystemClockStepMs(<float>limit_ms)
+
+##
+# Returns the current system-clock step clamp in milliseconds.
+# See \ref set_max_system_clock_step_ms.
+def get_max_system_clock_step_ms() -> float:
+    return <float>c_getMaxSystemClockStepMs()
+
+##
 # Lists the different states of spatial mapping.
 # \ingroup SpatialMapping_group
 #
@@ -3123,6 +3340,66 @@ class SVO_COMPRESSION_MODE(enum.Enum):
 
     def __ge__(self, other):
         if isinstance(other, SVO_COMPRESSION_MODE):
+            return self.value >= other.value
+        return NotImplemented
+
+##
+# \ingroup Video_group
+# \brief Lists available encoding presets for SVO recording.
+#
+# The preset controls the speed/quality tradeoff of the hardware encoder.
+#
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | ULTRAFAST  | Fastest encoding, lowest quality.\n Maps to NVENC P1 / V4L2 ULTRAFAST. |
+# | FAST       | Fast encoding.\n Maps to NVENC P2 / V4L2 FAST. |
+# | MEDIUM     | Balanced speed/quality.\n Maps to NVENC P3 / V4L2 MEDIUM. |
+# | SLOW       | Slow encoding, higher quality.\n Maps to NVENC P5 / V4L2 SLOW. |
+# | DEFAULT    | Encoder default.\n Maps to NVENC P4 / V4L2 default. |
+class SVO_ENCODING_PRESET(enum.Enum):
+    DEFAULT = <int>c_SVO_ENCODING_PRESET.SVO_ENCODING_PRESET_DEFAULT
+    ULTRAFAST = <int>c_SVO_ENCODING_PRESET.SVO_ENCODING_PRESET_ULTRAFAST
+    FAST = <int>c_SVO_ENCODING_PRESET.SVO_ENCODING_PRESET_FAST
+    MEDIUM = <int>c_SVO_ENCODING_PRESET.SVO_ENCODING_PRESET_MEDIUM
+    SLOW = <int>c_SVO_ENCODING_PRESET.SVO_ENCODING_PRESET_SLOW
+    LAST = <int>c_SVO_ENCODING_PRESET.SVO_ENCODING_PRESET_LAST
+
+    ##
+    # Converts a string to the corresponding SVO_ENCODING_PRESET enum value.
+    # \param name : The string representation of the SVO_ENCODING_PRESET enum value.
+    # \return The corresponding SVO_ENCODING_PRESET enum value. If the string does not match any SVO_ENCODING_PRESET, SVO_ENCODING_PRESET.LAST is returned.
+    @staticmethod
+    def from_string(str name):
+        cdef c_SVO_ENCODING_PRESET val = c_SVO_ENCODING_PRESET.SVO_ENCODING_PRESET_LAST
+        cdef bytes name_bytes = name.encode()
+        cdef bool error = fromString(String(<char*>name_bytes), val)
+        if error:
+            return SVO_ENCODING_PRESET.LAST
+        return SVO_ENCODING_PRESET(val)
+
+    def __str__(self):
+        return to_str(toString(<c_SVO_ENCODING_PRESET>(<int>self.value))).decode()
+
+    def __repr__(self):
+        return to_str(toString(<c_SVO_ENCODING_PRESET>(<int>self.value))).decode()
+
+    def __lt__(self, other):
+        if isinstance(other, SVO_ENCODING_PRESET):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, SVO_ENCODING_PRESET):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, SVO_ENCODING_PRESET):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, SVO_ENCODING_PRESET):
             return self.value >= other.value
         return NotImplemented
 
@@ -10278,7 +10555,7 @@ cdef class InitParameters:
                   optional_settings_path="",sensors_required=False,
                   enable_image_enhancement=True, optional_opencv_calibration_file="",
                   open_timeout_sec=5.0, async_grab_camera_recovery=False, grab_compute_capping_fps=0,
-                  enable_image_validity_check=True, async_image_retrieval=False, maximum_working_resolution=Resolution(0,0)) -> InitParameters:
+                  enable_image_validity_check=True, async_image_retrieval=False, maximum_working_resolution=Resolution(0,0), svo_decryption_key="") -> InitParameters:
         if (isinstance(camera_resolution, RESOLUTION) and isinstance(camera_fps, int) and
             isinstance(svo_real_time_mode, bool) and isinstance(depth_mode, DEPTH_MODE) and
             isinstance(coordinate_units, UNIT) and
@@ -10299,6 +10576,7 @@ cdef class InitParameters:
             filelog = sdk_verbose_log_file.encode()
             fileoption = optional_settings_path.encode()
             filecalibration = optional_opencv_calibration_file.encode()
+            filesvokey = svo_decryption_key.encode()
             self.init = new c_InitParameters(<c_RESOLUTION>(<int>camera_resolution.value), camera_fps,
                                             svo_real_time_mode, <c_DEPTH_MODE>(<int>depth_mode.value),
                                             <c_UNIT>(<int>coordinate_units.value), <c_COORDINATE_SYSTEM>(<int>coordinate_system.value), sdk_verbose, sdk_gpu_id,
@@ -10309,7 +10587,8 @@ cdef class InitParameters:
                                             <CUcontext> 0, deref((<InputType>input_t).input_ptr), String(<char*> fileoption), sensors_required, enable_image_enhancement,
                                             String(<char*> filecalibration), <float>(open_timeout_sec),
                                             async_grab_camera_recovery, <float>(grab_compute_capping_fps), <bool>(async_image_retrieval),
-                                            <int>(enable_image_validity_check),  (<Resolution>maximum_working_resolution).resolution)
+                                            <int>(enable_image_validity_check),  (<Resolution>maximum_working_resolution).resolution,
+                                            String(<char*> filesvokey))
         else:
             raise TypeError("Argument is not of right type.")
 
@@ -10349,6 +10628,7 @@ cdef class InitParameters:
             'grab_compute_capping_fps': self.grab_compute_capping_fps,
             'enable_image_validity_check': self.enable_image_validity_check,
             'async_image_retrieval': self.async_image_retrieval,
+            'svo_decryption_key': self.svo_decryption_key,
             '_maximum_working_resolution': (self.maximum_working_resolution.width, self.maximum_working_resolution.height),
             '_input_type': input_type,
             '_input_configuration': input_config,
@@ -10929,6 +11209,26 @@ cdef class InitParameters:
     @maximum_working_resolution.setter
     def maximum_working_resolution(self, Resolution value):
         self.init.maximum_working_resolution = c_Resolution(value.width, value.height)
+
+    ##
+    # Optional passphrase or key to decrypt an encrypted SVO file.
+    #
+    # Required when opening an SVO file that was recorded with \ref RecordingParameters.encryption_key.
+    # The value is interpreted as a file path (raw 32-byte or hex key file), a 64-char hex string (raw AES-256 key), or a passphrase (PBKDF2-SHA256 derived).
+    #
+    # Default: "" (no decryption)
+    # \note If the SVO file is encrypted and this field is empty or contains a wrong key, sl.Camera.open() will return \ref ERROR_CODE "sl.ERROR_CODE.INVALID_SVO_FILE".
+    @property
+    def svo_decryption_key(self) -> str:
+        if not self.init.svo_decryption_key.empty():
+            return self.init.svo_decryption_key.get().decode()
+        else:
+            return ""
+
+    @svo_decryption_key.setter
+    def svo_decryption_key(self, str value):
+        value_bytes = value.encode()
+        self.init.svo_decryption_key.set(<char*>value_bytes)
 
     ##
     # Defines the input source with a camera id to initialize and open an sl.Camera object from.
@@ -11642,17 +11942,21 @@ cdef class RecordingParameters:
     # \param target_framerate : Chosen \ref target_framerate
     # \param bitrate : Chosen \ref bitrate
     # \param transcode_streaming_input : Enables \ref transcode_streaming_input
+    # \param encoding_preset : Chosen \ref encoding_preset
     #
     # \code
     # params = sl.RecordingParameters(video_filename="record.svo",compression_mode=SVO_COMPRESSION_MODE.H265)
     # \endcode
     def __cinit__(self, video_filename="myRecording.svo2", compression_mode=SVO_COMPRESSION_MODE.H265, target_framerate=0,
-                    bitrate=0, transcode_streaming_input=False) -> RecordingParameters:
+                    bitrate=0, transcode_streaming_input=False, encryption_key="", encoding_preset=SVO_ENCODING_PRESET.DEFAULT) -> RecordingParameters:
         if (isinstance(compression_mode, SVO_COMPRESSION_MODE)) :
             video_filename_c = video_filename.encode()
+            encryption_key_c = encryption_key.encode()
             self.record = new c_RecordingParameters(String(<char*> video_filename_c),
                                                     <c_SVO_COMPRESSION_MODE>(<int>compression_mode.value),
-                                                    target_framerate, bitrate, transcode_streaming_input)
+                                                    target_framerate, bitrate, transcode_streaming_input,
+                                                    String(<char*> encryption_key_c),
+                                                    <c_SVO_ENCODING_PRESET>(<int>encoding_preset.value))
         else:
             raise TypeError()
 
@@ -11669,6 +11973,8 @@ cdef class RecordingParameters:
             'target_framerate': self.target_framerate,
             'bitrate': self.bitrate,
             'transcode_streaming_input': self.transcode_streaming_input,
+            'encryption_key': self.encryption_key,
+            'encoding_preset': self.encoding_preset,
         }
 
     def __setstate__(self, state):
@@ -11745,6 +12051,48 @@ cdef class RecordingParameters:
     @transcode_streaming_input.setter
     def transcode_streaming_input(self, value):
         self.record.transcode_streaming_input = value
+
+    ##
+    # Optional encryption key or passphrase to protect the SVO file.
+    #
+    # When set, the SVO file is AES-256-CTR encrypted on the fly during recording.
+    # The same value must be provided in \ref InitParameters.svo_decryption_key for playback.
+    #
+    # The value is interpreted as follows:
+    # - If it points to an existing file containing a 32-byte binary key (or 64 hex characters), it is used as a raw AES-256 key.
+    # - If it is a 64-character hexadecimal string, it is used directly as a raw AES-256 key.
+    # - Otherwise, it is treated as a passphrase and a key is derived via PBKDF2-SHA256.
+    #
+    # Default: "" (no encryption)
+    # \note Requires OpenSSL (libcrypto) to be available on the system at runtime.
+    @property
+    def encryption_key(self) -> str:
+        if not self.record.encryption_key.empty():
+            return self.record.encryption_key.get().decode()
+        else:
+            return ""
+
+    @encryption_key.setter
+    def encryption_key(self, str value):
+        value_bytes = value.encode()
+        self.record.encryption_key.set(<char*>value_bytes)
+
+    ##
+    # Encoding preset for the hardware encoder.
+    #
+    # Controls the speed/quality tradeoff of the GPU encoder.
+    # Default: SVO_ENCODING_PRESET.DEFAULT
+    # \note Only applicable when compression_mode is H264 or H265.
+    @property
+    def encoding_preset(self) -> SVO_ENCODING_PRESET:
+        return SVO_ENCODING_PRESET(<int>self.record.encoding_preset)
+
+    @encoding_preset.setter
+    def encoding_preset(self, encoding_preset):
+        if isinstance(encoding_preset, SVO_ENCODING_PRESET):
+            self.record.encoding_preset = <c_SVO_ENCODING_PRESET>(<int>encoding_preset.value)
+        else:
+            raise TypeError()
 
 ##
 # Class containing a set of parameters for the spatial mapping module.
@@ -12761,7 +13109,7 @@ cdef class RecordingStatus:
     # Report if the recording has been paused.
     @property
     def is_paused(self) -> bool:
-        return self.recordingState.is_recording
+        return self.recordingState.is_paused
 
     @is_paused.setter
     def is_paused(self, value: bool):
@@ -13180,13 +13528,38 @@ cdef class Camera:
     #
     # \endcode
     def retrieve_measure(self, Mat py_mat, measure: MEASURE = MEASURE.DEPTH, mem_type: MEM = MEM.CPU, Resolution resolution = None) -> ERROR_CODE:
-        if resolution is None:
-            resolution = Resolution(0, 0)
         cdef c_ERROR_CODE err
         cdef c_MEASURE c_measure = <c_MEASURE>(<int>measure.value)
         cdef c_MEM c_mem = <c_MEM>(<int>mem_type.value)
+        if resolution is None:
+            resolution = Resolution(0, 0)
         with nogil:
             err = self.camera.retrieveMeasure(py_mat.mat, c_measure, c_mem, resolution.resolution)
+        return _error_code_cache.get(<int>err, ERROR_CODE.FAILURE)
+
+    ##
+    # Retrieves a voxel-decimated point cloud measure.
+    #
+    # Returns an unorganized 1D point cloud (height=1) where the scene has been
+    # decimated into a voxel grid. Use \ref Mat.get_width() to get the point count.
+    #
+    # \param py_mat : The \ref Mat to store the voxel point cloud.
+    # \param measure : The point cloud measure to retrieve. Default: \ref MEASURE "MEASURE.XYZRGBA".
+    #   Only point cloud measures are supported (XYZ, XYZRGBA, XYZBGRA, XYZARGB, XYZABGR and RIGHT variants).
+    # \param mem_type : Whether the output should be on CPU or GPU. Default: \ref MEM "MEM.CPU".
+    # \param params : Voxel decimation parameters. See \ref VoxelMeasureParameters. If None, defaults are used.
+    # \return An \ref ERROR_CODE indicating success or failure.
+    def retrieve_voxel_measure(self, Mat py_mat, measure: MEASURE = MEASURE.XYZRGBA, mem_type: MEM = MEM.CPU, VoxelMeasureParameters params = None) -> ERROR_CODE:
+        cdef c_ERROR_CODE err
+        cdef c_MEASURE c_measure = <c_MEASURE>(<int>measure.value)
+        cdef c_MEM c_mem = <c_MEM>(<int>mem_type.value)
+        cdef c_VoxelMeasureParameters c_params
+        if params is not None:
+            c_params = params.c_params
+        else:
+            c_params = c_VoxelMeasureParameters()
+        with nogil:
+            err = self.camera.retrieveVoxelMeasure(py_mat.mat, c_measure, c_mem, c_params, <cudaStream_t>0)
         return _error_code_cache.get(<int>err, ERROR_CODE.FAILURE)
 
     ##
@@ -14974,6 +15347,40 @@ cdef class Camera:
             prop.serial_number = vect_[i].serial_number
             vect_python.append(prop)
         return vect_python
+
+    ##
+    # Sets the clock source used for all SDK timestamps (images and sensors).
+    #
+    # This is a process-wide setting shared by all Camera and CameraOne instances.
+    # \param clock : The desired \ref TIMESTAMP_CLOCK.
+    # \note Call this before opening any camera.
+    @staticmethod
+    def set_timestamp_clock(clock):
+        if isinstance(clock, TIMESTAMP_CLOCK):
+            c_Camera.setTimestampClock(<c_TIMESTAMP_CLOCK>(<int>clock.value))
+        else:
+            raise TypeError("Expected TIMESTAMP_CLOCK enum, got {0}".format(type(clock)))
+
+    ##
+    # Returns the clock source currently used for SDK timestamps.
+    # \return The active \ref TIMESTAMP_CLOCK.
+    @staticmethod
+    def get_timestamp_clock() -> TIMESTAMP_CLOCK:
+        return TIMESTAMP_CLOCK(<int>c_Camera.getTimestampClock())
+
+    ##
+    # Sets the maximum system-clock step (ms) the SDK follows per sample when the host
+    # clock is adjusted backward. Only meaningful in SYSTEM_CLOCK mode.
+    # See sl.set_max_system_clock_step_ms for the full cheat sheet.
+    @staticmethod
+    def set_max_system_clock_step_ms(limit_ms: float):
+        c_Camera.setMaxSystemClockStepMs(<float>limit_ms)
+
+    ##
+    # Returns the current system-clock step clamp in milliseconds.
+    @staticmethod
+    def get_max_system_clock_step_ms() -> float:
+        return <float>c_Camera.getMaxSystemClockStepMs()
 
     ##
     # Lists all the streaming devices with their associated information.
@@ -16905,7 +17312,7 @@ cdef class Fusion:
     # \return current fusion timestamp.
     def get_current_timestamp(self) -> Timestamp:
         ts = Timestamp()
-        ts.timestamp = getCurrentTimeStamp()
+        ts.timestamp = self.fusion.getCurrentTimeStamp()
         return ts
 
     ##
@@ -16914,14 +17321,6 @@ cdef class Fusion:
     # The positional tracking is immediately stopped. If a file path is given, saveAreaMap(area_file_path) will be called asynchronously. See getAreaExportState() to get the exportation state.
     def disable_positionnal_tracking(self) -> None:
         self.fusion.disablePositionalTracking()
-
-    ##
-    # \brief Return the current fusion timestamp, aligned with the synchronized GNSS and camera data.
-    # \return sl.Timestamp current fusion timestamp.
-    def get_current_timestamp(self) -> Timestamp:
-        ts = Timestamp()
-        ts.timestamp = self.fusion.getCurrentTimeStamp()
-        return ts
 
     ##
     # Convert ENU to LatLng
@@ -17533,6 +17932,26 @@ cdef class InitParametersOne:
     def enable_hdr(self, bool value):
         self.init.enable_hdr = value
 
+    ##
+    # Optional passphrase or key to decrypt an encrypted SVO file.
+    #
+    # Required when opening an SVO file that was recorded with \ref RecordingParameters.encryption_key.
+    # The value is interpreted as a file path (raw 32-byte or hex key file), a 64-char hex string (raw AES-256 key), or a passphrase (PBKDF2-SHA256 derived).
+    #
+    # Default: "" (no decryption)
+    # \note If the SVO file is encrypted and this field is empty or contains a wrong key, sl.CameraOne.open() will return \ref ERROR_CODE "sl.ERROR_CODE.INVALID_SVO_FILE".
+    @property
+    def svo_decryption_key(self) -> str:
+        if not self.init.svo_decryption_key.empty():
+            return self.init.svo_decryption_key.get().decode()
+        else:
+            return ""
+
+    @svo_decryption_key.setter
+    def svo_decryption_key(self, str value):
+        value_bytes = value.encode()
+        self.init.svo_decryption_key.set(<char*>value_bytes)
+
     def __reduce__(self):
         return (type(self), (), self.__getstate__())
 
@@ -17553,6 +17972,7 @@ cdef class InitParametersOne:
             'optional_settings_path': self.optional_settings_path,
             'async_grab_camera_recovery': self.async_grab_camera_recovery,
             'enable_hdr': self.enable_hdr,
+            'svo_decryption_key': self.svo_decryption_key,
             '_input_type': input_type,
             '_input_configuration': input_config,
         }
@@ -17569,6 +17989,7 @@ cdef class InitParametersOne:
         self.optional_settings_path = state['optional_settings_path']
         self.async_grab_camera_recovery = state['async_grab_camera_recovery']
         self.enable_hdr = state['enable_hdr']
+        self.svo_decryption_key = state.get('svo_decryption_key', '')
         input_type = state.get('_input_type')
         input_config = state.get('_input_configuration', '')
         if input_type is not None and input_config:
@@ -18803,6 +19224,40 @@ cdef class CameraOne:
             prop.serial_number = vect_[i].serial_number
             vect_python.append(prop)
         return vect_python
+
+    ##
+    # Sets the clock source used for all SDK timestamps (images and sensors).
+    #
+    # This is a process-wide setting shared by all Camera and CameraOne instances.
+    # \param clock : The desired \ref TIMESTAMP_CLOCK.
+    # \note Call this before opening any camera.
+    @staticmethod
+    def set_timestamp_clock(clock):
+        if isinstance(clock, TIMESTAMP_CLOCK):
+            c_CameraOne.setTimestampClock(<c_TIMESTAMP_CLOCK>(<int>clock.value))
+        else:
+            raise TypeError("Expected TIMESTAMP_CLOCK enum, got {0}".format(type(clock)))
+
+    ##
+    # Returns the clock source currently used for SDK timestamps.
+    # \return The active \ref TIMESTAMP_CLOCK.
+    @staticmethod
+    def get_timestamp_clock() -> TIMESTAMP_CLOCK:
+        return TIMESTAMP_CLOCK(<int>c_CameraOne.getTimestampClock())
+
+    ##
+    # Sets the maximum system-clock step (ms) the SDK follows per sample when the host
+    # clock is adjusted backward. Only meaningful in SYSTEM_CLOCK mode.
+    # See sl.set_max_system_clock_step_ms for the full cheat sheet.
+    @staticmethod
+    def set_max_system_clock_step_ms(limit_ms: float):
+        c_CameraOne.setMaxSystemClockStepMs(<float>limit_ms)
+
+    ##
+    # Returns the current system-clock step clamp in milliseconds.
+    @staticmethod
+    def get_max_system_clock_step_ms() -> float:
+        return <float>c_CameraOne.getMaxSystemClockStepMs()
 
     ##
     # Lists all the streaming devices with their associated information.

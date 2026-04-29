@@ -122,6 +122,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         ERROR_CODE_MOTION_SENSORS_REQUIRED 'sl::ERROR_CODE::MOTION_SENSORS_REQUIRED'
         ERROR_CODE_MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION 'sl::ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION'
         ERROR_CODE_DRIVER_FAILURE 'sl::ERROR_CODE::DRIVER_FAILURE'
+        ERROR_CODE_CAMERA_EXCEEDS_BANDWIDTH 'sl::ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH'
         ERROR_CODE_LAST 'sl::ERROR_CODE::LAST'
 
     cdef String toString(const ERROR_CODE &o)
@@ -142,6 +143,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         MODEL_ZED2i 'sl::MODEL::ZED2i'
         MODEL_ZED_X 'sl::MODEL::ZED_X'
         MODEL_ZED_XM 'sl::MODEL::ZED_XM'
+        MODEL_ZED_X_NANO 'sl::MODEL::ZED_X_NANO'
         MODEL_ZED_X_HDR 'sl::MODEL::ZED_X_HDR'
         MODEL_ZED_X_HDR_MINI 'sl::MODEL::ZED_X_HDR_MINI'
         MODEL_ZED_X_HDR_MAX 'sl::MODEL::ZED_X_HDR_MAX'
@@ -339,6 +341,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         RESOLUTION_HD720 'sl::RESOLUTION::HD720'
         RESOLUTION_SVGA 'sl::RESOLUTION::SVGA'
         RESOLUTION_VGA 'sl::RESOLUTION::VGA'
+        RESOLUTION_XVGA 'sl::RESOLUTION::XVGA'
+        RESOLUTION_TXGA 'sl::RESOLUTION::TXGA'
         RESOLUTION_AUTO 'sl::RESOLUTION::AUTO'
         RESOLUTION_LAST 'sl::RESOLUTION::LAST'
 
@@ -368,6 +372,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         VIDEO_SETTINGS_EXPOSURE_COMPENSATION 'sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION'
         VIDEO_SETTINGS_DENOISING 'sl::VIDEO_SETTINGS::DENOISING'
         VIDEO_SETTINGS_SCENE_ILLUMINANCE 'sl::VIDEO_SETTINGS::SCENE_ILLUMINANCE'
+        VIDEO_SETTINGS_AE_ANTIBANDING 'sl::VIDEO_SETTINGS::AE_ANTIBANDING'
         VIDEO_SETTINGS_LAST 'sl::VIDEO_SETTINGS::LAST'
 
     cdef String toString(const VIDEO_SETTINGS &o)
@@ -408,6 +413,21 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         MEASURE_LAST 'sl::MEASURE::LAST'
 
     cdef String toString(const MEASURE &o)
+
+    ctypedef enum VOXELIZATION_MODE 'sl::VOXELIZATION_MODE':
+        VOXELIZATION_MODE_FIXED 'sl::VOXELIZATION_MODE::FIXED'
+        VOXELIZATION_MODE_STEREO_UNCERTAINTY 'sl::VOXELIZATION_MODE::STEREO_UNCERTAINTY'
+        VOXELIZATION_MODE_LINEAR 'sl::VOXELIZATION_MODE::LINEAR'
+        VOXELIZATION_MODE_LAST 'sl::VOXELIZATION_MODE::LAST'
+
+    cdef String toString(const VOXELIZATION_MODE &o)
+
+    cdef cppclass VoxelMeasureParameters 'sl::VoxelMeasureParameters':
+        VoxelMeasureParameters()
+        float voxel_size
+        bool centroid
+        VOXELIZATION_MODE resolution_mode
+        float resolution_scale
 
     ctypedef enum VIEW 'sl::VIEW':
         VIEW_LEFT 'sl::VIEW::LEFT'
@@ -466,6 +486,19 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     cdef String toString(const TIME_REFERENCE &o)
 
+    ctypedef enum TIMESTAMP_CLOCK 'sl::TIMESTAMP_CLOCK':
+        TIMESTAMP_CLOCK_SYSTEM_CLOCK 'sl::TIMESTAMP_CLOCK::SYSTEM_CLOCK'
+        TIMESTAMP_CLOCK_MONOTONIC_CLOCK 'sl::TIMESTAMP_CLOCK::MONOTONIC_CLOCK'
+        TIMESTAMP_CLOCK_LAST 'sl::TIMESTAMP_CLOCK::LAST'
+
+    cdef String toString(const TIMESTAMP_CLOCK &o)
+
+    cdef void setTimestampClock(TIMESTAMP_CLOCK clock)
+    cdef TIMESTAMP_CLOCK getTimestampClock()
+
+    cdef void setMaxSystemClockStepMs(float limit_ms)
+    cdef float getMaxSystemClockStepMs()
+
     ctypedef enum POSITIONAL_TRACKING_STATE 'sl::POSITIONAL_TRACKING_STATE':
         POSITIONAL_TRACKING_STATE_SEARCHING 'sl::POSITIONAL_TRACKING_STATE::SEARCHING'
         POSITIONAL_TRACKING_STATE_OK 'sl::POSITIONAL_TRACKING_STATE::OK'
@@ -523,6 +556,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         SPATIAL_MEMORY_STATUS_KNOWN_MAP 'sl::SPATIAL_MEMORY_STATUS::KNOWN_MAP'
         SPATIAL_MEMORY_STATUS_LOST 'sl::SPATIAL_MEMORY_STATUS::LOST'
         SPATIAL_MEMORY_STATUS_OFF 'sl::SPATIAL_MEMORY_STATUS::OFF'
+        SPATIAL_MEMORY_STATUS_NOT_ENOUGH_MEMORY_FOR_TRACKING 'sl::SPATIAL_MEMORY_STATUS::NOT_ENOUGH_MEMORY_FOR_TRACKING'
         SPATIAL_MEMORY_STATUS_LAST 'sl::SPATIAL_MEMORY_STATUS::LAST'
 
     cdef String toString(const SPATIAL_MEMORY_STATUS &o)
@@ -612,6 +646,17 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     cdef String toString(const SVO_COMPRESSION_MODE &o)
     cdef bool fromString(const String &s, SVO_COMPRESSION_MODE &o)
+
+    ctypedef enum SVO_ENCODING_PRESET 'sl::SVO_ENCODING_PRESET':
+        SVO_ENCODING_PRESET_DEFAULT 'sl::SVO_ENCODING_PRESET::DEFAULT'
+        SVO_ENCODING_PRESET_ULTRAFAST 'sl::SVO_ENCODING_PRESET::ULTRAFAST'
+        SVO_ENCODING_PRESET_FAST 'sl::SVO_ENCODING_PRESET::FAST'
+        SVO_ENCODING_PRESET_MEDIUM 'sl::SVO_ENCODING_PRESET::MEDIUM'
+        SVO_ENCODING_PRESET_SLOW 'sl::SVO_ENCODING_PRESET::SLOW'
+        SVO_ENCODING_PRESET_LAST 'sl::SVO_ENCODING_PRESET::LAST'
+
+    cdef String toString(const SVO_ENCODING_PRESET &o)
+    cdef bool fromString(const String &s, SVO_ENCODING_PRESET &o)
 
     ctypedef enum SENSOR_TYPE 'sl::SENSOR_TYPE':
         SENSOR_TYPE_ACCELEROMETER 'sl::SENSOR_TYPE::ACCELEROMETER'
@@ -1666,6 +1711,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool async_image_retrieval
         int enable_image_validity_check
         Resolution maximum_working_resolution
+        String svo_decryption_key
 
         InitParameters(RESOLUTION camera_resolution,
                        int camera_fps,
@@ -1693,7 +1739,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        float grab_compute_capping_fps,
                        bool async_image_retrieval,
                        int enable_image_validity_check,
-                       Resolution maximum_working_resolution)
+                       Resolution maximum_working_resolution,
+                       String svo_decryption_key)
 
         bool save(String filename)
         bool load(String filename)
@@ -1704,12 +1751,16 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         uint bitrate
         uint target_framerate
         bool transcode_streaming_input
+        String encryption_key
+        SVO_ENCODING_PRESET encoding_preset
 
-        RecordingParameters(String video_filename_, 
+        RecordingParameters(String video_filename_,
                             SVO_COMPRESSION_MODE compression_mode_,
                             uint target_framerate,
                             uint bitrate,
-                            bool transcode_streaming_input
+                            bool transcode_streaming_input,
+                            String encryption_key_,
+                            SVO_ENCODING_PRESET encoding_preset_
                             )
 
     cdef cppclass RuntimeParameters 'sl::RuntimeParameters':
@@ -2109,6 +2160,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         ERROR_CODE retrieveImage(Mat &mat, VIEW view, MEM type, Resolution resolution, cudaStream_t stream = 0) nogil
         ERROR_CODE retrieveMeasure(Mat &mat, MEASURE measure, MEM type, Resolution resolution, cudaStream_t stream = 0) nogil
+        ERROR_CODE retrieveVoxelMeasure(Mat &mat, MEASURE measure, MEM type, VoxelMeasureParameters params, cudaStream_t stream) nogil
         ERROR_CODE retrieveTensor(Tensor &dest, const TensorParameters& params, cudaStream_t stream = 0) nogil
         ERROR_CODE getCurrentMinMaxDepth(float& min, float& max)
 
@@ -2242,6 +2294,18 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         @staticmethod
         ERROR_CODE reboot_from_type "reboot" (INPUT_TYPE input)
+
+        @staticmethod
+        void setTimestampClock(TIMESTAMP_CLOCK clock)
+
+        @staticmethod
+        TIMESTAMP_CLOCK getTimestampClock()
+
+        @staticmethod
+        void setMaxSystemClockStepMs(float limit_ms)
+
+        @staticmethod
+        float getMaxSystemClockStepMs()
 
 cdef extern from "Utils.cpp" namespace "sl":
     ObjectDetectionRuntimeParameters* create_object_detection_runtime_parameters(float confidence_threshold, vector[int] object_vector, map[int,float] object_confidence_map)
@@ -2551,6 +2615,7 @@ cdef extern from "sl/CameraOne.hpp" namespace "sl":
         String optional_settings_path
         bool async_grab_camera_recovery
         bool enable_hdr
+        String svo_decryption_key
 
     cdef cppclass CameraOne 'sl::CameraOne':
         CameraOne()
@@ -2614,6 +2679,18 @@ cdef extern from "sl/CameraOne.hpp" namespace "sl":
 
         @staticmethod
         ERROR_CODE reboot()
+
+        @staticmethod
+        void setTimestampClock(TIMESTAMP_CLOCK clock)
+
+        @staticmethod
+        TIMESTAMP_CLOCK getTimestampClock()
+
+        @staticmethod
+        void setMaxSystemClockStepMs(float limit_ms)
+
+        @staticmethod
+        float getMaxSystemClockStepMs()
 
 # LIDAR definitions
 cdef extern from "sl/Lidar.hpp" namespace "sl":
@@ -2872,6 +2949,8 @@ cdef extern from "sl/Sensors.hpp" namespace "sl":
         SENSORS_ERROR_CODE_MODULE_NOT_COMPATIBLE_WITH_SENSOR "sl::SENSORS_ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_SENSOR"
         SENSORS_ERROR_CODE_MOTION_SENSORS_REQUIRED "sl::SENSORS_ERROR_CODE::MOTION_SENSORS_REQUIRED"
         SENSORS_ERROR_CODE_MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION "sl::SENSORS_ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION"
+        SENSORS_ERROR_CODE_DRIVER_FAILURE "sl::SENSORS_ERROR_CODE::DRIVER_FAILURE"
+        SENSORS_ERROR_CODE_CAMERA_EXCEEDS_BANDWIDTH "sl::SENSORS_ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH"
         SENSORS_ERROR_CODE_LAST "sl::SENSORS_ERROR_CODE::LAST"
 
     cdef String toString_sensors "sl::toString"(const SENSORS_ERROR_CODE& errorCode)
