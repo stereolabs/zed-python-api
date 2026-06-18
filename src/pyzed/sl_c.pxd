@@ -307,6 +307,14 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
     cdef bool fromString(const String &s, UNIT &o)
     cdef UNIT str2unit(String unit_str)
 
+    ctypedef enum LENS_DISTORTION_MODEL 'sl::LENS_DISTORTION_MODEL':
+        LENS_DISTORTION_MODEL_RAD_TAN 'sl::LENS_DISTORTION_MODEL::RAD_TAN'
+        LENS_DISTORTION_MODEL_FISHEYE 'sl::LENS_DISTORTION_MODEL::FISHEYE'
+        LENS_DISTORTION_MODEL_PINHOLE 'sl::LENS_DISTORTION_MODEL::PINHOLE'
+        LENS_DISTORTION_MODEL_LAST 'sl::LENS_DISTORTION_MODEL::LAST'
+
+    cdef String toString(const LENS_DISTORTION_MODEL &o)
+
     ctypedef enum COORDINATE_SYSTEM 'sl::COORDINATE_SYSTEM':
         COORDINATE_SYSTEM_IMAGE 'sl::COORDINATE_SYSTEM::IMAGE'
         COORDINATE_SYSTEM_LEFT_HANDED_Y_UP 'sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP'
@@ -385,6 +393,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         DEPTH_MODE_NEURAL_LIGHT 'sl::DEPTH_MODE::NEURAL_LIGHT'
         DEPTH_MODE_NEURAL 'sl::DEPTH_MODE::NEURAL'
         DEPTH_MODE_NEURAL_PLUS 'sl::DEPTH_MODE::NEURAL_PLUS'
+        DEPTH_MODE_CUSTOM 'sl::DEPTH_MODE::CUSTOM'
         DEPTH_MODE_LAST 'sl::DEPTH_MODE::LAST'
 
     cdef String toString(const DEPTH_MODE &o)
@@ -475,6 +484,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         VIEW_NORMALS_RIGHT_BGRA 'sl::VIEW::NORMALS_RIGHT_BGRA'
         VIEW_NORMALS_RIGHT_BGR 'sl::VIEW::NORMALS_RIGHT_BGR'
         VIEW_NORMALS_RIGHT_GRAY 'sl::VIEW::NORMALS_RIGHT_GRAY'
+        VIEW_LEFT_NV12 'sl::VIEW::LEFT_NV12'
+        VIEW_RIGHT_NV12 'sl::VIEW::RIGHT_NV12'
         VIEW_LAST 'sl::VIEW::LAST'
 
     cdef String toString(const VIEW &o)
@@ -489,6 +500,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
     ctypedef enum TIMESTAMP_CLOCK 'sl::TIMESTAMP_CLOCK':
         TIMESTAMP_CLOCK_SYSTEM_CLOCK 'sl::TIMESTAMP_CLOCK::SYSTEM_CLOCK'
         TIMESTAMP_CLOCK_MONOTONIC_CLOCK 'sl::TIMESTAMP_CLOCK::MONOTONIC_CLOCK'
+        TIMESTAMP_CLOCK_MONOTONIC_RAW_CLOCK 'sl::TIMESTAMP_CLOCK::MONOTONIC_RAW_CLOCK'
         TIMESTAMP_CLOCK_LAST 'sl::TIMESTAMP_CLOCK::LAST'
 
     cdef String toString(const TIMESTAMP_CLOCK &o)
@@ -794,7 +806,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         float d_fov
         Resolution image_size
         float focal_length_metric
-        CameraParameters scale(Resolution output_resolution) 
+        LENS_DISTORTION_MODEL lens_distortion_model
+        CameraParameters scale(Resolution output_resolution)
         void SetUp(float focal_x, float focal_y, float center_x, float center_y)
 
 
@@ -1065,6 +1078,26 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
         CustomMaskObjectData()
 
+    ctypedef enum CUSTOM_DEPTH_FORMAT 'sl::CUSTOM_DEPTH_FORMAT':
+        CUSTOM_DEPTH_FORMAT_DISPARITY 'sl::CUSTOM_DEPTH_FORMAT::DISPARITY'
+        CUSTOM_DEPTH_FORMAT_DEPTH 'sl::CUSTOM_DEPTH_FORMAT::DEPTH'
+        CUSTOM_DEPTH_FORMAT_LAST 'sl::CUSTOM_DEPTH_FORMAT::LAST'
+
+    ctypedef enum CUSTOM_CONFIDENCE_CONVENTION 'sl::CUSTOM_CONFIDENCE_CONVENTION':
+        CUSTOM_CONFIDENCE_CONVENTION_PROBABILITY 'sl::CUSTOM_CONFIDENCE_CONVENTION::PROBABILITY'
+        CUSTOM_CONFIDENCE_CONVENTION_ZED 'sl::CUSTOM_CONFIDENCE_CONVENTION::ZED'
+        CUSTOM_CONFIDENCE_CONVENTION_LAST 'sl::CUSTOM_CONFIDENCE_CONVENTION::LAST'
+
+    cdef cppclass CustomDepthData 'sl::CustomDepthData':
+        Mat depth_map 'map'
+        CUSTOM_DEPTH_FORMAT format
+        float scale
+        Mat confidence
+        CUSTOM_CONFIDENCE_CONVENTION confidence_convention
+        Timestamp timestamp
+
+        CustomDepthData()
+
     cdef cppclass ObjectsBatch 'sl::ObjectsBatch':
         int id
         OBJECT_CLASS label
@@ -1308,6 +1341,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         TENSOR_COLOR_FORMAT_BGR 'sl::TensorParameters::COLOR_FORMAT::BGR'
         TENSOR_COLOR_FORMAT_RGBA 'sl::TensorParameters::COLOR_FORMAT::RGBA'
         TENSOR_COLOR_FORMAT_BGRA 'sl::TensorParameters::COLOR_FORMAT::BGRA'
+        TENSOR_COLOR_FORMAT_NV12 'sl::TensorParameters::COLOR_FORMAT::NV12'
 
     ctypedef enum TENSOR_LAYOUT 'sl::TensorParameters::LAYOUT':
         TENSOR_LAYOUT_NCHW 'sl::TensorParameters::LAYOUT::NCHW'
@@ -2162,6 +2196,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE retrieveMeasure(Mat &mat, MEASURE measure, MEM type, Resolution resolution, cudaStream_t stream = 0) nogil
         ERROR_CODE retrieveVoxelMeasure(Mat &mat, MEASURE measure, MEM type, VoxelMeasureParameters params, cudaStream_t stream) nogil
         ERROR_CODE retrieveTensor(Tensor &dest, const TensorParameters& params, cudaStream_t stream = 0) nogil
+        ERROR_CODE retrieveTensor(Tensor &left_dest, Tensor &right_dest, const TensorParameters& params, cudaStream_t stream = 0) nogil
         ERROR_CODE getCurrentMinMaxDepth(float& min, float& max)
 
         ERROR_CODE setRegionOfInterest(Mat &mat, unordered_set[MODULE] modules)
@@ -2261,6 +2296,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool isObjectDetectionEnabled(uint instance_id)
         ERROR_CODE ingestCustomBoxObjects(const vector[CustomBoxObjectData] &objects_in, const uint instance_module_id)
         ERROR_CODE ingestCustomMaskObjects(const vector[CustomMaskObjectData] &objects_in, const uint instance_module_id)
+        ERROR_CODE ingestCustomDepth(const CustomDepthData &data)
         ObjectDetectionParameters getObjectDetectionParameters(uint instance_module_id)
         void updateSelfCalibration()
 
@@ -2285,6 +2321,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
         @staticmethod
         vector[DeviceProperties] getDeviceList()
+
+        @staticmethod
+        vector[DeviceProperties] getDeviceList(BUS_TYPE bus_type)
 
         @staticmethod
         vector[StreamingProperties] getStreamingDeviceList()

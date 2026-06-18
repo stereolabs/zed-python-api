@@ -34,7 +34,7 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , InitParameters as c_InitParameters, INPUT_TYPE as c_INPUT_TYPE
                     , generateVirtualStereoSerialNumber as c_generateVirtualStereoSerialNumber
                     , InputType as c_InputType, TYPE_OF_INPUT_TYPE as c_TYPE_OF_INPUT_TYPE, RESOLUTION as c_RESOLUTION, BUS_TYPE as c_BUS_TYPE
-                    , DEPTH_MODE as c_DEPTH_MODE, UNIT as c_UNIT
+                    , DEPTH_MODE as c_DEPTH_MODE, UNIT as c_UNIT, LENS_DISTORTION_MODEL as c_LENS_DISTORTION_MODEL
                     , COORDINATE_SYSTEM as c_COORDINATE_SYSTEM, CUcontext, cudaStream_t
                     , RuntimeParameters as c_RuntimeParameters
                     , REFERENCE_FRAME as c_REFERENCE_FRAME, Mat as c_Mat, Resolution as c_Resolution
@@ -92,7 +92,8 @@ from .sl_c cimport ( String, to_str, Camera as c_Camera, ERROR_CODE as c_ERROR_C
                     , ObjectsBatch as c_ObjectsBatch, BodiesBatch as c_BodiesBatch, getIdx as c_getIdx
                     , INFERENCE_PRECISION as c_INFERENCE_PRECISION, BODY_FORMAT as c_BODY_FORMAT, BODY_KEYPOINTS_SELECTION as c_BODY_KEYPOINTS_SELECTION
                     , BODY_34_PARTS as c_BODY_34_PARTS, BODY_38_PARTS as c_BODY_38_PARTS
-                    , generate_unique_id as c_generate_unique_id, CustomBoxObjectData as c_CustomBoxObjectData, CustomMaskObjectData as c_CustomMaskObjectData
+                    , generate_unique_id as c_generate_unique_id, CustomBoxObjectData as c_CustomBoxObjectData, CustomMaskObjectData as c_CustomMaskObjectData \
+                    , CustomDepthData as c_CustomDepthData, CUSTOM_DEPTH_FORMAT as c_CUSTOM_DEPTH_FORMAT, CUSTOM_CONFIDENCE_CONVENTION as c_CUSTOM_CONFIDENCE_CONVENTION
                     , ObjectTrackingParameters as c_ObjectTrackingParameters
                     , OBJECT_FILTERING_MODE as c_OBJECT_FILTERING_MODE, OBJECT_ACCELERATION_PRESET as c_OBJECT_ACCELERATION_PRESET
                     , COMM_TYPE as c_COMM_TYPE, FUSION_ERROR_CODE as c_FUSION_ERROR_CODE, SENDER_ERROR_CODE as c_SENDER_ERROR_CODE
@@ -2005,6 +2006,7 @@ class VIDEO_SETTINGS(enum.Enum):
 # | NEURAL_LIGHT     | End to End Neural disparity estimation. \n Requires AI module. |
 # | NEURAL     | End to End Neural disparity estimation.\n Requires AI module. |
 # | NEURAL_PLUS     | End to End Neural disparity estimation. More precise but requires more GPU memory and computation power. \n Requires AI module. |
+# | CUSTOM     | No internal depth computation. The depth (or disparity) is provided for each frame with \ref Camera.ingest_custom_depth(), between \ref Camera.read() and \ref Camera.grab(). |
 class DEPTH_MODE(enum.Enum):
     NONE = <int>c_DEPTH_MODE.DEPTH_MODE_NONE
     PERFORMANCE = <int>c_DEPTH_MODE.DEPTH_MODE_PERFORMANCE
@@ -2013,6 +2015,7 @@ class DEPTH_MODE(enum.Enum):
     NEURAL_LIGHT = <int>c_DEPTH_MODE.DEPTH_MODE_NEURAL_LIGHT
     NEURAL = <int>c_DEPTH_MODE.DEPTH_MODE_NEURAL
     NEURAL_PLUS = <int>c_DEPTH_MODE.DEPTH_MODE_NEURAL_PLUS
+    CUSTOM = <int>c_DEPTH_MODE.DEPTH_MODE_CUSTOM
     LAST = <int>c_DEPTH_MODE.DEPTH_MODE_LAST
 
     ##
@@ -2099,6 +2102,30 @@ class UNIT(enum.Enum):
         if isinstance(other, UNIT):
             return self.value >= other.value
         return NotImplemented
+
+
+##
+# Lists the lens distortion models used to describe a camera's optics.
+# \ingroup Core_group
+#
+# \note The value is tied to the rectification state of the sl.CameraParameters it belongs to:
+# raw/unrectified parameters are always RAD_TAN or FISHEYE, rectified parameters are always PINHOLE.
+# Code working on raw parameters may treat "not FISHEYE" as RAD_TAN, but must not assume that on
+# parameters that could be rectified.
+#
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | RAD_TAN | Radial-tangential (Brown-Conrady) distortion. Raw/unrectified parameters. |
+# | FISHEYE | Fisheye distortion. Raw/unrectified parameters. |
+# | PINHOLE | Pinhole model, no distortion. Rectified parameters. |
+class LENS_DISTORTION_MODEL(enum.Enum):
+    RAD_TAN = <int>c_LENS_DISTORTION_MODEL.LENS_DISTORTION_MODEL_RAD_TAN
+    FISHEYE = <int>c_LENS_DISTORTION_MODEL.LENS_DISTORTION_MODEL_FISHEYE
+    PINHOLE = <int>c_LENS_DISTORTION_MODEL.LENS_DISTORTION_MODEL_PINHOLE
+    LAST = <int>c_LENS_DISTORTION_MODEL.LENS_DISTORTION_MODEL_LAST
+
+    def __str__(self):
+        return to_str(toString(<c_LENS_DISTORTION_MODEL>(<int>self.value))).decode()
 
 
 ##
@@ -2399,6 +2426,8 @@ class VIEW(enum.Enum):
     NORMALS_RIGHT_BGRA = <int>c_VIEW.VIEW_NORMALS_RIGHT_BGRA
     NORMALS_RIGHT_BGR = <int>c_VIEW.VIEW_NORMALS_RIGHT_BGR
     NORMALS_RIGHT_GRAY = <int>c_VIEW.VIEW_NORMALS_RIGHT_GRAY
+    LEFT_NV12 = <int>c_VIEW.VIEW_LEFT_NV12
+    RIGHT_NV12 = <int>c_VIEW.VIEW_RIGHT_NV12
     LAST = <int>c_VIEW.VIEW_LAST
 
     def __str__(self):
@@ -3163,7 +3192,8 @@ class TIME_REFERENCE(enum.Enum):
 # | Enumerator |                         |
 # |------------|-------------------------|
 # | SYSTEM_CLOCK | Timestamps use system (wall-clock) time. Affected by NTP/PTP adjustments. |
-# | MONOTONIC_CLOCK | Timestamps use monotonic clock (CLOCK_MONOTONIC). Immune to system clock step adjustments. |
+# | MONOTONIC_CLOCK | Timestamps use monotonic clock (CLOCK_MONOTONIC). Never jumps on clock steps, but its rate is still slewed by NTP/PTP (stays aligned with real time, at the cost of a non-constant tick rate). |
+# | MONOTONIC_RAW_CLOCK | Timestamps use the raw monotonic clock (CLOCK_MONOTONIC_RAW). Driven directly by hardware; immune to both NTP/PTP steps and frequency slewing, so it can slowly drift from wall-clock time. |
 #
 # \note On ZED X cameras, full end-to-end immunity also requires ZED X driver version 1.4.2 or later.
 # With older drivers the IMU itself can pause briefly when the system time is set backward;
@@ -3171,6 +3201,7 @@ class TIME_REFERENCE(enum.Enum):
 class TIMESTAMP_CLOCK(enum.Enum):
     SYSTEM_CLOCK = <int>c_TIMESTAMP_CLOCK.TIMESTAMP_CLOCK_SYSTEM_CLOCK
     MONOTONIC_CLOCK = <int>c_TIMESTAMP_CLOCK.TIMESTAMP_CLOCK_MONOTONIC_CLOCK
+    MONOTONIC_RAW_CLOCK = <int>c_TIMESTAMP_CLOCK.TIMESTAMP_CLOCK_MONOTONIC_RAW_CLOCK
     LAST = <int>c_TIMESTAMP_CLOCK.TIMESTAMP_CLOCK_LAST
 
     def __str__(self):
@@ -3488,6 +3519,7 @@ class TENSOR_COLOR_FORMAT(enum.Enum):
     BGR = <int>c_TENSOR_COLOR_FORMAT.TENSOR_COLOR_FORMAT_BGR
     RGBA = <int>c_TENSOR_COLOR_FORMAT.TENSOR_COLOR_FORMAT_RGBA
     BGRA = <int>c_TENSOR_COLOR_FORMAT.TENSOR_COLOR_FORMAT_BGRA
+    NV12 = <int>c_TENSOR_COLOR_FORMAT.TENSOR_COLOR_FORMAT_NV12
 
 ##
 # \brief Lists available memory layouts for the Tensor.
@@ -4856,6 +4888,121 @@ cdef class CustomMaskObjectData:
     @box_mask.setter
     def box_mask(self, Mat mat):
         self.custom_mask_object_data.box_mask = mat.mat
+
+##
+# Lists the content type of the map ingested with \ref Camera.ingest_custom_depth().
+# \ingroup Depth_group
+#
+# | Enumerator |                         |
+# |------------|-------------------------|
+# | DISPARITY  | Disparity in pixels, expressed at the resolution of the provided map. Positive values = closer. Values <= 0, NaN and -Inf are treated as invalid; +Inf as too close. |
+# | DEPTH      | Metric depth in \ref InitParameters.coordinate_units. NaN, 0 and negative values are treated as invalid; +Inf as too far; -Inf as too close. |
+class CUSTOM_DEPTH_FORMAT(enum.Enum):
+    DISPARITY = <int>c_CUSTOM_DEPTH_FORMAT.CUSTOM_DEPTH_FORMAT_DISPARITY
+    DEPTH = <int>c_CUSTOM_DEPTH_FORMAT.CUSTOM_DEPTH_FORMAT_DEPTH
+    LAST = <int>c_CUSTOM_DEPTH_FORMAT.CUSTOM_DEPTH_FORMAT_LAST
+
+##
+# Lists the value convention of the confidence map optionally ingested with \ref Camera.ingest_custom_depth().
+# \ingroup Depth_group
+#
+# | Enumerator  |                         |
+# |-------------|-------------------------|
+# | PROBABILITY | Values in [0,1], 1 = confident (typical network output). |
+# | ZED         | \ref MEASURE "MEASURE.CONFIDENCE" convention: values in [0,100], ~0 = reliable, 100 = unreliable. |
+class CUSTOM_CONFIDENCE_CONVENTION(enum.Enum):
+    PROBABILITY = <int>c_CUSTOM_CONFIDENCE_CONVENTION.CUSTOM_CONFIDENCE_CONVENTION_PROBABILITY
+    ZED = <int>c_CUSTOM_CONFIDENCE_CONVENTION.CUSTOM_CONFIDENCE_CONVENTION_ZED
+    LAST = <int>c_CUSTOM_CONFIDENCE_CONVENTION.CUSTOM_CONFIDENCE_CONVENTION_LAST
+
+##
+# Class holding an externally computed disparity or depth map, to be ingested with \ref Camera.ingest_custom_depth().
+# \ingroup Depth_group
+#
+# Requires \ref InitParameters.depth_mode set to \ref DEPTH_MODE "DEPTH_MODE.CUSTOM".
+# The expected sequence per frame is: \ref Camera.read(), retrieve the rectified images, compute the map externally,
+# \ref Camera.ingest_custom_depth(), then \ref Camera.grab(). The map can be provided at any resolution (typically
+# the network output resolution), the SDK resamples it internally.
+cdef class CustomDepthData:
+    cdef c_CustomDepthData custom_depth_data
+
+    ##
+    # Disparity or depth map, \ref MAT_TYPE "MAT_TYPE.F32_C1", in CPU or GPU memory.
+    # The data is consumed during the \ref Camera.ingest_custom_depth() call.
+    @property
+    def map(self) -> Mat:
+        mat = Mat()
+        mat.mat = self.custom_depth_data.depth_map
+        return mat
+
+    @map.setter
+    def map(self, Mat mat):
+        self.custom_depth_data.depth_map = mat.mat
+
+    ##
+    # Content type of \ref map. Default: \ref CUSTOM_DEPTH_FORMAT "CUSTOM_DEPTH_FORMAT.DISPARITY"
+    @property
+    def format(self) -> CUSTOM_DEPTH_FORMAT:
+        return CUSTOM_DEPTH_FORMAT(<int>self.custom_depth_data.format)
+
+    @format.setter
+    def format(self, value):
+        if isinstance(value, CUSTOM_DEPTH_FORMAT):
+            self.custom_depth_data.format = <c_CUSTOM_DEPTH_FORMAT>(<int>value.value)
+        else:
+            raise TypeError("Argument is not of CUSTOM_DEPTH_FORMAT type.")
+
+    ##
+    # Multiplier applied to each value of \ref map before interpretation. Default: 1
+    # Lets normalized or differently-conventioned outputs be ingested without an extra pass:
+    # e.g. the maximum disparity if the network outputs disparity normalized to [0,1],
+    # -1 if it outputs negative disparities, 1/16 for fixed-point SGBM output.
+    @property
+    def scale(self) -> float:
+        return self.custom_depth_data.scale
+
+    @scale.setter
+    def scale(self, float value):
+        self.custom_depth_data.scale = value
+
+    ##
+    # Optional confidence map, \ref MAT_TYPE "MAT_TYPE.F32_C1", same resolution as \ref map.
+    # If left unset, a confidence map is derived from the validity of \ref map.
+    @property
+    def confidence(self) -> Mat:
+        mat = Mat()
+        mat.mat = self.custom_depth_data.confidence
+        return mat
+
+    @confidence.setter
+    def confidence(self, Mat mat):
+        self.custom_depth_data.confidence = mat.mat
+
+    ##
+    # Value convention of \ref confidence. Only consulted when \ref confidence is set.
+    # Default: \ref CUSTOM_CONFIDENCE_CONVENTION "CUSTOM_CONFIDENCE_CONVENTION.PROBABILITY"
+    @property
+    def confidence_convention(self) -> CUSTOM_CONFIDENCE_CONVENTION:
+        return CUSTOM_CONFIDENCE_CONVENTION(<int>self.custom_depth_data.confidence_convention)
+
+    @confidence_convention.setter
+    def confidence_convention(self, value):
+        if isinstance(value, CUSTOM_CONFIDENCE_CONVENTION):
+            self.custom_depth_data.confidence_convention = <c_CUSTOM_CONFIDENCE_CONVENTION>(<int>value.value)
+        else:
+            raise TypeError("Argument is not of CUSTOM_CONFIDENCE_CONVENTION type.")
+
+    ##
+    # Timestamp (in nanoseconds) of the frame the map was computed from, i.e.
+    # \ref Camera.get_timestamp() with \ref TIME_REFERENCE "TIME_REFERENCE.IMAGE" after \ref Camera.read().
+    # Used to detect frame mismatches. Optional: 0 disables the check.
+    @property
+    def timestamp(self) -> int:
+        return self.custom_depth_data.timestamp.data_ns
+
+    @timestamp.setter
+    def timestamp(self, unsigned long long value):
+        self.custom_depth_data.timestamp.data_ns = value
 
 ##
 # \brief Semantic of human body parts and order of \ref sl.BodyData.keypoint for \ref BODY_FORMAT "sl.BODY_FORMAT.BODY_18".
@@ -7631,6 +7778,20 @@ cdef class CameraParameters:
     @focal_length_metric.setter
     def focal_length_metric(self, float focal_length_metric_):
         self.camera_params.focal_length_metric = focal_length_metric_
+
+    ##
+    # Lens distortion model of these parameters.
+    # \note Raw/unrectified parameters are sl.LENS_DISTORTION_MODEL.RAD_TAN or sl.LENS_DISTORTION_MODEL.FISHEYE, rectified parameters are sl.LENS_DISTORTION_MODEL.PINHOLE.
+    @property
+    def lens_distortion_model(self) -> LENS_DISTORTION_MODEL:
+        return LENS_DISTORTION_MODEL(<int>self.camera_params.lens_distortion_model)
+
+    @lens_distortion_model.setter
+    def lens_distortion_model(self, model_):
+        if isinstance(model_, LENS_DISTORTION_MODEL):
+            self.camera_params.lens_distortion_model = (<c_LENS_DISTORTION_MODEL>(<int>model_.value))
+        else:
+            raise TypeError("Argument is not of LENS_DISTORTION_MODEL type.")
 
     ##
     # Setups the parameters of a camera.
@@ -15375,6 +15536,20 @@ cdef class Camera:
         return _error_code_cache.get(<int>self.camera.ingestCustomMaskObjects(custom_obj, instance_module_id), ERROR_CODE.FAILURE)
 
     ##
+    # Feed the depth pipeline with your own externally computed disparity or depth map.
+    #
+    # Requires \ref InitParameters.depth_mode set to \ref DEPTH_MODE "DEPTH_MODE.CUSTOM".
+    # The expected sequence for each frame is: \ref read(), retrieve the rectified images, compute the map
+    # externally, ingest_custom_depth(), then \ref grab(). The full pipeline then runs on the ingested data.
+    # The map is consumed during the call. Calling \ref grab() without a prior ingest for the current frame
+    # fails with \ref ERROR_CODE "ERROR_CODE.INVALID_FUNCTION_CALL", unless \ref RuntimeParameters.enable_depth
+    # is set to False for that frame.
+    # \param data : the map, its format and options. See \ref CustomDepthData.
+    # \return \ref ERROR_CODE "ERROR_CODE.SUCCESS" if the map was ingested.
+    def ingest_custom_depth(self, CustomDepthData data) -> ERROR_CODE:
+        return _error_code_cache.get(<int>self.camera.ingestCustomDepth(data.custom_depth_data), ERROR_CODE.FAILURE)
+
+    ##
     # Tells if the object detection module is enabled.
     def is_object_detection_enabled(self, uint instance_id = 0) -> bool:
         return self.camera.isObjectDetectionEnabled(instance_id)
@@ -15395,11 +15570,12 @@ cdef class Camera:
     # List all the connected devices with their associated information.
     #
     # This method lists all the cameras available and provides their serial number, models and other information.
+    # \param bus_type : Restrict the enumeration to a single \ref BUS_TYPE (e.g. \ref BUS_TYPE.USB to skip the GMSL probe). \ref BUS_TYPE.AUTO (default) lists all devices.
     # \return The device properties for each connected camera.
     @staticmethod
-    def get_device_list() -> list[DeviceProperties]:
+    def get_device_list(bus_type: BUS_TYPE = BUS_TYPE.AUTO) -> list[DeviceProperties]:
         cam = Camera()
-        vect_ = cam.camera.getDeviceList()
+        vect_ = cam.camera.getDeviceList(<c_BUS_TYPE>(<int>bus_type.value))
         vect_python = []
         for i in range(vect_.size()):
             prop = DeviceProperties()
