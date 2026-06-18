@@ -24,7 +24,7 @@ from libcpp.vector cimport vector
 from libcpp.unordered_set cimport unordered_set
 from libcpp.set cimport set as cpp_set
 from libc.math cimport NAN
-from libc.stdint cimport uint64_t
+from libc.stdint cimport uint64_t, uintptr_t
 from libc.string cimport const_char, memcpy
 from libcpp.string cimport string
 from libcpp.pair cimport pair
@@ -1936,9 +1936,9 @@ cdef class Matrix4f:
 # | WHITEBALANCE_TEMPERATURE | Color temperature control \n Affected value should be between 2800 and 6500 with a step of 100.\note Setting a value will automatically set WHITEBALANCE_AUTO to 0. |
 # | WHITEBALANCE_AUTO | Defines if the white balance is in automatic mode or not. |
 # | LED_STATUS | Status of the front LED of the camera.\n Set to 0 to disable the light, 1 to enable the light.\n Default value is on. \note Requires camera firmware 1523 at least. |
-# | EXPOSURE_TIME | Real exposure time control in microseconds. \note Only available for ZED X/X Mini cameras.\note Replace EXPOSURE setting. |
-# | ANALOG_GAIN | Real analog gain (sensor) control in mDB.\n The range is defined by Jetson DTS and by default [1000-16000]. \note Only available for ZED X/X Mini cameras.\note Replace GAIN settings. |
-# | DIGITAL_GAIN | Real digital gain (ISP) as a factor.\n The range is defined by Jetson DTS and by default [1-256]. \note Only available for ZED X/X Mini cameras.\note Replace GAIN settings. |
+# | EXPOSURE_TIME | Exposure time control in microseconds. \note Only available for ZED X/X Mini cameras, ZED-XOne GS and ZED-XOne UHD cameras.|
+# | ANALOG_GAIN | Analog gain (sensor) control in mDB.\n The range is defined by Jetson DTS and by default [1000-16000]. \note Only available for ZED X/X Mini, ZED-XOne GS and ZED-XOne UHD cameras.|
+# | DIGITAL_GAIN | Digital gain (ISP) as a factor.\n The range is defined by Jetson DTS and by default [1-256]. \note Only available for ZED X/X Mini, ZED-XOne GS and ZED-XOne UHD cameras.|
 # | AUTO_EXPOSURE_TIME_RANGE | Range of exposure auto control in micro seconds.\n Used with \ref Camera.set_camera_settings_range "set_camera_settings_range()".\n Min/max range between max range defined in DTS.\n By default: [28000 - <fps_time> or 19000] us. \note Only available for ZED X/X Mini cameras. |
 # | AUTO_ANALOG_GAIN_RANGE | Range of sensor gain in automatic control.\n Used with \ref Camera.set_camera_settings_range "set_camera_settings_range()".\n Min/max range between max range defined in DTS.\n By default: [1000 - 16000] mdB. \note Only available for ZED X/X Mini cameras. |
 # | AUTO_DIGITAL_GAIN_RANGE | Range of digital ISP gain in automatic control.\n Used with \ref Camera.set_camera_settings_range "set_camera_settings_range()".\n Min/max range between max range defined in DTS.\n By default: [1 - 256]. \note Only available for ZED X/X Mini cameras. |
@@ -8084,6 +8084,25 @@ cdef class CameraInformation:
         return self.serial_number
 
 
+def _resolve_data_pointer(ptr):
+    """Convert a user-supplied pointer argument into an integer memory address.
+
+    Accepts either a raw integer (e.g. ``arr.ctypes.data``) or a NumPy array
+    (in which case its data pointer is extracted via ``__array_interface__``).
+    The caller is responsible for keeping the underlying buffer alive while
+    the resulting sl.Mat is in use.
+    """
+    if isinstance(ptr, (int, np.integer)):
+        return int(ptr)
+    array_interface = getattr(ptr, "__array_interface__", None)
+    if array_interface is not None:
+        return int(array_interface["data"][0])
+    raise TypeError(
+        "ptr must be an integer memory address (e.g. my_numpy_array.ctypes.data) "
+        "or a NumPy array exposing __array_interface__."
+    )
+
+
 def _reconstruct_mat(np_data, mat_type_value, name="", timestamp_ns=0, verbose=False):
     """Helper for unpickling sl.Mat objects."""
     if np_data is None:
@@ -8159,12 +8178,22 @@ cdef class Mat:
     # \param width : Width of the matrix in pixels.
     # \param height : Height of the matrix in pixels.
     # \param mat_type : Type of the matrix ([sl.MAT_TYPE.F32_C1](\ref MAT_TYPE), [sl.MAT_TYPE.U8_C4](\ref MAT_TYPE), etc.).\n Default: [sl.MAT_TYPE.F32_C1](\ref MAT_TYPE)
-    # \param ptr : Pointer to the data array.
+    # \param ptr : Memory address of the data array as an integer (e.g. <code>my_numpy_array.ctypes.data</code>).
     # \param step : Step of the data array (bytes size of one pixel row).
     # \param memory_type : Where the buffer will be stored. Default: [sl.MEM.CPU](\ref MEM) (you cannot change this default value)
+    #
+    # \code
+    # arr = np.zeros((height, width, 4), dtype=np.uint8)
+    # mat = sl.Mat()
+    # mat.init_mat_cpu(width, height, sl.MAT_TYPE.U8_C4, arr.ctypes.data, arr.strides[0])
+    # \endcode
     def init_mat_cpu(self, width: int, height: int, mat_type: MAT_TYPE, ptr, step, memory_type=MEM.CPU) -> None:
+        cdef uintptr_t addr
         if isinstance(mat_type, MAT_TYPE) and isinstance(memory_type, MEM):
-            c_Mat(width, height, <c_MAT_TYPE>(<int>mat_type.value), ptr.encode(), step, <c_MEM>(<int>memory_type.value)).move(self.mat)
+            addr = <uintptr_t>_resolve_data_pointer(ptr)
+            # Borrowed-pointer Mats are non-owning, so move() is a no-op for them.
+            # Use the assignment operator instead so the underlying data pointer is shared.
+            self.mat = c_Mat(width, height, <c_MAT_TYPE>(<int>mat_type.value), <unsigned char*>addr, step, <c_MEM>(<int>memory_type.value))
         else:
             raise TypeError("Argument are not of MAT_TYPE or MEM type.")
 
@@ -8184,12 +8213,15 @@ cdef class Mat:
     # This method does not allocate the memory.
     # \param resolution : the size of the matrix in pixels.
     # \param mat_type : Type of the matrix ([sl.MAT_TYPE.F32_C1](\ref MAT_TYPE), [sl.MAT_TYPE.U8_C4](\ref MAT_TYPE), etc.).\n Default: [sl.MAT_TYPE.F32_C1](\ref MAT_TYPE)
-    # \param ptr : Pointer to the data array (CPU or GPU).
+    # \param ptr : Memory address of the data array as an integer (e.g. <code>my_numpy_array.ctypes.data</code>).
     # \param step : Step of the data array (bytes size of one pixel row).
     # \param memory_type : Where the buffer will be stored. Default: [sl.MEM.CPU](\ref MEM) (you cannot change this default value)
     def init_mat_resolution_cpu(self, resolution: Resolution, mat_type, ptr, step, memory_type=MEM.CPU) -> None:
+        cdef uintptr_t addr
         if isinstance(mat_type, MAT_TYPE) and isinstance(memory_type, MEM):
-            c_Mat(resolution.width, resolution.height, <c_MAT_TYPE>(<int>mat_type.value), ptr.encode(), step, <c_MEM>(<int>memory_type.value)).move(self.mat)
+            addr = <uintptr_t>_resolve_data_pointer(ptr)
+            # See init_mat_cpu: borrowed-pointer Mats can't be moved, only assigned.
+            self.mat = c_Mat(resolution.width, resolution.height, <c_MAT_TYPE>(<int>mat_type.value), <unsigned char*>addr, step, <c_MEM>(<int>memory_type.value))
         else:
             raise TypeError("Argument are not of MAT_TYPE or MEM type.")
 
@@ -11264,6 +11296,38 @@ cdef class InitParameters:
     def set_from_stream(self, str sender_ip, int port=30000) -> None:
         sender_ip_ = sender_ip.encode()
         self.init.input.setFromStream(String(<char*>sender_ip_), port)
+
+    ##
+    # Defines the input source as the camera with the specified GMSL port.
+    # \param gmsl_port : GMSL port number of the camera to open. Default: -1. Any number < 0 will try to open the first available GMSL camera.
+    def set_from_gmsl_port(self, int gmsl_port = -1) -> None:
+        self.init.input.setFromGMSLPort(gmsl_port)
+
+    ##
+    # Defines the input as a virtual stereo camera built from two cameras with the specified ids.
+    # \param id_left : Id of the left camera.
+    # \param id_right : Id of the right camera.
+    # \param virtual_serial_number : Serial number of the virtual stereo camera.
+    # \note: The virtual serial number must fall within an interval that reflects the Product ID range.
+    #    This is necessary to avoid, for instance, downloading calibration data from an unrelated product.
+    #    The valid range is 110000000 to 119999999.
+    #    A support function can be used, based on the ZED One serial number, to compute a valid virtual serial number: \ref generate_virtual_stereo_serial_number
+    # \return False if there's no error and the camera was successfully created, otherwise True.
+    def set_virtual_stereo_from_camera_id(self, uint id_left, uint id_right, uint virtual_serial_number) -> bool:
+        return self.init.input.setVirtualStereoFromCameraIDs(id_left, id_right, virtual_serial_number)
+
+    ##
+    # Defines the input as a virtual stereo camera built from two cameras with the specified serial numbers.
+    # \param camera_left_serial_number : Serial number of the left camera.
+    # \param camera_right_serial_number : Serial number of the right camera.
+    # \param virtual_serial_number : Serial number of the virtual stereo camera.
+    # \note: The virtual serial number must fall within an interval that reflects the Product ID range.
+    #    This is necessary to avoid, for instance, downloading calibration data from an unrelated product.
+    #    The valid range is 110000000 to 119999999.
+    #    A support function can be used, based on the ZED One serial number, to compute a valid virtual serial number: \ref generate_virtual_stereo_serial_number
+    # \return False if there's no error and the camera was successfully created, otherwise True.
+    def set_virtual_stereo_from_serial_numbers(self, uint camera_left_serial_number, uint camera_right_serial_number, uint virtual_serial_number) -> bool:
+        return self.init.input.setVirtualStereoFromSerialNumbers(camera_left_serial_number, camera_right_serial_number, virtual_serial_number)
 
 ##
 # Class containing parameters that defines the behavior of sl.Camera.grab().
@@ -18045,6 +18109,12 @@ cdef class InitParametersOne:
     def set_from_stream(self, str sender_ip, int port = 30000) -> None:
         sender_ip_ = sender_ip.encode()
         self.init.input.setFromStream(String(<char*>sender_ip_), port)
+
+    ##
+    # Defines the input source as the camera with the specified GMSL port.
+    # \param gmsl_port : GMSL port number of the camera to open. Default: -1. Any number < 0 will try to open the first available GMSL camera.
+    def set_from_gmsl_port(self, int gmsl_port = -1) -> None:
+        self.init.input.setFromGMSLPort(gmsl_port)
 
 ##
 # Provide a concise sl.ERROR_CODE string.
