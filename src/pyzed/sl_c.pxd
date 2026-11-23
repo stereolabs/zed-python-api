@@ -123,6 +123,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         ERROR_CODE_MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION 'sl::ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION'
         ERROR_CODE_DRIVER_FAILURE 'sl::ERROR_CODE::DRIVER_FAILURE'
         ERROR_CODE_CAMERA_EXCEEDS_BANDWIDTH 'sl::ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH'
+        ERROR_CODE_INVALID_TIMESTAMP 'sl::ERROR_CODE::INVALID_TIMESTAMP'
+        ERROR_CODE_AI_MODEL_NOT_AVAILABLE 'sl::ERROR_CODE::AI_MODEL_NOT_AVAILABLE'
         ERROR_CODE_LAST 'sl::ERROR_CODE::LAST'
 
     cdef String toString(const ERROR_CODE &o)
@@ -151,6 +153,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         MODEL_ZED_XONE_GS 'sl::MODEL::ZED_XONE_GS'
         MODEL_ZED_XONE_UHD 'sl::MODEL::ZED_XONE_UHD'
         MODEL_ZED_XONE_HDR 'sl::MODEL::ZED_XONE_HDR'
+        MODEL_ZED_XONE_CORE 'sl::MODEL::ZED_XONE_CORE'
         MODEL_LAST 'sl::MODEL::LAST'
 
     cdef String toString(const MODEL &o)
@@ -381,6 +384,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         VIDEO_SETTINGS_DENOISING 'sl::VIDEO_SETTINGS::DENOISING'
         VIDEO_SETTINGS_SCENE_ILLUMINANCE 'sl::VIDEO_SETTINGS::SCENE_ILLUMINANCE'
         VIDEO_SETTINGS_AE_ANTIBANDING 'sl::VIDEO_SETTINGS::AE_ANTIBANDING'
+        VIDEO_SETTINGS_COLOR_CORRECTION_MATRIX 'sl::VIDEO_SETTINGS::COLOR_CORRECTION_MATRIX'
         VIDEO_SETTINGS_LAST 'sl::VIDEO_SETTINGS::LAST'
 
     cdef String toString(const VIDEO_SETTINGS &o)
@@ -394,10 +398,29 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         DEPTH_MODE_NEURAL 'sl::DEPTH_MODE::NEURAL'
         DEPTH_MODE_NEURAL_PLUS 'sl::DEPTH_MODE::NEURAL_PLUS'
         DEPTH_MODE_CUSTOM 'sl::DEPTH_MODE::CUSTOM'
+        DEPTH_MODE_NEURAL_MAX 'sl::DEPTH_MODE::NEURAL_MAX'
         DEPTH_MODE_LAST 'sl::DEPTH_MODE::LAST'
 
     cdef String toString(const DEPTH_MODE &o)
     cdef bool fromString(const String &s, DEPTH_MODE &o)
+
+    ctypedef enum DEPTH_PRECISION 'sl::DEPTH_PRECISION':
+        DEPTH_PRECISION_FP16 'sl::DEPTH_PRECISION::FP16'
+        DEPTH_PRECISION_INT8 'sl::DEPTH_PRECISION::INT8'
+        DEPTH_PRECISION_LAST 'sl::DEPTH_PRECISION::LAST'
+
+    cdef String toString(const DEPTH_PRECISION &o)
+    cdef bool fromString(const String &s, DEPTH_PRECISION &o)
+
+    ctypedef enum DEPTH_COMPUTE_DEVICE 'sl::DEPTH_COMPUTE_DEVICE':
+        DEPTH_COMPUTE_DEVICE_AUTO 'sl::DEPTH_COMPUTE_DEVICE::AUTO'
+        DEPTH_COMPUTE_DEVICE_GPU 'sl::DEPTH_COMPUTE_DEVICE::GPU'
+        DEPTH_COMPUTE_DEVICE_DLA 'sl::DEPTH_COMPUTE_DEVICE::DLA'
+        DEPTH_COMPUTE_DEVICE_PVA 'sl::DEPTH_COMPUTE_DEVICE::PVA'
+        DEPTH_COMPUTE_DEVICE_LAST 'sl::DEPTH_COMPUTE_DEVICE::LAST'
+
+    cdef String toString(const DEPTH_COMPUTE_DEVICE &o)
+    cdef bool fromString(const String &s, DEPTH_COMPUTE_DEVICE &o)
 
     ctypedef enum MEASURE 'sl::MEASURE':
         MEASURE_DISPARITY 'sl::MEASURE::DISPARITY'
@@ -493,6 +516,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
     ctypedef enum TIME_REFERENCE 'sl::TIME_REFERENCE':
         TIME_REFERENCE_IMAGE 'sl::TIME_REFERENCE::IMAGE'
         TIME_REFERENCE_CURRENT 'sl::TIME_REFERENCE::CURRENT'
+        TIME_REFERENCE_IMAGE_CENTER_OF_EXPOSURE 'sl::TIME_REFERENCE::IMAGE_CENTER_OF_EXPOSURE'
         TIME_REFERENCE_LAST 'sl::TIME_REFERENCE::LAST'
 
     cdef String toString(const TIME_REFERENCE &o)
@@ -582,14 +606,27 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         POSITIONAL_TRACKING_FUSION_STATUS_VISUAL_GNSS 'sl::POSITIONAL_TRACKING_FUSION_STATUS::VISUAL_GNSS'
         POSITIONAL_TRACKING_FUSION_STATUS_INERTIAL_GNSS 'sl::POSITIONAL_TRACKING_FUSION_STATUS::INERTIAL_GNSS'
         POSITIONAL_TRACKING_FUSION_STATUS_UNAVAILABLE 'sl::POSITIONAL_TRACKING_FUSION_STATUS::UNAVAILABLE'
+        POSITIONAL_TRACKING_FUSION_STATUS_MOTION_PRIOR 'sl::POSITIONAL_TRACKING_FUSION_STATUS::MOTION_PRIOR'
         POSITIONAL_TRACKING_FUSION_STATUS_LAST 'sl::POSITIONAL_TRACKING_FUSION_STATUS::LAST'
 
     cdef String toString(const POSITIONAL_TRACKING_FUSION_STATUS &o)
+
+    ctypedef enum RELATIVE_POSE_FUSION_STATUS 'sl::RELATIVE_POSE_FUSION_STATUS':
+        RELATIVE_POSE_FUSION_STATUS_OFF 'sl::RELATIVE_POSE_FUSION_STATUS::OFF'
+        RELATIVE_POSE_FUSION_STATUS_OK 'sl::RELATIVE_POSE_FUSION_STATUS::OK'
+        RELATIVE_POSE_FUSION_STATUS_MISSING 'sl::RELATIVE_POSE_FUSION_STATUS::MISSING'
+        RELATIVE_POSE_FUSION_STATUS_OUT_OF_SYNC 'sl::RELATIVE_POSE_FUSION_STATUS::OUT_OF_SYNC'
+        RELATIVE_POSE_FUSION_STATUS_REJECTED 'sl::RELATIVE_POSE_FUSION_STATUS::REJECTED'
+        RELATIVE_POSE_FUSION_STATUS_DEFERRED 'sl::RELATIVE_POSE_FUSION_STATUS::DEFERRED'
+        RELATIVE_POSE_FUSION_STATUS_LAST 'sl::RELATIVE_POSE_FUSION_STATUS::LAST'
+
+    cdef String toString(const RELATIVE_POSE_FUSION_STATUS &o)
 
     cdef cppclass PositionalTrackingStatus 'sl::PositionalTrackingStatus':
         ODOMETRY_STATUS odometry_status
         SPATIAL_MEMORY_STATUS spatial_memory_status
         POSITIONAL_TRACKING_FUSION_STATUS tracking_fusion_status
+        RELATIVE_POSE_FUSION_STATUS relative_pose_fusion_status
 
     cdef String toString(const PositionalTrackingStatus &o)
 
@@ -610,6 +647,16 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     cdef String toString(const POSITIONAL_TRACKING_MODE &o)
     cdef bool fromString(const String &s, POSITIONAL_TRACKING_MODE &o)
+
+    ctypedef enum COMPUTE_PREFERENCE 'sl::COMPUTE_PREFERENCE':
+        COMPUTE_PREFERENCE_AUTO 'sl::COMPUTE_PREFERENCE::AUTO'
+        COMPUTE_PREFERENCE_PREFER_CPU 'sl::COMPUTE_PREFERENCE::PREFER_CPU'
+        COMPUTE_PREFERENCE_PREFER_GPU 'sl::COMPUTE_PREFERENCE::PREFER_GPU'
+        COMPUTE_PREFERENCE_PREFER_ACCELERATORS 'sl::COMPUTE_PREFERENCE::PREFER_ACCELERATORS'
+        COMPUTE_PREFERENCE_LAST 'sl::COMPUTE_PREFERENCE::LAST'
+
+    cdef String toString(const COMPUTE_PREFERENCE &o)
+    cdef bool fromString(const String &s, COMPUTE_PREFERENCE &o)
 
     ctypedef enum AREA_EXPORTING_STATE 'sl::AREA_EXPORTING_STATE':
         AREA_EXPORTING_STATE_SUCCESS 'sl::AREA_EXPORTING_STATE::SUCCESS'
@@ -659,6 +706,38 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
     cdef String toString(const SVO_COMPRESSION_MODE &o)
     cdef bool fromString(const String &s, SVO_COMPRESSION_MODE &o)
 
+    ctypedef enum IMU_SAMPLING_RATE 'sl::IMU_SAMPLING_RATE':
+        IMU_SAMPLING_RATE_DEFAULT 'sl::IMU_SAMPLING_RATE::DEFAULT'
+        IMU_SAMPLING_RATE_HZ_200 'sl::IMU_SAMPLING_RATE::HZ_200'
+        IMU_SAMPLING_RATE_HZ_400 'sl::IMU_SAMPLING_RATE::HZ_400'
+        IMU_SAMPLING_RATE_OFF 'sl::IMU_SAMPLING_RATE::OFF'
+        IMU_SAMPLING_RATE_LAST 'sl::IMU_SAMPLING_RATE::LAST'
+
+    cdef String toString(const IMU_SAMPLING_RATE &o)
+    cdef bool fromString(const String &s, IMU_SAMPLING_RATE &o)
+
+    ctypedef enum ACCELEROMETER_RANGE 'sl::ACCELEROMETER_RANGE':
+        ACCELEROMETER_RANGE_DEFAULT 'sl::ACCELEROMETER_RANGE::DEFAULT'
+        ACCELEROMETER_RANGE_G_3 'sl::ACCELEROMETER_RANGE::G_3'
+        ACCELEROMETER_RANGE_G_6 'sl::ACCELEROMETER_RANGE::G_6'
+        ACCELEROMETER_RANGE_G_12 'sl::ACCELEROMETER_RANGE::G_12'
+        ACCELEROMETER_RANGE_G_24 'sl::ACCELEROMETER_RANGE::G_24'
+        ACCELEROMETER_RANGE_LAST 'sl::ACCELEROMETER_RANGE::LAST'
+
+    cdef String toString(const ACCELEROMETER_RANGE &o)
+    cdef bool fromString(const String &s, ACCELEROMETER_RANGE &o)
+
+    ctypedef enum GYROSCOPE_RANGE 'sl::GYROSCOPE_RANGE':
+        GYROSCOPE_RANGE_DEFAULT 'sl::GYROSCOPE_RANGE::DEFAULT'
+        GYROSCOPE_RANGE_DPS_250 'sl::GYROSCOPE_RANGE::DPS_250'
+        GYROSCOPE_RANGE_DPS_500 'sl::GYROSCOPE_RANGE::DPS_500'
+        GYROSCOPE_RANGE_DPS_1000 'sl::GYROSCOPE_RANGE::DPS_1000'
+        GYROSCOPE_RANGE_DPS_2000 'sl::GYROSCOPE_RANGE::DPS_2000'
+        GYROSCOPE_RANGE_LAST 'sl::GYROSCOPE_RANGE::LAST'
+
+    cdef String toString(const GYROSCOPE_RANGE &o)
+    cdef bool fromString(const String &s, GYROSCOPE_RANGE &o)
+
     ctypedef enum SVO_ENCODING_PRESET 'sl::SVO_ENCODING_PRESET':
         SVO_ENCODING_PRESET_DEFAULT 'sl::SVO_ENCODING_PRESET::DEFAULT'
         SVO_ENCODING_PRESET_ULTRAFAST 'sl::SVO_ENCODING_PRESET::ULTRAFAST'
@@ -695,6 +774,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         INPUT_TYPE_SVO 'sl::INPUT_TYPE::SVO'
         INPUT_TYPE_STREAM 'sl::INPUT_TYPE::STREAM'
         INPUT_TYPE_GMSL 'sl::INPUT_TYPE::GMSL'
+        INPUT_TYPE_MIPI 'sl::INPUT_TYPE::MIPI'
+        INPUT_TYPE_HOLOSCAN 'sl::INPUT_TYPE::HOLOSCAN'
         INPUT_TYPE_LAST 'sl::INPUT_TYPE::LAST'
 
     cdef String toString(const INPUT_TYPE &o)
@@ -716,6 +797,11 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         AI_MODELS_NEURAL_LIGHT_DEPTH 'sl::AI_MODELS::NEURAL_LIGHT_DEPTH'
         AI_MODELS_NEURAL_DEPTH 'sl::AI_MODELS::NEURAL_DEPTH'
         AI_MODELS_NEURAL_PLUS_DEPTH 'sl::AI_MODELS::NEURAL_PLUS_DEPTH'
+        AI_MODELS_NEURAL_DEPTH_INT8 'sl::AI_MODELS::NEURAL_DEPTH_INT8'
+        AI_MODELS_NEURAL_LIGHT_DEPTH_INT8 'sl::AI_MODELS::NEURAL_LIGHT_DEPTH_INT8'
+        AI_MODELS_NEURAL_MAX_DEPTH 'sl::AI_MODELS::NEURAL_MAX_DEPTH'
+        AI_MODELS_NEURAL_PLUS_DEPTH_INT8 'sl::AI_MODELS::NEURAL_PLUS_DEPTH_INT8'
+        AI_MODELS_NEURAL_MAX_DEPTH_INT8 'sl::AI_MODELS::NEURAL_MAX_DEPTH_INT8'
         AI_MODELS_LAST 'sl::AI_MODELS::LAST'
 
     cdef String toString(const AI_MODELS &o)
@@ -728,6 +814,8 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
         OBJECT_DETECTION_MODEL_PERSON_HEAD_BOX_ACCURATE 'sl::OBJECT_DETECTION_MODEL::PERSON_HEAD_BOX_ACCURATE'
         OBJECT_DETECTION_MODEL_CUSTOM_BOX_OBJECTS 'sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS'
         OBJECT_DETECTION_MODEL_CUSTOM_YOLOLIKE_BOX_OBJECTS 'sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS'
+        OBJECT_DETECTION_MODEL_CUSTOM_RFDETRLIKE_BOX_OBJECTS 'sl::OBJECT_DETECTION_MODEL::CUSTOM_RFDETRLIKE_BOX_OBJECTS'
+        OBJECT_DETECTION_MODEL_CUSTOM_BOX_OBJECTS_AUTODETECT 'sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS_AUTODETECT'
         OBJECT_DETECTION_MODEL_LAST 'sl::OBJECT_DETECTION_MODEL::LAST'
 
     cdef String toString(const OBJECT_DETECTION_MODEL &o)
@@ -741,6 +829,14 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
 
     cdef String toString(const BODY_TRACKING_MODEL &o)
     cdef bool fromString(const String &s, BODY_TRACKING_MODEL &o)
+
+    ctypedef enum BODY_TRACKING_MODEL_GEN 'sl::BODY_TRACKING_MODEL_GEN':
+        BODY_TRACKING_MODEL_GEN_GEN_1 'sl::BODY_TRACKING_MODEL_GEN::GEN_1'
+        BODY_TRACKING_MODEL_GEN_GEN_2 'sl::BODY_TRACKING_MODEL_GEN::GEN_2'
+        BODY_TRACKING_MODEL_GEN_LAST 'sl::BODY_TRACKING_MODEL_GEN::LAST'
+
+    cdef String toString(const BODY_TRACKING_MODEL_GEN &o)
+    cdef bool fromString(const String &s, BODY_TRACKING_MODEL_GEN &o)
 
     ctypedef enum OBJECT_FILTERING_MODE 'sl::OBJECT_FILTERING_MODE':
         OBJECT_FILTERING_MODE_NONE 'sl::OBJECT_FILTERING_MODE::NONE'
@@ -1392,6 +1488,7 @@ cdef extern from "sl/Camera.hpp" namespace "sl":
     cdef AI_Model_status checkAIModelStatus(AI_MODELS model, int gpu_id)
     cdef ERROR_CODE downloadAIModel(AI_MODELS model, int gpu_id)
     cdef ERROR_CODE optimizeAIModel(AI_MODELS model, int gpu_id)
+    cdef ERROR_CODE optimizeCustomAIModel(const String &custom_onnx_file, Resolution custom_onnx_dynamic_input_shape, int gpu_id)
     cdef Rotation computeRotationMatrixFromGravity(Vector3[float] axis_to_align, Vector3[float] gravity)
 
     cdef cppclass Rotation(Matrix3f):
@@ -1677,6 +1774,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         BUS_TYPE_USB 'sl::BUS_TYPE::USB'
         BUS_TYPE_GMSL 'sl::BUS_TYPE::GMSL'
         BUS_TYPE_AUTO 'sl::BUS_TYPE::AUTO'
+        BUS_TYPE_MIPI 'sl::BUS_TYPE::MIPI'
+        BUS_TYPE_HOLOSCAN 'sl::BUS_TYPE::HOLOSCAN'
         BUS_TYPE_LAST 'sl::BUS_TYPE::LAST'
 
     cdef String toString(const BUS_TYPE &o)
@@ -1692,6 +1791,12 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         TYPE_OF_INPUT_TYPE_GMSL_SERIAL 'sl::InputType::INPUT_TYPE::GMSL_SERIAL'
         TYPE_OF_INPUT_TYPE_GMSL_PORT 'sl::InputType::INPUT_TYPE::GMSL_PORT'
         TYPE_OF_INPUT_TYPE_AUTO 'sl::InputType::INPUT_TYPE::AUTO'
+        TYPE_OF_INPUT_TYPE_MIPI_ID 'sl::InputType::INPUT_TYPE::MIPI_ID'
+        TYPE_OF_INPUT_TYPE_MIPI_SERIAL 'sl::InputType::INPUT_TYPE::MIPI_SERIAL'
+        TYPE_OF_INPUT_TYPE_MIPI_PORT 'sl::InputType::INPUT_TYPE::MIPI_PORT'
+        TYPE_OF_INPUT_TYPE_HOLOSCAN_ID 'sl::InputType::INPUT_TYPE::HOLOSCAN_ID'
+        TYPE_OF_INPUT_TYPE_HOLOSCAN_SERIAL 'sl::InputType::INPUT_TYPE::HOLOSCAN_SERIAL'
+        TYPE_OF_INPUT_TYPE_HOLOSCAN_PORT 'sl::InputType::INPUT_TYPE::HOLOSCAN_PORT'
         TYPE_OF_INPUT_TYPE_LAST 'sl::InputType::INPUT_TYPE::LAST'
 
     cdef String toString(const TYPE_OF_INPUT_TYPE &o)
@@ -1705,6 +1810,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         void setFromSerialNumber(uint serial_number)
         void setFromSerialNumber(String serial_number)
         void setFromGMSLPort(int gmsl_port)
+        void setFromMIPIPort(int mipi_port)
+        void setFromHoloscanPort(int holoscan_port)
         bool setVirtualStereoFromCameraIDs(int id_left, int id_right, uint virtual_serial_number)
         bool setVirtualStereoFromSerialNumbers(uint camera_left_serial_number, uint camera_right_serial_number, uint virtual_serial_number)
         void setFromSVOFile(String svo_input_filename)
@@ -1746,6 +1853,12 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         int enable_image_validity_check
         Resolution maximum_working_resolution
         String svo_decryption_key
+        DEPTH_PRECISION depth_precision
+        bool allow_depth_cuda_graph
+        DEPTH_COMPUTE_DEVICE depth_compute_device
+        ACCELEROMETER_RANGE imu_accelerometer_range
+        GYROSCOPE_RANGE imu_gyroscope_range
+        IMU_SAMPLING_RATE imu_sampling_rate
 
         InitParameters(RESOLUTION camera_resolution,
                        int camera_fps,
@@ -1771,10 +1884,16 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                        float open_timeout_sec,
                        bool async_grab_camera_recovery,
                        float grab_compute_capping_fps,
-                       bool async_image_retrieval,
                        int enable_image_validity_check,
+                       bool async_image_retrieval,
                        Resolution maximum_working_resolution,
-                       String svo_decryption_key)
+                       String svo_decryption_key,
+                       DEPTH_PRECISION depth_precision,
+                       bool allow_depth_cuda_graph,
+                       DEPTH_COMPUTE_DEVICE depth_compute_device,
+                       ACCELEROMETER_RANGE imu_accelerometer_range,
+                       GYROSCOPE_RANGE imu_gyroscope_range,
+                       IMU_SAMPLING_RATE imu_sampling_rate)
 
         bool save(String filename)
         bool load(String filename)
@@ -1828,6 +1947,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         POSITIONAL_TRACKING_MODE mode
         bool enable_localization_only
         bool enable_2d_ground_mode
+        COMPUTE_PREFERENCE compute_preference
 
         PositionalTrackingParameters(Transform init_pos,
                            bool _enable_memory,
@@ -1840,7 +1960,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                            bool _set_gravity_as_origin,
                            POSITIONAL_TRACKING_MODE _mode,
                            bool enable_localization_only,
-                           bool enable_2d_ground_mode)
+                           bool enable_2d_ground_mode,
+                           COMPUTE_PREFERENCE compute_preference)
 
         bool save(String filename)
         bool load(String filename)
@@ -1896,6 +2017,30 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
 
     cdef String toString(const STREAMING_CODEC &o)
     cdef bool fromString(const String &s, STREAMING_CODEC &o)
+
+    ctypedef enum ENCODED_STREAM_SOURCE 'sl::ENCODED_STREAM_SOURCE':
+        ENCODED_STREAM_SOURCE_RECEIVING 'sl::ENCODED_STREAM_SOURCE::RECEIVING'
+        ENCODED_STREAM_SOURCE_SENDING 'sl::ENCODED_STREAM_SOURCE::SENDING'
+        ENCODED_STREAM_SOURCE_RECORDING 'sl::ENCODED_STREAM_SOURCE::RECORDING'
+        ENCODED_STREAM_SOURCE_LAST 'sl::ENCODED_STREAM_SOURCE::LAST'
+
+    cdef String toString(const ENCODED_STREAM_SOURCE &o)
+    cdef bool fromString(const String &s, ENCODED_STREAM_SOURCE &o)
+
+    cdef struct EncodedStreamPacket 'sl::EncodedStreamPacket':
+        const unsigned char *data
+        size_t size
+        Timestamp timestamp
+        STREAMING_CODEC codec
+        bool is_keyframe
+        ENCODED_STREAM_SOURCE source
+
+    cdef struct EncodedStreamInfo 'sl::EncodedStreamInfo':
+        ENCODED_STREAM_SOURCE source
+        bool active
+        STREAMING_CODEC codec
+        unsigned int bitrate_kbps
+        bool is_lossless
 
     cdef struct StreamingProperties 'sl::StreamingProperties':
         String ip
@@ -2016,6 +2161,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float prediction_timeout_s
         bool allow_reduced_precision_inference
         uint instance_module_id
+        BODY_TRACKING_MODEL_GEN model_gen
         BodyTrackingParameters(bool enable_tracking, 
                     bool enable_segmentation, 
                     BODY_TRACKING_MODEL detection_model, 
@@ -2025,7 +2171,8 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
                     BODY_KEYPOINTS_SELECTION body_selection, 
                     float prediction_timeout_s, 
                     bool allow_reduced_precision_inference, 
-                    uint instance_module_id
+                    uint instance_module_id,
+                    BODY_TRACKING_MODEL_GEN model_gen
             )
 
     cdef cppclass BodyTrackingRuntimeParameters 'sl::BodyTrackingRuntimeParameters':
@@ -2065,6 +2212,36 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         float twist[6]
         float twist_covariance[36]
 
+    ctypedef enum POSE_AXIS 'sl::POSE_AXIS':
+        POSE_AXIS_NONE 'sl::POSE_AXIS::NONE'
+        POSE_AXIS_TX 'sl::POSE_AXIS::TX'
+        POSE_AXIS_TY 'sl::POSE_AXIS::TY'
+        POSE_AXIS_TZ 'sl::POSE_AXIS::TZ'
+        POSE_AXIS_RX 'sl::POSE_AXIS::RX'
+        POSE_AXIS_RY 'sl::POSE_AXIS::RY'
+        POSE_AXIS_RZ 'sl::POSE_AXIS::RZ'
+        POSE_AXIS_TRANSLATION 'sl::POSE_AXIS::TRANSLATION'
+        POSE_AXIS_ROTATION 'sl::POSE_AXIS::ROTATION'
+        POSE_AXIS_ALL 'sl::POSE_AXIS::ALL'
+
+    POSE_AXIS operator|(POSE_AXIS a, POSE_AXIS b)
+    POSE_AXIS operator&(POSE_AXIS a, POSE_AXIS b)
+    POSE_AXIS operator~(POSE_AXIS a)
+    cdef String toString(const POSE_AXIS &o)
+    cdef bool fromString(const String &s, POSE_AXIS &o)
+
+    cdef cppclass RelativePoseData 'sl::RelativePoseData':
+        RelativePoseData()
+
+        Timestamp start_timestamp
+        Timestamp end_timestamp
+        Transform motion
+        POSE_AXIS measured_axes
+        float covariance[36]
+        bool is_stationary
+        Transform sensor_transform
+        float rejection_threshold
+
     cdef cppclass Landmark 'sl::Landmark':
         unsigned long long id
         Vector3[float] position
@@ -2078,6 +2255,14 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         Transform pose
         Timestamp timestamp
         bool is_loaded
+
+    cdef cppclass MotionPriorLink 'sl::MotionPriorLink':
+        uint64_t from_keyframe_id
+        uint64_t to_keyframe_id
+        Timestamp start_timestamp
+        Timestamp end_timestamp
+        RELATIVE_POSE_FUSION_STATUS status
+        Transform motion
 
     ctypedef enum CAMERA_MOTION_STATE 'sl::SensorsData::CAMERA_MOTION_STATE':
         CAMERA_MOTION_STATE_STATIC 'sl::SensorsData::CAMERA_MOTION_STATE::STATIC'
@@ -2176,6 +2361,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         bool low_lighting
         bool low_depth_reliability
         bool low_motion_sensors_reliability
+        bool duplicated_image
 
     cdef String toString(const HealthStatus &status)
 
@@ -2219,6 +2405,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, int value)
         ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, int mini, int maxi)
         ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, Rect roi, SIDE eye, bool reset)
+        ERROR_CODE setCameraSettingsMatrix "setCameraSettings"(VIDEO_SETTINGS settings, const Matrix3f& matrix)
 
         int getSVOPositionAtTimestamp(const Timestamp &timestamp)
 
@@ -2241,6 +2428,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE getPositionalTrackingLandmarks(map[uint64_t, Landmark] & landmarks)
         ERROR_CODE getPositionalTrackingLandmarks2D(vector[Landmark2D] & current_2d_landmarks)
         ERROR_CODE getPositionalTrackingKeyframes(map[uint64_t, KeyFrame] & keyframes)
+        ERROR_CODE getPositionalTrackingMotionPriorLinks(map[uint64_t, MotionPriorLink] & links)
         ERROR_CODE saveAreaMap(String area_file_path)
         AREA_EXPORTING_STATE getAreaExportState()
 
@@ -2251,6 +2439,7 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         ERROR_CODE getSensorsData(SensorsData &sensor_data, TIME_REFERENCE reference_time) nogil
         ERROR_CODE getSensorsDataBatch(vector[SensorsData] &sensor_data) nogil
         ERROR_CODE setIMUPrior(const Transform &transfom)
+        ERROR_CODE ingestMotionPrior(const RelativePoseData &motion_prior)
 
         ERROR_CODE enableSpatialMapping(SpatialMappingParameters spatial_mapping_parameters)
         void pauseSpatialMapping(bool status)
@@ -2284,6 +2473,9 @@ cdef extern from 'sl/Camera.hpp' namespace 'sl':
         void disableStreaming()
         bool isStreamingEnabled()
         CommunicationParameters getCommunicationParameters()
+
+        vector[EncodedStreamInfo] getEncodedStreamsInfo() const
+        ERROR_CODE retrieveEncodedStreamPacket(EncodedStreamPacket &out_packet, ENCODED_STREAM_SOURCE source)
 
         ERROR_CODE enableObjectDetection(ObjectDetectionParameters object_detection_parameters)
         void disableObjectDetection(uint instance_module_id, bool force_disable_all_instances)
@@ -2655,6 +2847,9 @@ cdef extern from "sl/CameraOne.hpp" namespace "sl":
         bool async_grab_camera_recovery
         bool enable_hdr
         String svo_decryption_key
+        ACCELEROMETER_RANGE imu_accelerometer_range
+        GYROSCOPE_RANGE imu_gyroscope_range
+        IMU_SAMPLING_RATE imu_sampling_rate
 
     cdef cppclass CameraOne 'sl::CameraOne':
         CameraOne()
@@ -2678,6 +2873,7 @@ cdef extern from "sl/CameraOne.hpp" namespace "sl":
         ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, int value)
         ERROR_CODE setCameraSettingsRange "setCameraSettings"(VIDEO_SETTINGS settings, int mini, int maxi)
         ERROR_CODE setCameraSettingsROI "setCameraSettings"(VIDEO_SETTINGS settings, Rect roi, bool reset)
+        ERROR_CODE setCameraSettingsMatrix "setCameraSettings"(VIDEO_SETTINGS settings, const Matrix3f& matrix)
 
         ERROR_CODE getCameraSettings(VIDEO_SETTINGS setting, int &settings)
         ERROR_CODE getCameraSettings(VIDEO_SETTINGS setting, int &aec_min_val, int &aec_max_val)
@@ -2709,6 +2905,9 @@ cdef extern from "sl/CameraOne.hpp" namespace "sl":
         ERROR_CODE enableStreaming(StreamingParameters streaming_parameters)
         void disableStreaming()
         bool isStreamingEnabled()
+
+        vector[EncodedStreamInfo] getEncodedStreamsInfo() const
+        ERROR_CODE retrieveEncodedStreamPacket(EncodedStreamPacket &out_packet, ENCODED_STREAM_SOURCE source)
 
         @staticmethod
         vector[DeviceProperties] getDeviceList()
@@ -2916,6 +3115,14 @@ cdef extern from "sl/Sensors.hpp" namespace "sl":
 
     cdef String toString_sensors_type "sl::toString"(const SENSORS_TYPE &o)
 
+    ctypedef enum MULTI_SENSOR_TRACKING_MODE "sl::MULTI_SENSOR_TRACKING_MODE":
+        MULTI_SENSOR_TRACKING_MODE_AUTO "sl::MULTI_SENSOR_TRACKING_MODE::AUTO"
+        MULTI_SENSOR_TRACKING_MODE_PER_SENSOR "sl::MULTI_SENSOR_TRACKING_MODE::PER_SENSOR"
+        MULTI_SENSOR_TRACKING_MODE_SINGLE_BODY "sl::MULTI_SENSOR_TRACKING_MODE::SINGLE_BODY"
+        MULTI_SENSOR_TRACKING_MODE_LAST "sl::MULTI_SENSOR_TRACKING_MODE::LAST"
+
+    cdef String toString_multi_sensor_tracking_mode "sl::toString"(const MULTI_SENSOR_TRACKING_MODE &o)
+
     ctypedef enum SENSORS_REFERENCE_FRAME "sl::SENSORS_REFERENCE_FRAME":
         SENSORS_REFERENCE_FRAME_DEFAULT "sl::SENSORS_REFERENCE_FRAME::DEFAULT"
         SENSORS_REFERENCE_FRAME_SENSOR "sl::SENSORS_REFERENCE_FRAME::SENSOR"
@@ -2990,6 +3197,7 @@ cdef extern from "sl/Sensors.hpp" namespace "sl":
         SENSORS_ERROR_CODE_MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION "sl::SENSORS_ERROR_CODE::MODULE_NOT_COMPATIBLE_WITH_CUDA_VERSION"
         SENSORS_ERROR_CODE_DRIVER_FAILURE "sl::SENSORS_ERROR_CODE::DRIVER_FAILURE"
         SENSORS_ERROR_CODE_CAMERA_EXCEEDS_BANDWIDTH "sl::SENSORS_ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH"
+        SENSORS_ERROR_CODE_AI_MODEL_NOT_AVAILABLE "sl::SENSORS_ERROR_CODE::AI_MODEL_NOT_AVAILABLE"
         SENSORS_ERROR_CODE_LAST "sl::SENSORS_ERROR_CODE::LAST"
 
     cdef String toString_sensors "sl::toString"(const SENSORS_ERROR_CODE& errorCode)
@@ -3067,6 +3275,8 @@ cdef extern from "sl/Sensors.hpp" namespace "sl":
         float depth_min_range
         bool set_gravity_as_origin
         POSITIONAL_TRACKING_MODE mode
+        SensorDeviceIdentifier tracking_camera_id
+        MULTI_SENSOR_TRACKING_MODE multi_sensor_mode
 
     # BatchedData is a type alias for unordered_map<SensorDeviceIdentifier, T>
     # We use ctypedef alias to match the C++ type alias
@@ -3079,6 +3289,16 @@ cdef extern from "sl/Sensors.hpp" namespace "sl":
     ctypedef unordered_map[SensorDeviceIdentifier, HealthStatus] BatchedDataHealthStatus "sl::BatchedData<sl::HealthStatus>"
     ctypedef unordered_map[SensorDeviceIdentifier, int] BatchedDataInt "sl::BatchedData<int>"
     ctypedef unordered_map[SensorDeviceIdentifier, pair[Pose, POSITIONAL_TRACKING_STATE]] BatchedDataPose "sl::BatchedData<std::pair<sl::Pose, sl::POSITIONAL_TRACKING_STATE>>"
+    ctypedef unordered_map[SensorDeviceIdentifier, KeyFrame] BatchedDataKeyFrame "sl::BatchedData<sl::KeyFrame>"
+    ctypedef unordered_map[SensorDeviceIdentifier, map[uint64_t, KeyFrame]] BatchedDataKeyFrameMap "sl::BatchedData<std::map<uint64_t, sl::KeyFrame>>"
+    ctypedef unordered_map[SensorDeviceIdentifier, vector[Landmark2D]] BatchedDataLandmark2D "sl::BatchedData<std::vector<sl::Landmark2D>>"
+
+    cdef cppclass KeyFrameGroup 'sl::KeyFrameGroup':
+        uint64_t id
+        Transform pose
+        Timestamp timestamp
+        bool is_loaded
+        BatchedDataKeyFrame keyframes
 
     # Runtime Sensors Parameters
     cdef cppclass RuntimeSensorsParameters 'sl::RuntimeSensorsParameters':
@@ -3123,6 +3343,7 @@ cdef extern from "sl/Sensors.hpp" namespace "sl":
         SENSORS_ERROR_CODE retrieveSingleMeasure "retrieveMeasure"(Mat& mat, const MEASURE measure, const MEM mem_type, const Resolution image_size, SensorDeviceIdentifier unique_identifier) nogil
         SENSORS_ERROR_CODE retrieveBatchedMeasures "retrieveMeasure"(BatchedDataMat& mat_list, const MEASURE measure, const MEM mem_type, const Resolution image_size, set[SensorDeviceIdentifier] sensors_ids) nogil
         SENSORS_ERROR_CODE retrieveBatchedLidarMeasures "retrieveMeasure"(BatchedDataMat& mat_list, const LIDAR_MEASURE measure, const MEM mem_type, const Resolution image_size, set[SensorDeviceIdentifier] sensors_ids) nogil
+        SENSORS_ERROR_CODE retrieveVoxelMeasure(Mat& mat, const MEASURE measure, const MEM type, const VoxelMeasureParameters params, SensorDeviceIdentifier unique_identifier) nogil
         # Motion sensors data
         SENSORS_ERROR_CODE getMotionSensorsData(SensorsData& data, TIME_REFERENCE reference_time, SensorDeviceIdentifier unique_identifier) nogil
         SENSORS_ERROR_CODE getBatchedMotionSensorsData "getMotionSensorsData"(BatchedDataSensorsData& data, TIME_REFERENCE reference_time, set[SensorDeviceIdentifier] sensors_ids) nogil
@@ -3150,6 +3371,7 @@ cdef extern from "sl/Sensors.hpp" namespace "sl":
         SENSORS_ERROR_CODE setCameraSettings(VIDEO_SETTINGS settings, int value, SensorDeviceIdentifier sensors_id) nogil
         SENSORS_ERROR_CODE setCameraSettingsMinMax "setCameraSettings"(VIDEO_SETTINGS settings, int min_val, int max_val, SensorDeviceIdentifier sensors_id) nogil
         SENSORS_ERROR_CODE setCameraSettingsRect "setCameraSettings"(VIDEO_SETTINGS settings, Rect roi, SIDE side, bool reset, SensorDeviceIdentifier sensors_id) nogil
+        SENSORS_ERROR_CODE setCameraSettingsMatrix "setCameraSettings"(VIDEO_SETTINGS settings, const Matrix3f& matrix, SensorDeviceIdentifier sensors_id) nogil
         # Recording
         SENSORS_ERROR_CODE enableRecording(const RecordingSensorsParameters& recording_parameters) nogil
         RecordingStatus getRecordingStatus(const SensorDeviceIdentifier& sensors_id) nogil
@@ -3188,6 +3410,13 @@ cdef extern from "sl/Sensors.hpp" namespace "sl":
         PositionalTrackingStatus getPositionalTrackingStatus(SensorDeviceIdentifier sensors_id) nogil
         SENSORS_ERROR_CODE saveAreaMap(String area_file_path, SensorDeviceIdentifier sensors_id) nogil
         AREA_EXPORTING_STATE getAreaExportState(SensorDeviceIdentifier sensors_id) nogil
+        MULTI_SENSOR_TRACKING_MODE getMultiSensorTrackingMode() nogil
+        SENSORS_ERROR_CODE getTrackingSensors(set[SensorDeviceIdentifier]& sensors_id) nogil
+        SENSORS_ERROR_CODE getPositionalTrackingLandmarks(map[uint64_t, Landmark]& landmarks) nogil
+        SENSORS_ERROR_CODE getPositionalTrackingLandmarks2D(BatchedDataLandmark2D& landmarks_2d) nogil
+        SENSORS_ERROR_CODE getPositionalTrackingKeyframeGroups(map[uint64_t, KeyFrameGroup]& groups) nogil
+        SENSORS_ERROR_CODE getPositionalTrackingKeyframes(BatchedDataKeyFrameMap& keyframes, set[SensorDeviceIdentifier] sensors_id) nogil
+        SENSORS_ERROR_CODE ingestMotionPrior(const RelativePoseData &motion_prior, SensorDeviceIdentifier sensors_id) nogil
         void disablePositionalTracking(String area_file_path) nogil
         bool isPositionalTrackingEnabled() nogil
         SENSORS_ERROR_CODE close() nogil

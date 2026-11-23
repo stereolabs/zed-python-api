@@ -248,9 +248,8 @@ for mod in GPUmodulesTable:
     extList = cythonize(extension, compiler_directives=cython_directives)
     extensions.extend(extList)
 
-# Runtime requirements
+# Runtime requirements (Cython only builds the module: setup_requires)
 install_requires = [
-    'cython>=3.0.0'
     # NumPy requirement is added below based on Python version
 ]
 
@@ -259,7 +258,12 @@ install_requires = [
 if (sys.version_info.major, sys.version_info.minor) <= (3, 8):
     install_requires.append('numpy>=1.15,<2.0') # oldest-supported-numpy might build against ~1.15 for py38
 else:
-    install_requires.append('numpy>=2.0,<3.0') # For py > 3.8, target numpy 2.x
+    # Built against NumPy 2.x (requirements.txt, pyproject.toml), whose C API targets by default the oldest NumPy
+    # release of this Python (the "NumPy 1.xx" string in the built module: 1.16 for 3.9, 1.20 for 3.10, 1.23 for 3.11,
+    # 1.25 for 3.12 and later), so the module runs on any NumPy from there on. Requiring 2.x made pip replace a system
+    # NumPy 1.x (Ubuntu 24.04, JetPack 7), which it cannot uninstall and which apt's OpenCV, SciPy and pandas need.
+    numpy_min = {(3, 9): '1.16', (3, 10): '1.20', (3, 11): '1.23'}.get(sys.version_info[:2], '1.25')
+    install_requires.append('numpy>=' + numpy_min + ',<3.0')
 
 print("Install requires:", install_requires)
 
