@@ -12,7 +12,7 @@ Please check your python version with the following command. The result should b
 python --version
 ```
 
-- [ZED SDK 5.2](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ZED SDK 5.6](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - Python 3.8+ x64
 - C++ compiler
 

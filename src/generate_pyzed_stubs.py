@@ -10,8 +10,8 @@ from typing import List, Optional, Tuple
 #   (\s*)                            - Captures the indentation before the enum definition (stored in group 1)
 #   class\s+                         - Matches the class keyword followed by spaces
 #   (\w+)                            - Captures the enum name (stored in group 2)
-#   \s*\(\s*(?:enum\.)?Enum\s*\)\s*: - Matches the Enum base class
-ENUM_PATTERN = re.compile(r'^(\s*)class\s+(\w+)\s*\(\s*(?:enum\.)?Enum\s*\)\s*:')
+#   \s*\(\s*(?:enum\.)?(Enum|IntEnum|Flag|IntFlag)\s*\)\s*: - Matches the enum base class (stored in group 3)
+ENUM_PATTERN = re.compile(r'^(\s*)class\s+(\w+)\s*\(\s*(?:enum\.)?(Enum|IntEnum|Flag|IntFlag)\s*\)\s*:')
 
 # Enum value pattern:
 #   \s+      - Matches one or more spaces
@@ -271,7 +271,7 @@ def extract_signature_from_function(pyx_content: List[str], fct_idx: int) -> Tup
     return fct_idx + 1, ", ".join(arg_signature), ret_signature
 
 
-def extract_stub_from_enum(enum_name: str, enum_indent: int, pyx_content: List[str], enum_idx: int, docstring_enum: List[str], missing_docstrings: Optional[List[str]] = None) -> Tuple[int, str]:
+def extract_stub_from_enum(enum_name: str, enum_indent: int, pyx_content: List[str], enum_idx: int, docstring_enum: List[str], missing_docstrings: Optional[List[str]] = None, enum_base: str = "Enum") -> Tuple[int, str]:
     """
     Extract an enum definition from a Cython file
 
@@ -282,6 +282,7 @@ def extract_stub_from_enum(enum_name: str, enum_indent: int, pyx_content: List[s
         enum_idx: The index of the line where the enum definition starts
         docstring_enum: The docstring of the enum definition
         missing_docstrings: List to append missing docstrings to
+        enum_base: The base class of the enum (Enum, IntEnum, Flag or IntFlag), kept in the stub
 
     Returns:
         The index of the line after the enum definition and the extracted stub
@@ -291,7 +292,7 @@ def extract_stub_from_enum(enum_name: str, enum_indent: int, pyx_content: List[s
 
     current_docstring = []
 
-    stub = f"class {enum_name}(enum.Enum):\n"
+    stub = f"class {enum_name}(enum.{enum_base}):\n"
     if len(docstring_enum) > 0:
         stub += " " * 4 + "\"\"\"\n"
         for line_docstring in docstring_enum:
@@ -543,7 +544,7 @@ import numpy.typing as npt
             enum_indent = match.group(1)
             enum_name = match.group(2)
             nb_enums += 1
-            idx_line, enum_stub = extract_stub_from_enum(enum_name, len(enum_indent), pyx_content, idx_line, current_docstring, missing_docstrings)
+            idx_line, enum_stub = extract_stub_from_enum(enum_name, len(enum_indent), pyx_content, idx_line, current_docstring, missing_docstrings, match.group(3))
             stub += enum_stub + "\n"
 
         # This is a class
